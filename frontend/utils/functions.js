@@ -52,7 +52,7 @@ function formatAsBootstrapCard(business) {
 
     // handle the image
     const img = document.createElement('img')
-    img.src = 'backend/uploads/' + business.wallpaper
+    img.src = '/backend/uploads/' + business.wallpaper
     img.className = 'card-img-top h-50 object-fit-cover'
 
     // create the card body
