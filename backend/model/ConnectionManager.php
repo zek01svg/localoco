@@ -2,9 +2,9 @@
     class ConnectionManager {
 
         public function connect() {
-            $servername = 'localhost';
-            $username = 'root';
-            $password = '';
+            $servername = 'localoco-server.mysql.database.azure.com';
+            $username = 'dzlywmlxnx';
+            $password = 'F@ckD3bug!';
             $dbname = 'wad2_project';
             $port = '3306';
             
