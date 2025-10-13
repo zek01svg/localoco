@@ -123,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
             }
 
             header('Location: ../../frontend/login.php');
+            exit;
         }
         elseif ($role == 'business') { // this is for new business signups
 
@@ -233,6 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
             }
 
             header('Location: ../../frontend/login.php');
+            exit;
         }
     }
 }
