@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
                 if ($passwordCorrect === true) { // if pw correct, store role in session and redirect immediately
                     $_SESSION['role'] = $role;
                     $_SESSION['firstName'] = $user->getFirstname();
-                    header('Location: ../../frontend/index.php'); // redirect to main page
+                    header('Location: ../../index.php'); // redirect to main page
                     exit;
                 }
                 else { // in case pw is incorrect, store error message in session
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
                 if ($passwordCorrect) { // if pw correct, store role in session and redirect 
                     
                     $_SESSION['role'] = $role; 
-                    header('Location: ../../frontend/index.php'); // redirect to main page
+                    header('Location: ../../index.php'); // redirect to main page
                     exit;
                     
                 }
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
                 $uen, $hashedPW, $businessName, $businessCategory, $description, $address,$open247,
                 $openingHours, $email, $phoneNumber, $websiteLink, $socialMediaLink, $wallpaper,
                 $dateOfCreation, $priceTier, $offersDelivery, $offersPickup, $paymentOptions);
-
+                
                 if ($registrationSuccessful) {
                     $_SESSION['registerSuccess'] = "<p>Your business has been successfully registered!</p>";
                 }
