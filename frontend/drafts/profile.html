@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LocaLoco — Profile</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --accent: #ff6f84;
+      --bg-pink: #fde9ef;
+    }
+    body {
+      background-color: var(--bg-pink);
+      font-family: 'Inter', sans-serif;
+    }
+    .card {
+      border-radius: 12px;
+    }
+    .avatar {
+      width: 90px;
+      height: 90px;
+      background: linear-gradient(180deg,#fff,#f7eef4);
+      border-radius: 18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 36px;
+      font-weight:700;
+      color: var(--accent);
+    }
+    .tab-content>.tab-pane {
+      margin-top: 15px;
+    }
+    .points-bubble {
+      border: 1px dashed #ccc;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      min-width: 120px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+        <div class="avatar"><img src="logo.jpeg" style="width: 80px; vertical-align: middle;"></div>
+        <div>
+          <div class="fw-bold text-danger">LocaLoco</div>
+          <small class="text-muted">Discover & support local businesses</small>
+        </div>
+      </a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto gap-2">
+          <li class="nav-item"><a class="nav-link" href="#">Map</a></li>
+          <li class="nav-item"><a class="nav-link active" href="profile.html">Profile</a></li>
+          <li class="nav-item"><a class="nav-link" href="forum2.html">Forum</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container my-4">
+    <!-- Profile Card -->
+    <div class="card p-3 d-flex flex-row align-items-center gap-3">
+      <div class="avatar">P</div>
+      <div>
+        <h3>Name</h3>
+        <p class="text-muted mb-1">Name@example.com</p>
+        <div class="d-flex gap-3 text-muted">
+          <span>Bookmarks: 2</span>
+          <span>Points: 380</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mt-4" id="profileTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#bookmarks" type="button">Bookmarks</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#loyalty" type="button">Loyalty Points</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#vouchers" type="button">Discount Vouchers</button>
+      </li>
+    </ul>
+    <div class="tab-content p-3 bg-white shadow-sm rounded-bottom">
+      <!-- Bookmarks -->
+      <div class="tab-pane fade show active" id="bookmarks">
+        <ul class="list-group">
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-bold">Joe's Coffee Shop</div>
+              <small class="text-muted">123 Orchard Rd, Singapore</small>
+            </div>
+            <a href="#" class="btn btn-sm btn-outline-danger">View</a>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-bold">Sunny Fashion</div>
+              <small class="text-muted">456 Bugis St, Singapore</small>
+            </div>
+            <a href="#" class="btn btn-sm btn-outline-danger">View</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Loyalty Points -->
+      <div class="tab-pane fade" id="loyalty">
+        <div class="d-flex gap-3 flex-wrap">
+          <div class="points-bubble">
+            <h4 class="mb-0">380</h4>
+            <small class="text-muted">Total Points</small>
+          </div>
+          <div class="points-bubble">
+            <h5 class="mb-0">Silver</h5>
+            <small class="text-muted">Tier</small>
+          </div>
+          <div class="points-bubble flex-grow-1">
+            <small class="text-muted">No recent activity</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vouchers -->
+      <div class="tab-pane fade" id="vouchers">
+        <ul class="list-group">
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">LL-10OFF</div>
+              <small class="text-muted">10% off at Joe's Coffee</small>
+            </div>
+            <span class="badge bg-secondary">Used</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">SUNNY5</div>
+              <small class="text-muted">$5 off at Sunny Fashion</small>
+            </div>
+            <span class="badge bg-success">Available</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
