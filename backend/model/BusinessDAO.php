@@ -365,7 +365,7 @@ class BusinessDAO {
 
         // map filter keys to conditions
         $stmtExtensions = [
-            'search_query'      => "business_name LIKE :search_query",
+            'search_query'      => "(business_name LIKE :search_query OR description LIKE :search_query)",
             'price_tier'        => "price_tier = :price_tier",
             'business_category' => "business_category = :business_category",
             'newly_added'       => "date_of_creation >= NOW() - INTERVAL 7 DAY",
@@ -383,7 +383,7 @@ class BusinessDAO {
             // for filters with user input, bind params
             if ($key == 'search_query') {
                 $conditions[] = $stmtExtensions[$key];
-                $params[':search_query'] = $value . '%'; 
+                $params[':search_query'] = '%' . $value . '%';
             } elseif ($key == 'business_category') {
                 $conditions[] = $stmtExtensions[$key];
                 $params[':business_category'] = $value;
