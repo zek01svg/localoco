@@ -1,4 +1,9 @@
-// THIS FUNCTION IS A HELPER FUNCTION THAT TAKES IN THE OPENING HRS AND THE OPEN247 BOOLEAN TO DISPLAY WHETHER A BUSINESS IS OPEN/CLOSED/OPEN247
+/**
+ * Determines the current open/closed status of a business.
+ * @param {Object} dailyOpeningHours - Object containing opening and closing times for each day.
+ * @param {boolean|number} open247 - Indicates if the business is open 24/7.
+ * @returns {string} Status message like "Open", "Closed", or "Open 24/7".
+ */
 function displayOpenOrClosed(dailyOpeningHours, open247) {
     const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     const now = new Date()
@@ -40,7 +45,11 @@ function displayOpenOrClosed(dailyOpeningHours, open247) {
     }
 }
 
-// THIS FUNCTION TAKES IN A BUSINESS IN JSON FORM AND RETURNS A FORMATTED BOOTSTRAP CARD
+/**
+ * Converts a business JSON object into a Bootstrap card element
+ * @param {Object} business - Business data
+ * @returns {HTMLElement} A fully constructed Bootstrap card for the business
+ */
 function formatAsBootstrapCard(business) {
     // create the div element
     const businessCard = document.createElement('div')
@@ -52,7 +61,7 @@ function formatAsBootstrapCard(business) {
 
     // handle the image
     const img = document.createElement('img')
-    img.src = '/backend/uploads/' + business.wallpaper
+    // img.src = '/backend/uploads/' + business.wallpaper
     img.className = 'card-img-top h-50 object-fit-cover'
 
     // create the card body
@@ -84,15 +93,26 @@ function formatAsBootstrapCard(business) {
     status.className = 'card-text'
     status.textContent = displayOpenOrClosed(business.opening_hours, business.open247)
 
+    // add the view details button
+    const viewDetailsButton = document.createElement('button')
+    viewDetailsButton.className = 'btn btn-dark'
+    viewDetailsButton.innerText = 'View Details'
+    viewDetailsButton.addEventListener('click', () => {
+        showDetails(business.uen)
+    })
+
     // assemble the card
-    cardBody.append(title, desc, address, phone, status)
+    cardBody.append(title, desc, address, phone, status, viewDetailsButton)
     cardDiv.append(img, cardBody)
     businessCard.appendChild(cardDiv)
 
     return businessCard
 }
 
-// THIS FUNCTION IS THE MAIN FUNCTION THAT DISPLAYS THE CARDS
+/**
+ * Fetches businesses from the server and displays them as Bootstrap cards.
+ * Applies filters if any are active.
+ */
 function displayAndFilterBusinessses() {
     if (Object.keys(filters).length == 0) {
         
@@ -100,6 +120,7 @@ function displayAndFilterBusinessses() {
         .then(response => {
             // console.log(response.data)
             for (let business of response.data) {
+                console.log(business)
                 
                 // format as a bootstrap card using the helper function
                 business = formatAsBootstrapCard(business)
@@ -126,16 +147,107 @@ function displayAndFilterBusinessses() {
             }
             else {
                 for (let business of response.data) {
-                
-                // format as a bootstrap card using the helper function
-                business = formatAsBootstrapCard(business)
+                    // format as a bootstrap card using the helper function
+                    business = formatAsBootstrapCard(business)
 
-                // append to the container
-                cardContainer.appendChild(business)
+                    // append to the container
+                    cardContainer.appendChild(business)
+                }
             }
-            }
-
-            
         })
     }
+}
+
+/**
+ * Creates a "View Details" button for a business card.
+ * @returns {HTMLElement} Button element with click listener to show details.
+ */
+function createButton () {
+    viewDetailsButton = document.createElement('button')
+    viewDetailsButton.className = 'view-detials'
+    viewDetailsButton.innerText = 'View Details'
+    card.addEventListener('click', () => 
+        showDetails(item.id));
+    
+    viewDetailsButton.addEventListener('click', () => {
+        showDetails(item.id)
+    })
+
+    return viewDetailsButton
+}
+
+/**
+ * Fetches and displays detailed information of a business.
+ * Hides the main card list and filtering bar.
+ * @param {string|number} id - Unique identifier of the business to display.
+ */
+function showDetails(id) {
+    // get the elements
+    const display_details_image = document.getElementById('display_details_image')
+    const description = document.getElementById('description')
+    const address = document.getElementById('address')
+    const phone = document.getElementById('phone')
+    const website_link = document.getElementById('website_link')
+    const social_media_link = document.getElementById('social_media_link')
+    const opening_hours = document.getElementById('opening_hours')
+    const isOpen247 = document.getElementById('isOpen247')
+
+    // get the containers
+    const mainCardContainer = document.getElementById('cardContainer')
+    const detailsContainer = document.getElementById('display_details')
+    const filtering_bar = document.getElementById('filtering_bar')
+
+    // clear previous opening hours
+    opening_hours.innerHTML = ''
+
+    axios.get(url, { params: { id: id } })
+        .then(response => {
+            if (response.data.error) {
+                console.warn(response.data.error)
+            } else {
+                const business = response.data
+
+                display_details_image.src = business.wallpaper || ''
+                description.innerText = business.description || ''
+                address.innerHTML = `<strong>Address:</strong> ${business.address || ''}`
+                phone.innerHTML = `<strong>Phone:</strong> ${business.phone || ''}`
+                website_link.innerHTML = `<strong>Website:</strong> <a href="${business.website_link || '#'}" target="_blank">${business.website_link || '-'}</a>`
+                social_media_link.innerHTML = `<strong>Social Media:</strong> <a href="${business.social_media_link || '#'}" target="_blank">${business.social_media_link || '-'}</a>`
+
+                if (business.open247 == 1) {
+                    // display open247
+                    isOpen247.innerText = 'Open 24/7'
+                }
+                else {
+                    for (const [day, times] of Object.entries(business.opening_hours || {})) {
+                        const li = document.createElement('li')
+                        li.innerText = `${day}: ${times.open} - ${times.close}`
+                        opening_hours.appendChild(li)
+                    }
+                }
+                
+
+                // hide main cards and show details
+                mainCardContainer.style.display = 'none'
+                filtering_bar.style.display = 'none'
+                detailsContainer.style.display = 'block'
+            }
+        });
+}
+
+/**
+ * Closes the detailed business view and restores the main card list and filtering bar.
+ */
+function closeDetails() {
+    const mainCardContainer = document.getElementById('cardContainer')
+    const detailsContainer = document.getElementById('display_details')
+    const opening_hours = document.getElementById('opening_hours')
+    const filtering_bar = document.getElementById('filtering_bar')
+
+    // hide details, show main cards
+    detailsContainer.style.display = 'none'
+    mainCardContainer.style.display = '';
+    filtering_bar.style.display = ''
+
+    opening_hours.innerHTML = ''
 }
