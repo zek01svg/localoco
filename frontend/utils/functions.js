@@ -207,10 +207,10 @@ function showDetails(id) {
             } else {
                 const business = response.data
 
-                display_details_image.src = business.wallpaper || ''
-                description.innerText = business.description || ''
-                address.innerHTML = `<strong>Address:</strong> ${business.address || ''}`
-                phone.innerHTML = `<strong>Phone:</strong> ${business.phone || ''}`
+                display_details_image.src = '/backend/uploads/' + business.wallpaper
+                description.innerText = business.description
+                address.innerHTML = `<strong>Address:</strong> ${business.address}`
+                phone.innerHTML = `<strong>Phone:</strong> ${business.phone}`
                 website_link.innerHTML = `<strong>Website:</strong> <a href="${business.website_link || '#'}" target="_blank">${business.website_link || '-'}</a>`
                 social_media_link.innerHTML = `<strong>Social Media:</strong> <a href="${business.social_media_link || '#'}" target="_blank">${business.social_media_link || '-'}</a>`
 
@@ -226,7 +226,6 @@ function showDetails(id) {
                     }
                 }
                 
-
                 // hide main cards and show details
                 mainCardContainer.style.display = 'none'
                 filtering_bar.style.display = 'none'
