@@ -136,15 +136,28 @@ class BusinessDAO {
             }
         }
 
-        // 4️⃣ Create Business object (updated constructor)
-        $business = new Business(
-            $row['uen'], $row['password'], $row['business_name'], $row['business_category'],
-            $row['description'], $row['address'], $row['open247'] ,$openingHours, $row['email'],
-            $row['phone_number'], $row['website_link'], $row['social_media_link'], $row['wallpaper'],
-            $row['date_of_creation'], $row['price_tier'], $row['offers_delivery'], $row['offers_pickup'],
-            $paymentOptions
-        );
-
+        // 4️⃣ Convert to associative array 
+            $business = [
+                'uen' => $row['uen'],
+                'password' => $row['password'],
+                'business_name' => $row['business_name'],
+                'business_category' => $row['business_category'],
+                'description' => $row['description'],
+                'address' => $row['address'],
+                'open247' => $row['open247'],
+                'opening_hours' => $openingHours,
+                'email' => $row['email'],
+                'phone_number' => $row['phone_number'],
+                'website_link' => $row['website_link'],
+                'social_media_link' => $row['social_media_link'],
+                'wallpaper' => $row['wallpaper'],
+                'date_of_creation' => $row['date_of_creation'],
+                'price_tier' => $row['price_tier'],
+                'offers_delivery' => $row['offers_delivery'],
+                'offers_pickup' => $row['offers_pickup'],
+                'payment_options' => $paymentOptions
+            ];
+        
         return $business;
     }
 
