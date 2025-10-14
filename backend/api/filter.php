@@ -15,13 +15,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     // if there are filters
     if (isset($_GET['filters'])) {
         $filters = json_decode($_GET['filters'], true);
-        $businesses = $businessDAO->FilterAndSearch($filters);
+        $payload = $businessDAO->FilterAndSearch($filters);
+    }
+    elseif (isset($_GET['id'])) {
+        $payload = $businessDAO->getBusinessByUEN($_GET['id']);
     }
     else {
-        $businesses = $businessDAO->getAllBusinesses();
+        $payload = $businessDAO->getAllBusinesses();
     }
 
-    echo json_encode($businesses);
-    exit;   
+    echo json_encode($payload);
+    exit;
 }
 ?>
