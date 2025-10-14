@@ -46,7 +46,7 @@
         $role = $_SESSION['role'] ?? 'guest';
 
     ?>
-    <title>Main Page</title>
+    <title>LocaLoco</title>
 </head>
 <body>
     
