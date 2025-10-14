@@ -17,7 +17,7 @@ class BusinessDAO {
         $pdo = $connMgr->connect();
 
         try {
-            $pdo->beginTransaction(); // use begin transaction to ensure we can cancel it if there are any errors
+            $pdo->beginTransaction(); // use begin transaction to ensure we can canc el it if there are any errors
 
             // insert into the businesses table
             $sql = 'INSERT INTO businesses
