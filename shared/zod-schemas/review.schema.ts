@@ -2,11 +2,12 @@ import { z } from 'zod';
 
 // for newReview
 export const newReviewSchema = z.object({
-    userEmail: z.string().email("Invalid email address"),
-    businessUEN: z.string().min(1, "Business UEN is required"),
+    email: z.email("Invalid email address"),
+    uen: z.string().min(1, "Business UEN is required"),
     title: z.string().min(1, "Review title is required"),
     body: z.string().min(1, "Review body is required"),
     rating: z.number().int().min(1, "Rating must be at least 1").max(5, "Rating must be at most 5"),
+    likeCount: z.number().int().default(0),
 });
 
 // for getBusinessReviews

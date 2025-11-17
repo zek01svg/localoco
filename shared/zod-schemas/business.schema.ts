@@ -11,7 +11,7 @@ const HourEntrySchema = z.object({
 
 // base schema for business data
 const BusinessBaseSchema = z.object({
-    ownerId: z.string().min(1),
+    ownerId: z.string().min(1, "Owner ID is required"),
     uen: z.string().min(9, "UEN must be at least 9 characters"),
     businessName: z.string().min(1, "Business name is required"),
     businessCategory: z.string().min(1, "Business category is required"),
@@ -20,25 +20,23 @@ const BusinessBaseSchema = z.object({
     latitude: z.string().or(z.number()).pipe(z.coerce.string()), 
     longitude: z.string().or(z.number()).pipe(z.coerce.string()),
     open247: z.boolean().default(false),
-    openingHours: z.record(DayOfWeekSchema, HourEntrySchema).optional(),
-    email: z.email("Invalid email address").nullable().optional(),
-    phoneNumber: z.string().min(8, "Phone number seems too short").nullable().optional(),
-    websiteUrl: z.url("Invalid URL").nullable().optional(),
-    socialMediaUrl: z.url("Invalid URL").nullable().optional(),
+    openingHours: z.record(DayOfWeekSchema, HourEntrySchema),
+    email: z.email("Invalid email address").default(''),
+    phoneNumber: z.string().min(8, "Phone number seems too short").default(''),
+    websiteUrl: z.url("Invalid URL").default(''),
+    socialMediaUrl: z.url("Invalid URL").default(''),
     wallpaperUrl: z.url("Invalid URL").min(1, "Wallpaper URL is required"),
     priceTier: PriceTierSchema,
     offersDelivery: z.boolean().default(false),
     offersPickup: z.boolean().default(false),
-    paymentOptions: z.array(PaymentOptionSchema).optional(),
+    paymentOptions: z.array(PaymentOptionSchema),
 });
 
 // for registering a business
 export const registerBusinessSchema = BusinessBaseSchema;
 
 // for updating a business 
-export const updateBusinessSchema = BusinessBaseSchema.partial().extend({
-    uen: z.string().min(9, "UEN must be at least 9 characters"),
-});
+export const updateBusinessSchema = BusinessBaseSchema;
 
 // for getFilteredBusinesses
 export const getFilteredBusinessesSchema = z.object({

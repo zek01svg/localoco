@@ -7,17 +7,17 @@ export const getForumPostsByUENSchema = z.object({
 
 // for createForumPost
 export const createForumPostSchema = z.object({
-    email: z.string().email("Invalid email address"),
-    uen: z.string().nullable().optional(),
-    title: z.string().min(1).nullable().optional(),
+    email: z.email("Invalid email address"),
+    uen: z.string().default(''),
+    title: z.string().min(1).default(''),
     body: z.string().min(1, "Post body is required"),
-    likeCount: z.number().int().optional(), 
+    likeCount: z.number().int().default(0), 
 });
 
 // for createForumReply
 export const createForumReplySchema = z.object({
     postId: z.number().int().positive("Post ID must be positive"),
-    userEmail: z.string().email("Invalid email address"),
+    email: z.string().email("Invalid email address"),
     body: z.string().min(1, "Reply body is required"),
 });
 
@@ -36,9 +36,10 @@ export const updateReplyLikesSchema = z.object({
 // for newForumPost
 export const newForumPostSchema = z.object({
     email: z.email("Invalid email address"),
-    businessUen: z.string().nullable().optional(),
-    title: z.string().nullable().optional(),
+    uen: z.string().default(''),
+    title: z.string().default(''),
     body: z.string().min(1, "Post body is required"),
+    likeCount: z.number().int().default(0),
 });
 
 // for newForumPostReply
@@ -46,5 +47,5 @@ export const newForumPostReplySchema = z.object({
     postId: z.number().int().positive("Post ID must be positive"),
     email: z.string().email("Invalid email address"),
     body: z.string().min(1, "Reply body is required"),
-    likeCount: z.number().int().optional(),
+    likeCount: z.number().int().default(0),
 });

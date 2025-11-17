@@ -5,7 +5,7 @@ export const createAnnouncementSchema = z.object({
     uen: z.string().min(1, "Business UEN is required"),
     title: z.string().min(1, "Title is required"),
     content: z.string().min(1, "Content is required"),
-    imageUrl: z.string().url("Invalid image URL").nullable().optional(),
+    imageUrl: z.string("Invalid image URL").default(''),
 });
 
 // for getAnnouncementsByUen
@@ -19,7 +19,7 @@ export const updateAnnouncementSchema = z.object({
     uen: z.string().min(1, "Business UEN is required"),
     title: z.string().min(1, "Title is required"),
     content: z.string().min(1, "Content is required"),
-    imageUrl: z.string().url("Invalid image URL").nullable().optional(),
+    imageUrl: z.string("Invalid image URL").default(''),
 });
 
 // for deleteAnnouncement

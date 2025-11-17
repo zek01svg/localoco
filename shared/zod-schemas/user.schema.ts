@@ -10,9 +10,9 @@ export const updateProfileSchema = z.object({
     userId: z.string().min(1, "User ID is required"),
     name: z.string().min(1, "Name is required"),
     email: z.email("Invalid email address"),
-    imageUrl: z.url("Invalid image URL").nullable().optional(),
-    bio: z.string().nullable().optional(),
-    hasBusiness: z.boolean().optional(),
+    imageUrl: z.url("Invalid image URL").default(''),
+    bio: z.string().default(''),
+    hasBusiness: z.boolean().default(false),
 });
 
 // for getAuthProvider
@@ -35,8 +35,8 @@ export const handleReferralSchema = z.object({
 export const getUserVouchersSchema = z.object({
     userId: z.string().min(1, "User ID is required"),
     status: z.enum(["issued", "used", "expired", "revoked"]).optional(),
-    page: z.number().int().positive().optional(),
-    limit: z.number().int().positive().optional(),
+    page: z.number().int().default(1),
+    limit: z.number().int().default(100),
 });
 
 // for updateVoucherStatus
