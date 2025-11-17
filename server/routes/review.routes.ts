@@ -3,9 +3,8 @@ import ReviewController from "controllers/review.controller";
 import protectRoute from "../middleware/protect-route";
 const reviewRouter = new Hono()
 
-// ---------------------------------------------------- ROUTES FOR THE BUSINESS REVIEWS FEATURE ------------------------------------------
 // this route fetches all the reviews for a business
-reviewRouter.get('/reviews', ReviewController.getBusinessReviews)
+reviewRouter.get('/:uen/reviews', ReviewController.getBusinessReviews)
 
 // this route handles submissions for user reviews for businesses
 reviewRouter.post('/submit-review', protectRoute, ReviewController.newReview)

@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import AnnouncementController from "controllers/announcement.controller";
 import protectRoute from "../middleware/protect-route";
+
 const announcementRouter = new Hono()
 
-// ---------------------------------------------------- ROUTES FOR THE ANNOUNCEMENT FEATURE -----------------------------------------------
 // this route fetches all the announcements for the newsletter
 announcementRouter.get('/newsletter', AnnouncementController.getAllAnnouncements)
 

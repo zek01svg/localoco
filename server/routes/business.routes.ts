@@ -8,7 +8,7 @@ const businessRouter = new Hono()
 businessRouter.get('/', BusinessController.getAllBusinesses);
 
 // triggered by a user using the filters, this route fetches business objects matching the filters
-businessRouter.get('/filter', BusinessController.getFilteredBusinesses)
+businessRouter.post('/filter', BusinessController.getFilteredBusinesses)
 
 // triggered by a user clicking the View Details button, this route fetches a single business from the database
 businessRouter.get('/:uen', BusinessController.getBusinessByUen)
@@ -17,7 +17,7 @@ businessRouter.get('/:uen', BusinessController.getBusinessByUen)
 businessRouter.get('/search', BusinessController.searchBusinessByName)
 
 // triggered by a user clicking the My Businesses button, this route fetches the business/es owned by a user
-businessRouter.get('/owned', protectRoute , BusinessController.getOwnedBusinesses)
+businessRouter.get('/:ownerId/owned', protectRoute , BusinessController.getOwnedBusinesses)
 
 // this route handles business registration
 businessRouter.post('/register-business', BusinessController.registerBusiness)

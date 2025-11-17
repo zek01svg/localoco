@@ -20,10 +20,10 @@ userRouter.delete('/delete-profile', protectRoute, UserController.deleteProfile)
 userRouter.post('/referral', UserController.handleReferral);
 
 // Get user vouchers
-userRouter.get('/:userId/vouchers', UserController.getUserVouchers);
+userRouter.post('/vouchers', protectRoute, UserController.getUserVouchers);
 
 // update the status of the user's voucher/s
-userRouter.put('/update-voucher', UserController.updateVoucherStatus)
+userRouter.put('/update-voucher', protectRoute, UserController.updateVoucherStatus)
 
 // Check email uniqueness
 userRouter.get('/check-email', UserController.checkEmailAvailability);
