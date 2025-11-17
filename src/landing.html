@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en" class="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/png" href="./public/localoco-logo.png" />
+        <title>LocaLoco - Find Local Gems</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="./styles/landing-page.css" rel="stylesheet" />
+    </head>
+    <body>
+        <!-- Hero Section -->
+        <section id="hero" style="position: relative; overflow: hidden">
+            <!-- Rotating background images -->
+            <img id="bgImageLeft" class="bg-image bg-image-left" alt="" />
+            <img id="bgImageRight" class="bg-image bg-image-right" alt="" />
+            <img id="bgImageBottom" class="bg-image bg-image-bottom" alt="" />
+
+            <!-- Decorative dots -->
+            <div
+                class="decorative-dot"
+                style="
+                    top: 6rem;
+                    left: 4rem;
+                    width: 16px;
+                    height: 16px;
+                    opacity: 0.3;
+                    z-index: 1;
+                "
+            ></div>
+            <div
+                class="decorative-dot"
+                style="
+                    top: 12rem;
+                    right: 8rem;
+                    width: 12px;
+                    height: 12px;
+                    opacity: 0.2;
+                    z-index: 1;
+                "
+            ></div>
+            <div
+                class="decorative-dot"
+                style="
+                    bottom: 16rem;
+                    left: 8rem;
+                    width: 20px;
+                    height: 20px;
+                    opacity: 0.2;
+                    z-index: 1;
+                "
+            ></div>
+
+            <div
+                class="fade-in"
+                style="
+                    max-width: 56rem;
+                    text-align: center;
+                    position: relative;
+                    z-index: 10;
+                    animation-delay: 0.2s;
+                "
+            >
+                <h1
+                    style="
+                        font-size: clamp(2.5rem, 8vw, 5rem);
+                        font-weight: 700;
+                        line-height: 1.2;
+                        margin-bottom: 2rem;
+                    "
+                >
+                    Find local gems
+                    <br />
+                    <span style="color: var(--primary)"
+                        >right around the corner</span
+                    >
+                </h1>
+
+                <p
+                    style="
+                        font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+                        color: var(--muted);
+                        line-height: 1.6;
+                        margin-bottom: 3rem;
+                        max-width: 42rem;
+                        margin-left: auto;
+                        margin-right: auto;
+                    "
+                >
+                    Connect with independent shops, cozy cafés, and hidden
+                    markets—all in one beautiful, map-driven experience.
+                </p>
+
+                <button class="cta-button" onclick="enterApp()">
+                    Let's go!
+                </button>
+            </div>
+
+            <!-- Scroll indicator -->
+            <div
+                class="bounce"
+                style="
+                    position: absolute;
+                    bottom: 3rem;
+                    left: 0;
+                    right: 0;
+                    margin: 0 auto;
+                    text-align: center;
+                    opacity: 0.5;
+                    z-index: 5;
+                    width: fit-content;
+                "
+            >
+                <p
+                    style="
+                        font-size: 0.75rem;
+                        text-transform: uppercase;
+                        letter-spacing: 0.1em;
+                        color: var(--muted);
+                        margin-bottom: 0.5rem;
+                        margin: 0 auto 0.5rem auto;
+                    "
+                >
+                    Scroll for more
+                </p>
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    style="color: var(--muted); display: block; margin: 0 auto"
+                >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </div>
+        </section>
+
+        <!-- Why LocaLoco Section -->
+        <section
+            id="why"
+            style="border-top: 1px solid rgba(255, 255, 255, 0.1)"
+        >
+            <div style="max-width: 48rem; width: 100%">
+                <div
+                    class="fade-in"
+                    style="text-align: center; margin-bottom: 4rem"
+                >
+                    <h2
+                        style="
+                            font-size: clamp(2rem, 5vw, 3rem);
+                            font-weight: 700;
+                            margin-bottom: 1rem;
+                        "
+                    >
+                        Why LocaLoco?
+                    </h2>
+                    <p
+                        style="
+                            font-size: clamp(1rem, 2vw, 1.25rem);
+                            color: var(--muted);
+                        "
+                    >
+                        Everything you need to explore and support your
+                        community
+                    </p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4rem">
+                    <!-- Feature 1 -->
+                    <div
+                        class="fade-in"
+                        style="
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
+                            gap: 1rem;
+                            animation-delay: 0.1s;
+                        "
+                    >
+                        <div class="icon-circle">
+                            <svg
+                                width="48"
+                                height="48"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="var(--primary)"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                                ></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                        </div>
+                        <h3
+                            style="
+                                font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+                                font-weight: 600;
+                            "
+                        >
+                            Find Nearby
+                        </h3>
+                        <p
+                            style="
+                                font-size: clamp(1rem, 1.5vw, 1.125rem);
+                                color: var(--muted);
+                                max-width: 28rem;
+                            "
+                        >
+                            Discover local businesses on an interactive map
+                        </p>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div
+                        class="fade-in"
+                        style="
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
+                            gap: 1rem;
+                            animation-delay: 0.2s;
+                        "
+                    >
+                        <div class="icon-circle">
+                            <svg
+                                width="48"
+                                height="48"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="var(--primary)"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                ></path>
+                            </svg>
+                        </div>
+                        <h3
+                            style="
+                                font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+                                font-weight: 600;
+                            "
+                        >
+                            Save Favorites
+                        </h3>
+                        <p
+                            style="
+                                font-size: clamp(1rem, 1.5vw, 1.125rem);
+                                color: var(--muted);
+                                max-width: 28rem;
+                            "
+                        >
+                            Bookmark spots and never forget your favorites
+                        </p>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div
+                        class="fade-in"
+                        style="
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
+                            gap: 1rem;
+                            animation-delay: 0.3s;
+                        "
+                    >
+                        <div class="icon-circle">
+                            <svg
+                                width="48"
+                                height="48"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="var(--primary)"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                                ></path>
+                                <polyline
+                                    points="9 22 9 12 15 12 15 22"
+                                ></polyline>
+                            </svg>
+                        </div>
+                        <h3
+                            style="
+                                font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+                                font-weight: 600;
+                            "
+                        >
+                            Support Local
+                        </h3>
+                        <p
+                            style="
+                                font-size: clamp(1rem, 1.5vw, 1.125rem);
+                                color: var(--muted);
+                                max-width: 28rem;
+                            "
+                        >
+                            Help local businesses thrive in your area
+                        </p>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div
+                        class="fade-in"
+                        style="
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
+                            gap: 1rem;
+                            animation-delay: 0.4s;
+                        "
+                    >
+                        <div class="icon-circle">
+                            <svg
+                                width="48"
+                                height="48"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="var(--primary)"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                                ></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <h3
+                            style="
+                                font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+                                font-weight: 600;
+                            "
+                        >
+                            Community
+                        </h3>
+                        <p
+                            style="
+                                font-size: clamp(1rem, 1.5vw, 1.125rem);
+                                color: var(--muted);
+                                max-width: 28rem;
+                            "
+                        >
+                            Connect with locals who share your interests
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how">
+            <div style="max-width: 48rem; width: 100%">
+                <div
+                    class="fade-in"
+                    style="text-align: center; margin-bottom: 4rem"
+                >
+                    <h2
+                        style="
+                            font-size: clamp(2rem, 5vw, 3rem);
+                            font-weight: 700;
+                        "
+                    >
+                        How it works
+                    </h2>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 3rem">
+                    <!-- Step 1 -->
+                    <div
+                        class="fade-in"
+                        style="
+                            display: flex;
+                            gap: 1.5rem;
+                            align-items: flex-start;
+                            animation-delay: 0.1s;
+                        "
+                    >
+                        <div class="number-circle">1</div>
+                        <div style="padding-top: 0.5rem">
+                            <h3
+                                style="
+                                    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+                                    font-weight: 600;
+                                    margin-bottom: 0.5rem;
+                                "
+                            >
+                                Open the map
+                            </h3>
+                            <p
+                                style="
+                                    font-size: clamp(1rem, 1.5vw, 1.125rem);
+                                    color: var(--muted);
+                                    line-height: 1.6;
+                                "
+                            >
+                                See all local businesses in your area at a
+                                glance
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div
+                        class="fade-in"
+                        style="
+                            display: flex;
+                            gap: 1.5rem;
+                            align-items: flex-start;
+                            animation-delay: 0.2s;
+                        "
+                    >
+                        <div class="number-circle">2</div>
+                        <div style="padding-top: 0.5rem">
+                            <h3
+                                style="
+                                    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+                                    font-weight: 600;
+                                    margin-bottom: 0.5rem;
+                                "
+                            >
+                                Explore & discover
+                            </h3>
+                            <p
+                                style="
+                                    font-size: clamp(1rem, 1.5vw, 1.125rem);
+                                    color: var(--muted);
+                                    line-height: 1.6;
+                                "
+                            >
+                                Browse businesses, read reviews, and find hidden
+                                gems
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div
+                        class="fade-in"
+                        style="
+                            display: flex;
+                            gap: 1.5rem;
+                            align-items: flex-start;
+                            animation-delay: 0.3s;
+                        "
+                    >
+                        <div class="number-circle">3</div>
+                        <div style="padding-top: 0.5rem">
+                            <h3
+                                style="
+                                    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+                                    font-weight: 600;
+                                    margin-bottom: 0.5rem;
+                                "
+                            >
+                                Visit & support
+                            </h3>
+                            <p
+                                style="
+                                    font-size: clamp(1rem, 1.5vw, 1.125rem);
+                                    color: var(--muted);
+                                    line-height: 1.6;
+                                "
+                            >
+                                Support your local community and share your
+                                experiences
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer
+            style="
+                padding: 3rem 2rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                text-align: center;
+            "
+        >
+            <p style="font-size: 0.875rem; color: var(--muted)">
+                © 2025 LocaLoco. All rights reserved.
+            </p>
+        </footer>
+
+        <script>
+            // images from azure storage
+            const images = [
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(10).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(11).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(12).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(13).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(2).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(3).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(4).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(5).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(6).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(7).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(8).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage%20(9).jpg",
+                "https://localoco.blob.core.windows.net/images/landing-page/landingpage.jpg",
+            ];
+
+            let currentImageIndex = 0;
+
+            function rotateImages() {
+                const bgImageLeft = document.getElementById("bgImageLeft");
+                const bgImageRight = document.getElementById("bgImageRight");
+                const bgImageBottom = document.getElementById("bgImageBottom");
+
+                // Fade out
+                bgImageLeft.style.transition = "opacity 1s ease-in-out";
+                bgImageRight.style.transition = "opacity 1s ease-in-out";
+                bgImageBottom.style.transition = "opacity 1s ease-in-out";
+
+                bgImageLeft.style.opacity = "0";
+                bgImageRight.style.opacity = "0";
+                bgImageBottom.style.opacity = "0";
+
+                setTimeout(() => {
+                    // Change images
+                    currentImageIndex = (currentImageIndex + 1) % images.length;
+                    bgImageLeft.src = images[currentImageIndex];
+                    bgImageRight.src =
+                        images[(currentImageIndex + 1) % images.length];
+                    bgImageBottom.src =
+                        images[(currentImageIndex + 2) % images.length];
+
+                    // Fade in
+                    setTimeout(() => {
+                        bgImageLeft.style.opacity = "0.34";
+                        bgImageRight.style.opacity = "0.34";
+                        bgImageBottom.style.opacity = "0.34";
+                    }, 50);
+                }, 1000);
+            }
+
+            // Initialize images
+            const bgImageLeft = document.getElementById("bgImageLeft");
+            const bgImageRight = document.getElementById("bgImageRight");
+            const bgImageBottom = document.getElementById("bgImageBottom");
+
+            bgImageLeft.src = images[0];
+            bgImageRight.src = images[1];
+            bgImageBottom.src = images[2];
+
+            // Trigger the initial fade-in after a short delay
+            setTimeout(() => {
+                bgImageLeft.style.opacity = "0.34";
+                bgImageRight.style.opacity = "0.34";
+                bgImageBottom.style.opacity = "0.34";
+            }, 100); // 100ms delay to allow transition to fire properly
+
+            // Rotate images every 4.5 seconds
+            setInterval(rotateImages, 4500);
+
+            function enterApp() {
+                // Add exiting class for transition
+                document.body.classList.add("exiting");
+
+                // Wait for transition to complete before navigating
+                setTimeout(() => {
+                    window.location.href = "/map";
+                }, 800);
+            }
+
+            // Smooth scroll behavior
+            document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+                anchor.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    document
+                        .querySelector(this.getAttribute("href"))
+                        .scrollIntoView({
+                            behavior: "smooth",
+                        });
+                });
+            });
+        </script>
+    </body>
+</html>
