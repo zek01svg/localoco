@@ -36,14 +36,14 @@ export interface Business {
     paymentOptions: PaymentOption[] | string[];
 }
 export interface FilterOptions {
-    search_query?: string;
-    price_tier?: PriceTier | PriceTier[]
-    business_category?: string | string[];
-    newly_added?: boolean;
-    open247?: boolean;
-    offers_delivery?: boolean;
-    offers_pickup?: boolean;
-    payment_options?: PaymentOption[]; 
-    sort_by?: 'business_name' | 'date_of_creation' | 'price_tier';
-    sort_order?: 'asc' | 'desc';
+    search_query?: string | undefined;
+    price_tier?: PriceTier | PriceTier[] | undefined;
+    business_category?: string | string[] | undefined;
+    newly_added?: boolean | undefined;
+    open247?: boolean | undefined;
+    offers_delivery?: boolean | undefined;
+    offers_pickup?: boolean | undefined;
+    payment_options?: PaymentOption[] | undefined;
+    sort_by?: 'business_name' | 'date_of_creation' | 'price_tier' | undefined;
+    sort_order?: 'asc' | 'desc' | undefined;
 }
