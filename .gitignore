@@ -68,3 +68,5 @@ ehthumbs.db
 *.local
 *.bak
 *.orig
+digest.txt
+dummy.sql
