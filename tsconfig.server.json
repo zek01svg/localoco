@@ -1,0 +1,33 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": ["ES2023"],
+        "module": "ESNext",
+        "baseUrl": "./server",
+        "skipLibCheck": true,
+        "outDir": "./build",
+
+        // bundler mode
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "isolatedModules": true,
+        "moduleDetection": "force",
+        "noEmit": true,
+
+        // linting
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedSideEffectImports": true,
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "forceConsistentCasingInFileNames": true,
+        "paths": {
+            "server/*": ["./server/*"],
+            "shared/*": ["./shared/*"]
+        }
+    },
+    "include": ["server", "./drizzle.config.ts", "vite.config.ts", "shared", "src/types"],
+    "exclude": ["build"]
+}

@@ -1,0 +1,38 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": ["DOM", "DOM.Iterable", "ES2022"],
+        "useDefineForClassFields": true,
+        "skipLibCheck": true,
+        "module": "ESNext",
+        
+        // bundler mode
+        
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "isolatedModules": true,
+        "moduleDetection": "force",
+        "noEmit": true,
+
+        "jsx": "react-jsx",
+
+        // linting
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedSideEffectImports": true,
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "forceConsistentCasingInFileNames": true,
+        "paths": {
+            "src/*": ["./src/*"],
+            "shared/*": ["./shared/*"]
+        },
+
+        // vite global types
+        "types": ["vite/client"]
+    },
+    "include": ["src", "vite.config.ts", "shared"],
+    "exclude": ["build"]
+}
