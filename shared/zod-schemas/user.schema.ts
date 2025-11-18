@@ -8,7 +8,8 @@ export const getUserProfileSchema = z.object({
 // for updateProfile
 export const updateProfileSchema = z.object({
     userId: z.string().min(1, "User ID is required"),
-    name: z.string().min(1, "Name is required"),
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
     email: z.email("Invalid email address"),
     imageUrl: z.url("Invalid image URL").default(''),
     bio: z.string().default(''),
