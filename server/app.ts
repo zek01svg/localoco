@@ -14,7 +14,7 @@ import fileRouter from './routes/file.routes';
 import userRouter from './routes/user.routes';
 import auth from './lib/auth';
 import { env } from 'env';
-import errorHandler from 'middleware/error-handler';
+import errorHandler from './middleware/error-handler';
 
 // initialize the app
 const app = new Hono()
