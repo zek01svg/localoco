@@ -3,7 +3,7 @@
         "target": "ES2022",
         "lib": ["ES2023"],
         "module": "ESNext",
-        "baseUrl": "./server",
+        "baseUrl": ".", 
         "skipLibCheck": true,
         "outDir": "./build",
 
@@ -23,9 +23,18 @@
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true,
         "forceConsistentCasingInFileNames": true,
+        
+        // path mappings
         "paths": {
+            "env": ["./server/env.ts"],
             "server/*": ["./server/*"],
-            "shared/*": ["./shared/*"]
+            "shared/*": ["./shared/*"],
+            "services/*": ["./server/services/*"],
+            "controllers/*": ["./server/controllers/*"],
+            "middleware/*": ["./server/middleware/*"],
+            "routes/*": ["./server/routes/*"],
+            "lib/*": ["./server/lib/*"],
+            "utils/*": ["./server/utils/*"]
         }
     },
     "include": ["server", "./drizzle.config.ts", "vite.config.ts", "shared", "src/types"],
