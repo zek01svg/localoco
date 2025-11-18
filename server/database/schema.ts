@@ -80,13 +80,14 @@ export const businessAnnouncements = mysqlTable(
             }),
         title: varchar({ length: 255 }).notNull(),
         content: text().notNull(),
-        imageUrl: varchar("image_url", { length: 500 }),
+        imageUrl: varchar("image_url", { length: 500 }).notNull(),
         createdAt: timestamp("created_at", { mode: "string" })
             .default(sql`(now())`)
             .notNull(),
         updatedAt: timestamp("updated_at", { mode: "string" })
             .default(sql`(now())`)
-            .onUpdateNow(),
+            .onUpdateNow()
+            .notNull(),
     },
     (table) => [
         index("business_uen").on(table.uen),
@@ -150,7 +151,7 @@ export const businessReviews = mysqlTable(
     "business_reviews",
     {
         id: int().autoincrement().notNull(),
-        userEmail: varchar("user_email", { length: 255 })
+        email: varchar("user_email", { length: 255 })
             .notNull()
             .references(() => user.email, {
                 onDelete: "cascade",
@@ -210,7 +211,7 @@ export const forumPosts = mysqlTable(
     "forum_posts",
     {
         id: int().autoincrement().notNull(),
-        userEmail: varchar("user_email", { length: 255 })
+        email: varchar("email", { length: 255 })
             .notNull()
             .references(() => user.email, {
                 onDelete: "cascade",
@@ -219,7 +220,7 @@ export const forumPosts = mysqlTable(
         uen: varchar("uen", { length: 20 }).references(
             () => businesses.uen,
             { onDelete: "cascade" }
-        ),
+        ).notNull(),
         title: varchar({ length: 255 }),
         body: text().notNull(),
         likeCount: int("like_count").default(0).notNull(),
@@ -229,7 +230,7 @@ export const forumPosts = mysqlTable(
     },
     (table) => [
         index("uen").on(table.uen),
-        index("user_email").on(table.userEmail),
+        index("user_email").on(table.email),
         primaryKey({ columns: [table.id], name: "forum_posts_id" }),
     ]
 );
@@ -333,11 +334,12 @@ export const user = mysqlTable(
             .notNull(),
         updatedAt: timestamp("updated_at", { fsp: 3, mode: "string" })
             .default(sql`(now())`)
-            .notNull(),
+            .notNull()
+            .onUpdateNow(),
         hasBusiness: boolean("has_business").default(false).notNull(),
         referralCode: text("referral_code").notNull(),
         referredByUserId: text("referred_by_user_id"),
-        bio: text(),
+        bio: text().default('').notNull(),
     },
     (table) => [
         primaryKey({ columns: [table.id], name: "user_id" }),
@@ -348,7 +350,7 @@ export const user = mysqlTable(
 export const userPoints = mysqlTable(
     "user_points",
     {
-        userEmail: varchar("user_email", { length: 255 })
+        email: varchar("user_email", { length: 255 })
             .notNull()
             .references(() => user.email, {
                 onDelete: "cascade",
@@ -358,7 +360,7 @@ export const userPoints = mysqlTable(
     },
     (table) => [
         primaryKey({
-            columns: [table.userEmail],
+            columns: [table.email],
             name: "user_points_user_email",
         }),
     ]
