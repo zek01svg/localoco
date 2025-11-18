@@ -4,7 +4,13 @@ import { checkEmailAvailabilitySchema, deleteProfileSchema, getAuthProviderSchem
 
 class UserController {
 
-    static async getProfile(c: Context): Promise<void> {
+    /**
+     * Retrieves a user's profile information by their ID.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the userId parameter fails validation.
+     * @returns {Promise<Response>} A JSON response with the user's profile data.
+     */
+    static async getProfile(c: Context): Promise<Response> {
         
         const payload = c.req.param('userId')
         const validationResult = getUserProfileSchema.safeParse({userId: payload})
@@ -16,10 +22,16 @@ class UserController {
         const userId = validationResult.data.userId
 
         const user = await UserService.getUserById(userId)
-        c.json(user, 200);
+        return c.json(user, 200);
     }
 
-    static async updateProfile(c: Context): Promise<void> {
+    /**
+     * Updates a user's profile information.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with the updated user data and a success message.
+     */
+    static async updateProfile(c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = updateProfileSchema.safeParse(payload)
@@ -31,13 +43,19 @@ class UserController {
         const updateProfileData = validationResult.data
 
         const updatedUser = await UserService.updateProfile(updateProfileData);
-        c.json({
+        return c.json({
             updatedUser: updatedUser,
             message: "User profile updated successfully",
         }, 200)
     }
 
-    static async getAuthProvider(c: Context): Promise<void> {
+    /**
+     * Retrieves the authentication provider (e.g., 'google', null) for a user.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the userId parameter fails validation.
+     * @returns {Promise<Response>} A JSON response with the provider ID.
+     */
+    static async getAuthProvider(c: Context): Promise<Response> {
 
         const payload = c.req.param('userId')
         const validationResult = getAuthProviderSchema.safeParse({userId: payload})
@@ -49,11 +67,17 @@ class UserController {
         const userId = validationResult.data.userId
 
         const provider = await UserService.getAuthProvider(userId);
-        c.json(provider, 200);
+        return c.json(provider, 200);
 
     }
 
-    static async deleteProfile(c: Context): Promise<void> {
+    /**
+     * Deletes a user's profile.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message.
+     */
+    static async deleteProfile(c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = deleteProfileSchema.safeParse(payload)
@@ -65,12 +89,18 @@ class UserController {
         const userId = validationResult.data.userId
     
         await UserService.deleteProfile(userId)
-        c.json({
+        return c.json({
             message: 'Profile deleted successfully',
         }, 200);
     }
 
-    static async handleReferral(c: Context): Promise<void> {
+    /**
+     * Processes a new user referral.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message.
+     */
+    static async handleReferral(c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = handleReferralSchema.safeParse(payload)
@@ -83,13 +113,19 @@ class UserController {
         const referredId = validationResult.data.referredId
 
         await UserService.handleReferral(referralCode, referredId)
-        c.json({
+        return c.json({
             message: 'Referral handled successfully',
         }, 200);
         
     }
 
-    static async getUserVouchers(c: Context): Promise<void> {
+    /**
+     * Retrieves a paginated and optionally filtered list of a user's vouchers.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with the paginated voucher data.
+     */
+    static async getUserVouchers(c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = getUserVouchersSchema.safeParse(payload)
@@ -116,7 +152,7 @@ class UserController {
         const endIndex = startIndex + limit;
         const paginatedVouchers = vouchers.slice(startIndex, endIndex);
 
-        c.json({
+        return c.json({
             vouchers: paginatedVouchers,
             total: vouchers.length,
             page,
@@ -125,7 +161,13 @@ class UserController {
 
     }
 
-    static async updateVoucherStatus (c: Context): Promise<void> {
+    /**
+     * Updates the status of a specific voucher (e.g., to 'used').
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message.
+     */
+    static async updateVoucherStatus (c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = updateVoucherStatusSchema.safeParse(payload)
@@ -137,12 +179,18 @@ class UserController {
 
         await UserService.updateVoucherStatus(voucherId)
 
-        c.json({
+        return c.json({
             message: "Voucher status updated successfully"
-        }), 200
+        }, 200)
     }
 
-    static async checkEmailAvailability(c: Context): Promise<void> {
+    /**
+     * Checks if an email address is already in use.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the email query parameter fails validation.
+     * @returns {Promise<Response>} A JSON response with a boolean 'available' property.
+     */
+    static async checkEmailAvailability(c: Context): Promise<Response> {
 
         const payload = c.req.query('email')
         const validationResult = checkEmailAvailabilitySchema.safeParse({email: payload})
@@ -154,7 +202,7 @@ class UserController {
         const email = validationResult.data.email
         
         const available = await UserService.checkEmailExists(email);
-        c.json({ 
+        return c.json({ 
             available: available 
         }, 200);
         

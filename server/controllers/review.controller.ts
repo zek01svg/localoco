@@ -4,7 +4,13 @@ import { Context } from "hono";
 
 class ReviewController {
 
-    static async newReview (c: Context): Promise<void> {
+    /**
+     * Creates a new review for a business and returns points earned.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message and points earned.
+     */
+    static async newReview (c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = newReviewSchema.safeParse(payload)
@@ -16,14 +22,19 @@ class ReviewController {
         const review = validationResult.data
 
         await ReviewModel.newReview(review);
-        c.json({
+        return c.json({
             message: "Review added successfully",
             pointsEarned: 5
         }, 201);
-        
     }
     
-    static async getBusinessReviews(c: Context): Promise<void> {
+    /**
+     * Retrieves all reviews for a specific business UEN.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the UEN parameter fails validation.
+     * @returns {Promise<Response>} A JSON response containing an array of reviews.
+     */
+    static async getBusinessReviews(c: Context): Promise<Response> {
 
         const payload = c.req.param('uen')
         const validationResult = getBusinessReviewsSchema.safeParse({uen: payload})
@@ -34,10 +45,16 @@ class ReviewController {
         const uen = validationResult.data.uen
 
         const reviews = await ReviewModel.getBusinessReviews(uen);
-        c.json(reviews, 200)
+        return c.json(reviews, 200)
     }
 
-    static async updateReview(c: Context): Promise<void> {
+    /**
+     * Updates an existing review.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message.
+     */
+    static async updateReview(c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = updateReviewSchema.safeParse(payload)
@@ -53,12 +70,18 @@ class ReviewController {
         }
 
         await ReviewModel.updateReview(id, UpdateReviewData);
-        c.json({
+        return c.json({
             message: 'Review updated successfully'
         }, 200)
     }
 
-    static async deleteReview (c: Context): Promise<void> {
+    /**
+     * Deletes a review by its ID.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message.
+     */
+    static async deleteReview (c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = deleteReviewSchema.safeParse(payload)
@@ -70,13 +93,19 @@ class ReviewController {
         const id = validationResult.data.id
 
         await ReviewModel.deleteReview(id);
-        c.json({ 
+        return c.json({ 
             message: "Review deleted successfully" 
         }, 200);
     
     }
 
-    static async updateReviewLikes(c: Context): Promise<void> {
+    /**
+     * Updates the like count for a review.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with the updated review and a success message.
+     */
+    static async updateReviewLikes(c: Context): Promise<Response> {
 
         const payload = c.req.json()
         const validationResult = updateReviewLikesSchema.safeParse(payload)
@@ -89,7 +118,7 @@ class ReviewController {
         const clicked = validationResult.data.clicked;
         
         const updatedReview = await ReviewModel.updateReviewLikes(reviewId, clicked);
-        c.json({
+        return c.json({
             updatedReview: updatedReview,
             message: "Review likes updated successfully",
         }, 200);

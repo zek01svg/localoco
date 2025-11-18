@@ -7,6 +7,12 @@ import { checkUenAvailabilitySchema, deleteBusinessSchema, getBusinessByUenSchem
 
 class BusinessController {
 
+    /**
+     * Registers a new business and sends a email informing the user of the new business listing.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message.
+     */
     static async registerBusiness(c: Context): Promise<Response> {
 
         const payload = c.req.json()
@@ -37,11 +43,22 @@ class BusinessController {
         }, 201);
     }
 
+    /**
+     * Retrieves all businesses.
+     * @param {Context} c - The Hono context.
+     * @returns {Promise<Response>} A JSON response containing an array of all businesses.
+     */
     static async getAllBusinesses(c: Context): Promise<Response> {
         const businesses = await BusinessService.getAllBusinesses();                
         return c.json(businesses, 200);
     }
     
+    /**
+     * Retrieves businesses based on applied filters.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body (filters) fails validation.
+     * @returns {Promise<Response>} A JSON response containing an array of filtered businesses.
+     */
     static async getFilteredBusinesses(c: Context): Promise<Response> {
 
         const payload = await c.req.json();
@@ -56,6 +73,13 @@ class BusinessController {
         return c.json(filteredBusinesses, 200);
     }
     
+    /**
+     * Retrieves a single business by its UEN.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the UEN parameter fails validation.
+     * @throws {HTTPException} If the business with the specified UEN is not found.
+     * @returns {Promise<Response>} A JSON response containing the business object.
+     */
     static async getBusinessByUen(c: Context): Promise<Response> {
         const payload = c.req.param('uen');
         const validationResult = getBusinessByUenSchema.safeParse({uen: payload})
@@ -74,6 +98,13 @@ class BusinessController {
         return c.json(business, 200);
     }
 
+    /**
+     * Searches for businesses by name.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the name query parameter fails validation.
+     * @throws {HTTPException} If no business is found matching the name.
+     * @returns {Promise<Response>} A JSON response containing the matching business(es).
+     */
     static async searchBusinessByName(c: Context): Promise<Response> {
 
         const payload = c.req.query('name');
@@ -93,6 +124,12 @@ class BusinessController {
         return c.json(business, 200);
     }
 
+    /**
+     * Retrieves all businesses owned by a specific user.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the ownerId parameter fails validation.
+     * @returns {Promise<Response>} A JSON response containing an array of owned businesses.
+     */
     static async getOwnedBusinesses(c: Context): Promise<Response> {
 
         const payload = c.req.param('ownerId');
@@ -110,6 +147,12 @@ class BusinessController {
 
     }
     
+    /**
+     * Updates an existing business's details.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message and the updated business object.
+     */
     static async updateBusiness(c: Context): Promise<Response> {
 
         const payload = c.req.json()
@@ -129,6 +172,12 @@ class BusinessController {
         }, 200);
     }
 
+    /**
+     * Deletes a business by its UEN.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the request body (containing UEN) fails validation.
+     * @returns {Promise<Response>} A JSON response with a success message.
+     */
     static async deleteBusiness(c: Context): Promise<Response> {
 
         const payload = c.req.json()
@@ -147,6 +196,12 @@ class BusinessController {
 
     }
 
+    /**
+     * Checks if a UEN is already registered in the database.
+     * @param {Context} c - The Hono context.
+     * @throws {ZodError} If the UEN query parameter fails validation.
+     * @returns {Promise<Response>} A JSON response indicating if the UEN is available (true/false).
+     */
     static async checkUenAvailability(c: Context): Promise<Response> {
 
         const payload = c.req.query('uen')
