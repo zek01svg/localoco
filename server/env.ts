@@ -7,7 +7,7 @@ export const env = createEnv({
     },
     server: {
         NODE_ENV: z.enum(["development", "production"]).default("development"),
-        PORT: z.number(),
+        PORT: z.coerce.number(),
 
         // db connection stuff
         DATABASE_URL: z.url(),
@@ -62,7 +62,8 @@ export const env = createEnv({
         COMMUNICATION_SERVICES_CONNECTION_STRING: process.env.COMMUNICATION_SERVICES_CONNECTION_STRING,
         SENDER_ADDRESS: process.env.SENDER_ADDRESS,
         
-        APP_URL: process.env.APP_URL
+        APP_URL: process.env.APP_URL,
+        VITE_APP_URL: process.env.VITE_APP_URL
     },
     skipValidation:
         !!process.env.CI || process.env.npm_lifecycle_event === "lint",
