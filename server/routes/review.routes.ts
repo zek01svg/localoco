@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import ReviewController from "controllers/review.controller";
+import ReviewController from "server/controllers/review.controller";
 import protectRoute from "../middleware/protect-route";
 const reviewRouter = new Hono()
 

@@ -1,4 +1,4 @@
-import checkDbResult from 'utils/check-db-result';
+import checkDbResult from 'server/utils/check-db-result';
 import { User } from '../../shared/types/user.types';
 import db from '../database/db'
 import { referrals, user, userPoints, vouchers, account, businessReviews } from '../database/schema';
@@ -12,7 +12,7 @@ class UserService {
      * @param {string} userId - The unique identifier of the user.
      * @returns {Promise<Object>} The `User` object corresponding to the ID, or `null` if not found.
      */
-    public static async getUserById(userId: string):Promise<Object> {
+    public static async getUserById(userId: string) {
         const profile = await db.select().from(user).where(eq(user.id, userId))
 
         // Fetch vouchers with referral code (join with referrals table)

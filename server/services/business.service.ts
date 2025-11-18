@@ -1,4 +1,4 @@
-import checkDbResult from "utils/check-db-result";
+import checkDbResult from "server/utils/check-db-result";
 import { Business, HourEntry, DayOfWeek, FilterOptions } from "../../shared/types/business.types";
 import db from '../database/db'
 import { businesses, businessReviews, businessPaymentOptions, businessOpeningHours, user } from '../database/schema';

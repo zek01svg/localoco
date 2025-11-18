@@ -2,7 +2,7 @@ import { Bookmark } from "../../shared/types/bookmark.types";
 import { bookmarkedBusinesses } from "../database/schema";
 import db from "../database/db";
 import { eq, and } from "drizzle-orm";
-import checkDbResult from "utils/check-db-result";
+import checkDbResult from "server/utils/check-db-result";
 
 class BookmarkService {
     /**

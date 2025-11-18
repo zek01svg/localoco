@@ -1,4 +1,4 @@
-import AnnouncementService from "services/announcement.service"
+import AnnouncementService from "server/services/announcement.service";
 import { Context } from "hono"
 import { createAnnouncementSchema, deleteAnnouncementSchema, getAnnouncementsByUenSchema, updateAnnouncementSchema } from "../../shared/zod-schemas/announcement.schema";
 

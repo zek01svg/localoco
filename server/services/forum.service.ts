@@ -1,4 +1,4 @@
-import checkDbResult from 'utils/check-db-result';
+import checkDbResult from 'server/utils/check-db-result'; 
 import { ForumPost, ForumPostReply } from '../../shared/types/forum-post.types';
 import db from '../database/db'
 import { forumPosts, forumPostsReplies, businesses, user } from '../database/schema';

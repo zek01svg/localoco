@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import AnnouncementController from "controllers/announcement.controller";
+import AnnouncementController from "server/controllers/announcement.controller"; 
 import protectRoute from "../middleware/protect-route";
 
 const announcementRouter = new Hono()

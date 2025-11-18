@@ -1,4 +1,4 @@
-import checkDbResult from 'utils/check-db-result';
+import checkDbResult from 'server/utils/check-db-result';
 import { Review, UpdateReviewData } from '../../shared/types/review.types';
 import db from '../database/db'
 import { businessReviews, user } from '../database/schema';

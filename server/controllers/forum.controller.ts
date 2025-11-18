@@ -1,4 +1,4 @@
-import ForumService from "services/forum.service";
+import ForumService from "server/services/forum.service";
 import { Context } from "hono"
 import { createForumPostSchema, createForumReplySchema, getForumPostsByUENSchema, updatePostLikesSchema } from "../../shared/zod-schemas/forum.schema";
 

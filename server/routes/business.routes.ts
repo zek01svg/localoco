@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import BusinessController from 'controllers/business.controller';
+import BusinessController from 'server/controllers/business.controller';
 import protectRoute from '../middleware/protect-route';
 
 const businessRouter = new Hono()

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import BookmarkController from "controllers/bookmark.controller";
+import BookmarkController from "server/controllers/bookmark.controller";
 import protectRoute from "../middleware/protect-route";
 const bookmarkRouter = new Hono()
 

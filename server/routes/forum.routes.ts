@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import ForumController from "controllers/forum.controller";
+import ForumController from "server/controllers/forum.controller";
 import protectRoute from "../middleware/protect-route";
 const forumRouter = new Hono()
 

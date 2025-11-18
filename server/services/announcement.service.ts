@@ -2,7 +2,7 @@ import { Announcement } from '../../shared/types/announcement.types';
 import db from '../database/db'
 import { businessAnnouncements } from '../database/schema';
 import { eq } from 'drizzle-orm';
-import checkDbResult from 'utils/check-db-result';
+import checkDbResult from 'server/utils/check-db-result';
 
 class AnnouncementService {
     
