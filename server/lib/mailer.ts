@@ -1,8 +1,9 @@
 import { EmailClient } from '@azure/communication-email';
+import { env } from 'env';
 
-const connectionString = String(process.env.COMMUNICATION_SERVICES_CONNECTION_STRING)
-const senderAddress = String(process.env.SENDER_ADDRESS)
-const emailClient = new EmailClient(connectionString!);
+const connectionString = env.COMMUNICATION_SERVICES_CONNECTION_STRING
+const senderAddress = env.SENDER_ADDRESS
+const emailClient = new EmailClient(connectionString);
 
 /**
  * Sends an email using Azure Communication Services.
@@ -12,12 +13,11 @@ const emailClient = new EmailClient(connectionString!);
  */ 
 export async function sendEmail(to: string, subject: string, htmlContent: string) {
     if (!emailClient) {
-        console.error("Email client is not initialized. Check your connection string.");
-        return;
+        throw new Error("Email client is not initialized. Check your connection string.");
     }
 
     const message = {
-        senderAddress: senderAddress!,
+        senderAddress: senderAddress,
         content: {
             subject: subject,
             html: htmlContent,
@@ -27,13 +27,8 @@ export async function sendEmail(to: string, subject: string, htmlContent: string
         }
     };
 
-    try {
-        const poller = await emailClient.beginSend(message);
-        const result = await poller.pollUntilDone();
-    } 
-    catch (error:any) {
-        console.error(`Error sending email: ${error}`);
-    }
+    const poller = await emailClient.beginSend(message);
+    await poller.pollUntilDone();
 }
 
 // brand colors 
