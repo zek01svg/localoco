@@ -1,8 +1,8 @@
-import { EmailClient } from '@azure/communication-email';
-import { env } from 'env';
+import { EmailClient } from "@azure/communication-email";
+import { env } from "@server/env";
 
-const connectionString = env.COMMUNICATION_SERVICES_CONNECTION_STRING
-const senderAddress = env.SENDER_ADDRESS
+const connectionString = env.COMMUNICATION_SERVICES_CONNECTION_STRING;
+const senderAddress = env.SENDER_ADDRESS;
 const emailClient = new EmailClient(connectionString);
 
 /**
@@ -10,10 +10,16 @@ const emailClient = new EmailClient(connectionString);
  * @param to - The recipient's email address.
  * @param subject - The subject line of the email.
  * @param htmlContent - The HTML body of the email.
- */ 
-export async function sendEmail(to: string, subject: string, htmlContent: string) {
+ */
+export async function sendEmail(
+    to: string,
+    subject: string,
+    htmlContent: string,
+) {
     if (!emailClient) {
-        throw new Error("Email client is not initialized. Check your connection string.");
+        throw new Error(
+            "Email client is not initialized. Check your connection string.",
+        );
     }
 
     const message = {
@@ -24,19 +30,19 @@ export async function sendEmail(to: string, subject: string, htmlContent: string
         },
         recipients: {
             to: [{ address: to }],
-        }
+        },
     };
 
     const poller = await emailClient.beginSend(message);
-    await poller.pollUntilDone();
+    poller.pollUntilDone();
 }
 
-// brand colors 
+// brand colors
 const brandColors = {
-    primary: '#D9A5A5',
-    light: '#F9EEEE',    
-    dark: '#333333',     
-    white: '#FFFFFF'
+    primary: "#D9A5A5",
+    light: "#F9EEEE",
+    dark: "#333333",
+    white: "#FFFFFF",
 };
 
 /**
@@ -101,7 +107,10 @@ export function getVerificationEmailHtml(url: string): string {
  * @param user - The user object (must contain at least 'email')
  * @returns HTML string
  */
-export function getResetPasswordEmailHtml(url: string, user: { email: string }): string {
+export function getResetPasswordEmailHtml(
+    url: string,
+    user: { email: string },
+): string {
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -160,12 +169,12 @@ export function getResetPasswordEmailHtml(url: string, user: { email: string }):
 </html>`;
 }
 
-export function generateWelcomeEmail ():string {
-    return ``
+export function generateWelcomeEmail(): string {
+    return ``;
 }
 
-export function generateNotificationEmail ():string {
-    return ``
+export function generateNotificationEmail(): string {
+    return ``;
 }
 
 /**
@@ -173,7 +182,12 @@ export function generateNotificationEmail ():string {
  * @param business - The business object
  * @returns HTML string
  */
-export function generateNewBusinessListingEmail(business: { uen: string, businessName: string, businessCategory: string, address: string }): string {
+export function generateNewBusinessListingEmail(business: {
+    uen: string;
+    businessName: string;
+    businessCategory: string;
+    address: string;
+}): string {
     return `
 <!DOCTYPE html>
 <html lang="en">
