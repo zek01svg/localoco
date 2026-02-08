@@ -1,0 +1,6 @@
+# reject push if errors are present
+echo "🚧 Running pre-push checks..."
+
+# run tests
+echo "🚧 Running available tests"
+bun test --concurrent

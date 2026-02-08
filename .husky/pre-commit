@@ -1,0 +1,5 @@
+# reject commit if errors are present
+echo "🚧 Running pre-commit checks"
+
+echo "🚧 Running static analyses (lint and type checks) concurrently"
+bunx concurrently --kill-others-on-fail "bun run lint:check" "bun run type:check"
