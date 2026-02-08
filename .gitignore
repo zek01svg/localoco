@@ -3,6 +3,7 @@
 # ------------------------
 node_modules/
 bun.lockb
+bun.lock
 package-lock.json
 
 # ------------------------
@@ -70,3 +71,4 @@ ehthumbs.db
 *.orig
 digest.txt
 dummy.sql
+.tanstack
