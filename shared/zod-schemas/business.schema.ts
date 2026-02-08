@@ -1,8 +1,21 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-const PriceTierSchema = z.enum(['low', 'medium', 'high']);
-const DayOfWeekSchema = z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
-const PaymentOptionSchema = z.enum(['cash', 'card', 'paynow', 'digital_wallets']);
+const PriceTierSchema = z.enum(["low", "medium", "high"]);
+const DayOfWeekSchema = z.enum([
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]);
+const PaymentOptionSchema = z.enum([
+    "cash",
+    "card",
+    "paynow",
+    "digital_wallets",
+]);
 
 const HourEntrySchema = z.object({
     open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format (HH:MM)"),
@@ -17,14 +30,14 @@ const BusinessBaseSchema = z.object({
     businessCategory: z.string().min(1, "Business category is required"),
     description: z.string().min(1, "Description is required"),
     address: z.string().min(1, "Address is required"),
-    latitude: z.string().or(z.number()).pipe(z.coerce.string()), 
+    latitude: z.string().or(z.number()).pipe(z.coerce.string()),
     longitude: z.string().or(z.number()).pipe(z.coerce.string()),
     open247: z.boolean().default(false),
     openingHours: z.record(DayOfWeekSchema, HourEntrySchema),
-    email: z.email("Invalid email address").default(''),
-    phoneNumber: z.string().min(8, "Phone number seems too short").default(''),
-    websiteUrl: z.url("Invalid URL").default(''),
-    socialMediaUrl: z.url("Invalid URL").default(''),
+    email: z.email("Invalid email address").default(""),
+    phoneNumber: z.string().min(8, "Phone number seems too short").default(""),
+    websiteUrl: z.url("Invalid URL").default(""),
+    socialMediaUrl: z.url("Invalid URL").default(""),
     wallpaperUrl: z.url("Invalid URL").min(1, "Wallpaper URL is required"),
     priceTier: PriceTierSchema,
     offersDelivery: z.boolean().default(false),
@@ -35,7 +48,7 @@ const BusinessBaseSchema = z.object({
 // for registering a business
 export const registerBusinessSchema = BusinessBaseSchema;
 
-// for updating a business 
+// for updating a business
 export const updateBusinessSchema = BusinessBaseSchema;
 
 // for getFilteredBusinesses
@@ -48,8 +61,10 @@ export const getFilteredBusinessesSchema = z.object({
     offers_delivery: z.boolean().optional(),
     offers_pickup: z.boolean().optional(),
     payment_options: z.array(PaymentOptionSchema).optional(),
-    sort_by: z.enum(['business_name', 'date_of_creation', 'price_tier']).optional(),
-    sort_order: z.enum(['asc', 'desc']).optional(),
+    sort_by: z
+        .enum(["business_name", "date_of_creation", "price_tier"])
+        .optional(),
+    sort_order: z.enum(["asc", "desc"]).optional(),
 });
 
 // for getBusinessByUen

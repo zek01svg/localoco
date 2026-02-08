@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // for getUserBookmarks
 export const getUserBookmarksSchema = z.object({

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // for getForumPostsByUENSchema
 export const getForumPostsByUENSchema = z.object({
@@ -8,10 +8,10 @@ export const getForumPostsByUENSchema = z.object({
 // for createForumPost
 export const createForumPostSchema = z.object({
     email: z.email("Invalid email address"),
-    uen: z.string().default(''),
-    title: z.string().min(1).default(''),
+    uen: z.string().default(""),
+    title: z.string().min(1).default(""),
     body: z.string().min(1, "Post body is required"),
-    likeCount: z.number().int().default(0), 
+    likeCount: z.number().int().default(0),
 });
 
 // for createForumReply
@@ -19,7 +19,7 @@ export const createForumReplySchema = z.object({
     postId: z.number().int().positive("Post ID must be positive"),
     email: z.string().email("Invalid email address"),
     body: z.string().min(1, "Reply body is required"),
-    likeCount: z.number().int().default(0)
+    likeCount: z.number().int().default(0),
 });
 
 // for updatePostLikes

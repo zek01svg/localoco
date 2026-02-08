@@ -1,9 +1,18 @@
-export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
-export type PriceTier = 'low' | 'medium' | 'high';
-export type PaymentOption = 'cash' | 'card' | 'paynow' | 'digital_wallets'
+import type { Review } from "./review.types";
+
+export type DayOfWeek =
+    | "Monday"
+    | "Tuesday"
+    | "Wednesday"
+    | "Thursday"
+    | "Friday"
+    | "Saturday"
+    | "Sunday";
+export type PriceTier = "low" | "medium" | "high";
+export type PaymentOption = "cash" | "card" | "paynow" | "digital_wallets";
 export interface HourEntry {
-    open: string; 
-    close: string; 
+    open: string;
+    close: string;
 }
 
 export interface BusinessPaymentOption {
@@ -12,8 +21,8 @@ export interface BusinessPaymentOption {
 }
 
 export interface Business {
-    ownerId: string,
-    uen: string; 
+    ownerId: string;
+    uen: string;
     businessName: string;
     businessCategory: string;
     description: string;
@@ -21,19 +30,20 @@ export interface Business {
     avgRating: number;
     latitude: string;
     longitude: string;
-    open247: boolean; 
-    openingHours: Record<DayOfWeek, HourEntry>; 
-    email: string | null;
-    phoneNumber: string | null;
-    websiteUrl: string | null; 
-    socialMediaUrl: string | null; 
-    wallpaperUrl: string; 
-    createdAt: string; 
-    updatedAt: string | null; 
+    open247: boolean;
+    openingHours: Record<DayOfWeek, HourEntry>;
+    email: string;
+    phoneNumber: string;
+    websiteUrl: string;
+    socialMediaUrl: string;
+    wallpaperUrl: string;
+    createdAt: Date;
+    updatedAt: Date;
     priceTier: PriceTier;
     offersDelivery: boolean;
     offersPickup: boolean;
     paymentOptions: PaymentOption[] | string[];
+    reviews: Review[];
 }
 export interface FilterOptions {
     search_query?: string | undefined;
@@ -44,6 +54,6 @@ export interface FilterOptions {
     offers_delivery?: boolean | undefined;
     offers_pickup?: boolean | undefined;
     payment_options?: PaymentOption[] | undefined;
-    sort_by?: 'business_name' | 'date_of_creation' | 'price_tier' | undefined;
-    sort_order?: 'asc' | 'desc' | undefined;
+    sort_by?: "business_name" | "date_of_creation" | "price_tier" | undefined;
+    sort_order?: "asc" | "desc" | undefined;
 }

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // for getUserProfile
 export const getUserProfileSchema = z.object({
@@ -11,8 +11,8 @@ export const updateProfileSchema = z.object({
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
     email: z.email("Invalid email address"),
-    imageUrl: z.url("Invalid image URL").default(''),
-    bio: z.string().default(''),
+    image: z.url("Invalid image URL").default(""),
+    bio: z.string().default(""),
     hasBusiness: z.boolean().default(false),
 });
 
@@ -42,7 +42,10 @@ export const getUserVouchersSchema = z.object({
 
 // for updateVoucherStatus
 export const updateVoucherStatusSchema = z.object({
-    voucherId: z.number().int().positive("Voucher ID must be a positive number"),
+    voucherId: z
+        .number()
+        .int()
+        .positive("Voucher ID must be a positive number"),
 });
 
 // for checkEmailAvailability
