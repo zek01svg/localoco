@@ -1,0 +1,65 @@
+services:
+    postgres:
+        image: postgres:18-alpine
+        container_name: postgres
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: postgres
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        networks:
+            - localoco
+
+    rabbitmq:
+        image: rabbitmq:4-alpine
+        container_name: rabbitmq
+        restart: unless-stopped
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+        networks:
+            - localoco
+
+    redis:
+        image: redis:8-alpine
+        container_name: localoco-redis
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        networks:
+            - localoco
+
+    localoco:
+        image: localoco:latest
+        container_name: localoco
+        restart: unless-stopped
+        ports:
+            - "3000:3000"
+        volumes:
+            - localoco_data:/var/lib/localoco
+        networks:
+            - localoco
+        depends_on:
+            - postgres
+            - rabbitmq
+            - redis
+        build:
+            context: .
+            dockerfile: Dockerfile
+
+networks:
+    localoco:
+        driver: bridge
+
+volumes:
+    postgres_data:
+    rabbitmq_data:
+    localoco_data:
+    redis_data:

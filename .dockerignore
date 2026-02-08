@@ -1,4 +1,8 @@
 node_modules
+build
 dist
-.env
 .git
+.env
+.DS_Store
+coverage
+.drizzle
