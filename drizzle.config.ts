@@ -1,13 +1,13 @@
-import { defineConfig } from 'drizzle-kit'
-import { env } from 'env';
+import { defineConfig } from "drizzle-kit";
+import { env } from "env";
 
 export default defineConfig({
-    out: './server/database/drizzle',
-    schema: './server/database/schema.ts',
-    dialect: 'mysql',
+    out: "./server/database/drizzle",
+    schema: "./server/database/schema.ts",
+    dialect: "postgresql",
     dbCredentials: {
-        url: env.DATABASE_URL
+        url: env.DATABASE_URL,
     },
-    verbose:true,
-    strict:true
+    verbose: true,
+    strict: true,
 });
