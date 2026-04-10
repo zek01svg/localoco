@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "pretty": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@server/*": ["../apps/server/*"]
+    }
+  },
+  "include": [".", "../apps/server/database/schema.ts"],
+  "exclude": ["node_modules"]
+}
