@@ -3,6 +3,7 @@
 # ------------------------
 node_modules/
 bun.lockb
+bun.lock
 package-lock.json
 
 # ------------------------
@@ -68,3 +69,14 @@ ehthumbs.db
 *.local
 *.bak
 *.orig
+digest.txt
+dummy.sql
+.tanstack
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+.turbo
