@@ -1,0 +1,71 @@
+# LocaLoco
+
+LocaLoco is a Singapore local-business discovery and community platform. This
+glossary defines the shared language for businesses, their owners, public
+listings, community contributions, and user rewards.
+
+## Identity and ownership
+
+**User**:
+An authenticated person who uses LocaLoco and may own zero or more Businesses.
+_Avoid_: account, member, customer
+
+**Business**:
+A real-world local business represented on LocaLoco.
+_Avoid_: listing, vendor
+
+**Listing**:
+A Business’s public presence on LocaLoco, including the information people use
+to discover and evaluate it.
+_Avoid_: business, profile
+
+**Business owner**:
+A User who owns a Business and may manage its Listing and public Announcements.
+_Avoid_: vendor account, administrator
+
+**UEN**:
+The canonical identifier of a Business in LocaLoco.
+_Avoid_: business ID, listing ID, registration number
+
+## Discovery and community
+
+**Business discovery**:
+The activity of finding Businesses through their Listings, location, name,
+category, attributes, or community information.
+_Avoid_: search, browsing
+
+**Review**:
+A User’s written evaluation of a Business that includes a Rating.
+_Avoid_: feedback, comment
+
+**Rating**:
+The numeric score attached to a Review.
+_Avoid_: review, scorecard
+
+**Forum post**:
+The parent discussion in the community forum, associated with a Business.
+_Avoid_: thread, topic
+
+**Reply**:
+A response to a Forum post.
+_Avoid_: comment, response post
+
+**Bookmark**:
+A User’s saved reference to a Business for later access.
+_Avoid_: favorite, saved listing
+
+**Announcement**:
+A public update published by a Business owner for a Business’s audience.
+_Avoid_: notification, alert, message
+
+## Rewards
+
+**Points**:
+A balance credited to a User for eligible community contributions. Points measure
+participation and are not money.
+_Avoid_: reward points, credit
+
+**Voucher**:
+An issued benefit associated with a User that has an amount, lifecycle status,
+and expiration.
+_Avoid_: coupon, reward
