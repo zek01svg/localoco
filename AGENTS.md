@@ -63,10 +63,12 @@
 domain UI and API hooks in `src/features/`, and reusable primitives in
 `src/components/`. The Bun/Hono API is under `server/`; keep route groups in
 `server/routes/`, persistence in `server/database/`, and integrations in
-`server/lib/`. Cross-boundary types belong in `shared/`. Vitest suites live in
-`server/tests/unit/` and `server/tests/integration/`; Playwright files belong in
-`tests/e2e/`. Infrastructure is maintained in `infra/`. Do not edit the
-generated `src/routeTree.gen.ts` directly.
+`server/lib/`. Cross-boundary types belong in `shared/`. Vitest unit suites
+live in `server/tests/unit/` and colocated as `src/**/*.test.ts`; Vitest
+integration tests (HTTP seam against the server entry) live in
+`tests/integration/`; Playwright files belong in `tests/e2e/`. Infrastructure
+is maintained in `infra/`. Do not edit the generated `src/routeTree.gen.ts`
+directly.
 
 ## Documentation
 

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "paths": {
+      "#server/*": ["./server/*"],
+      "#shared/*": ["./shared/*"]
+    }
+  },
+  "include": ["vite.config.ts", "drizzle.config.ts", "server", "scripts", "tests"]
+}

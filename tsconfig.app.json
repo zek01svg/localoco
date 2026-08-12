@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "paths": {
+      "#client/*": ["./src/*"],
+      "#shared/*": ["./shared/*"],
+      "#server/*": ["./server/*"],
+      "src/*": ["./src/*"],
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src"]
+}

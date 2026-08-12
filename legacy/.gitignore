@@ -1,0 +1,70 @@
+# ------------------------
+# Node / Bun Dependencies
+# ------------------------
+node_modules/
+bun.lockb
+package-lock.json
+
+# ------------------------
+# Environment Variables
+# ------------------------
+.env
+.env.*
+!.env.example
+
+# ------------------------
+# Logs
+# ------------------------
+logs/
+*.log
+npm-debug.log*
+bun-debug.log*
+*.pid
+*.seed
+*.pid.lock
+
+# ------------------------
+# Build / Compiled Files
+# ------------------------
+dist/
+build/
+.tmp/
+.cache/
+coverage/
+.out/
+.next/
+.vercel/
+functions/
+serverless/
+
+# ------------------------
+# Bun-specific Cache
+# ------------------------
+.bun/
+bun.lockb
+
+# ------------------------
+# System Files
+# ------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+*.swp
+*.swo
+
+# ------------------------
+# IDE / Editor Config
+# ------------------------
+.vscode/
+
+# ------------------------
+# TypeScript
+# ------------------------
+*.tsbuildinfo
+
+# ------------------------
+# Misc
+# ------------------------
+*.local
+*.bak
+*.orig

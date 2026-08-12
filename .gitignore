@@ -1,70 +1,40 @@
-# ------------------------
-# Node / Bun Dependencies
-# ------------------------
-node_modules/
-bun.lockb
-package-lock.json
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# ------------------------
-# Environment Variables
-# ------------------------
+node_modules
+dist
+dist.zip
+dist-ssr
+*.local
+.tanstack
+coverage
+dist
+build
+data
+
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Coverage & Test output
+coverage.json
+test-results/
+playwright-report/
+
+# Environment variables
 .env
 .env.*
 !.env.example
 
-# ------------------------
-# Logs
-# ------------------------
-logs/
-*.log
-npm-debug.log*
-bun-debug.log*
-*.pid
-*.seed
-*.pid.lock
-
-# ------------------------
-# Build / Compiled Files
-# ------------------------
-dist/
-build/
-.tmp/
-.cache/
-coverage/
-.out/
-.next/
-.vercel/
-functions/
-serverless/
-
-# ------------------------
-# Bun-specific Cache
-# ------------------------
-.bun/
-bun.lockb
-
-# ------------------------
-# System Files
-# ------------------------
-.DS_Store
-Thumbs.db
-ehthumbs.db
-*.swp
-*.swo
-
-# ------------------------
-# IDE / Editor Config
-# ------------------------
-.vscode/
-
-# ------------------------
-# TypeScript
-# ------------------------
-*.tsbuildinfo
-
-# ------------------------
-# Misc
-# ------------------------
-*.local
-*.bak
-*.orig
+# Data
+data/
