@@ -174,18 +174,6 @@ bun scripts/db-seed.ts
 
 ---
 
-## 6. Authentication Schema Generation
-
-When modifying authentication configuration in `server/lib/auth.ts`, regenerate the database schema definition using the Better Auth CLI:
-
-```bash
-bun auth:generate
-```
-
-This updates `server/database/auth.ts`.
-
----
-
 ## 7. UI Components & Design System
 
 The application uses **shadcn/ui** components.
@@ -239,11 +227,22 @@ bun run test:e2e
 
 ### Continuous Integration (CI) Checks
 
-Every PR automatically triggers GitHub Actions (`.github/workflows/ci.yml`):
+Every PR automatically triggers GitHub Actions (`.github/workflows/ci.yml`).
+The CI job runs against a clean frozen install and runs one named step per
+gate, so each gate's exact command and outcome is visible in the run output
+and any failing gate fails the run:
 
-- **Gitleaks**: Scans commits for exposed tokens or secrets.
+- **Frozen lockfile install**: `bun install --frozen-lockfile` — fails if
+  `bun.lock` is out of date with `package.json`. Bun is pinned to the
+  `packageManager` field of `package.json`.
 - **Format Check**: Executes `bun run format:check`.
 - **Linting**: Executes `bun run lint:check`.
 - **Typecheck**: Executes `bun run type:check`.
 - **Build Verification**: Builds production assets via `bun run build`.
-- **Tests**: Runs `test:unit` and `test:e2e`.
+- **Tests**: Runs `test` (unit + integration) and `test:e2e` (Playwright).
+- **Dependency Audit**: Executes `bun run security:audit` (`bun audit
+--audit-level=high`) against the committed lockfile.
+- **Secret Scanning**: gitleaks scans commits for exposed tokens or secrets.
+
+The CI job is the required status check for merge: branch protection on `main`
+requires it. The `legacy/` reference tree is excluded from all gates.
