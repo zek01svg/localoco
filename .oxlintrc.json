@@ -1,0 +1,202 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "options": {
+    "typeAware": true
+  },
+  "plugins": [
+    "typescript",
+    "react",
+    "import",
+    "unicorn",
+    "jsx-a11y",
+    "oxc",
+    "vitest",
+    "promise",
+    "node"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "warn",
+    "perf": "warn",
+    "style": "off"
+  },
+  "rules": {
+    "no-alert": "error",
+    "no-console": "error",
+    "no-debugger": "error",
+    "eqeqeq": ["error", "always"],
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-underscore-dangle": ["error", { "allow": ["__dirname", "__appSentryInitialized__"] }],
+    "sort-imports": "off",
+    "sort-keys": "off",
+    "func-style": "off",
+    "no-magic-numbers": "off",
+    "no-ternary": "off",
+    "no-inline-comments": ["warn", { "ignorePattern": "@__PURE__|webpackChunkName|@vite-ignore" }],
+    "no-restricted-imports": [
+      "error",
+      {
+        "name": "zod",
+        "message": "Use `import { z } from 'zod/v4'` instead to ensure v4."
+      }
+    ],
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "import/first": "error",
+    "import/extensions": "off",
+    "import/no-named-export": "off",
+    "import/prefer-default-export": "off",
+    "import/exports-last": "off",
+    "import/no-unassigned-import": "off",
+    "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
+    "typescript/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
+    "typescript/consistent-type-imports": [
+      "warn",
+      { "prefer": "type-imports", "fixStyle": "separate-type-imports" }
+    ],
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-unnecessary-condition": ["error", { "allowConstantLoopConditions": true }],
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/require-await": "off",
+    // Type-aware, but impractical here: demands `readonly` on every object
+    // parameter, which means every React props type (488 hits).
+    "typescript/prefer-readonly-parameter-types": "off",
+    // Rejects truthiness checks on strings/numbers; fights normal JS idiom.
+    "typescript/strict-boolean-expressions": "off",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/react-in-jsx-scope": "off",
+    "react/no-unstable-nested-components": ["error", { "allowAsProps": true }],
+    "node/no-process-env": "error",
+    "unicorn/prefer-node-protocol": "off",
+    "unicorn/no-null": "off",
+    "vitest/no-importing-vitest-globals": "off",
+    "vitest/prefer-describe-function-title": "off"
+  },
+  "overrides": [
+    {
+      "files": ["tests/**", "server/**", "scripts/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": [
+        "src/env.ts",
+        "drizzle.config.ts",
+        "vite.config.ts",
+        "playwright.config.ts",
+        "tests/**"
+      ],
+      "rules": {
+        "node/no-process-env": "off"
+      }
+    },
+    {
+      "files": ["vite.config.ts"],
+      "rules": {
+        "import/no-named-as-default": "off"
+      }
+    },
+    {
+      "files": ["vite.config.ts", "drizzle.config.ts", "playwright.config.ts"],
+      "rules": {
+        "max-lines-per-function": "off"
+      }
+    },
+    {
+      // Vendored components: shadcn/ui output (see components.json) and the
+      // upstream data-table template. Stylistic rules are off here because these
+      // files are re-pulled from upstream, not hand-maintained. Correctness
+      // rules stay on.
+      "files": ["src/components/ui/**", "src/components/custom/**"],
+      "rules": {
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "no-inline-comments": "off",
+        "no-warning-comments": "off",
+        "no-negated-condition": "off",
+        "no-useless-return": "off",
+        "radix": "off",
+        "eqeqeq": "off",
+        "no-shadow": "off",
+        "no-unused-vars": "off",
+        "no-underscore-dangle": "off",
+        "import/max-dependencies": "off",
+        "import/consistent-type-specifier-style": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/no-redundant-type-constituents": "off",
+        "typescript/no-unused-vars": "off",
+        "typescript/consistent-type-imports": "off",
+        "react/exhaustive-deps": "off",
+        "react/jsx-no-constructed-context-values": "off",
+        "react/no-array-index-key": "off",
+        "react/no-object-type-as-default-prop": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/anchor-has-content": "off",
+        "unicorn/no-negated-condition": "off",
+        "unicorn/no-lonely-if": "off",
+        "unicorn/no-array-callback-reference": "off",
+        "unicorn/explicit-length-check": "off",
+        "unicorn/prefer-string-slice": "off",
+        "unicorn/no-object-as-default-parameter": "off",
+        // Type-aware rules. no-floating-promises / no-misused-promises are
+        // deliberately NOT disabled here: unhandled rejections are real bugs
+        // regardless of who wrote the file.
+        "typescript/no-unnecessary-condition": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/no-unnecessary-type-conversion": "off",
+        "typescript/no-unnecessary-template-expression": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/restrict-template-expressions": "off",
+        "typescript/no-base-to-string": "off",
+        "typescript/consistent-return": "off",
+        "typescript/unbound-method": "off",
+        "typescript/no-confusing-void-expression": "off",
+        "typescript/prefer-nullish-coalescing": "off",
+        "typescript/switch-exhaustiveness-check": "off",
+        "typescript/strict-void-return": "off",
+        "typescript/no-deprecated": "off"
+      }
+    }
+  ],
+  "env": {
+    "builtin": true,
+    "node": true,
+    "browser": true
+  },
+  "ignorePatterns": [
+    "legacy/**",
+    "**/env.ts",
+    "dist",
+    "node_modules/**",
+    ".git",
+    ".cache",
+    ".turbo",
+    ".tanstack",
+    "coverage",
+    ".output/**",
+    ".nitro/**",
+    "src/routeTree.gen.ts"
+  ],
+  "settings": {
+    "react": {
+      "version": "19"
+    }
+  }
+}
