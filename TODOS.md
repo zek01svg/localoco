@@ -25,9 +25,14 @@ Deferred work, tracked here rather than presented as implemented. See
 
 - [ ] `google_cloud_run_domain_mapping` is in Terraform state (applied
       earlier with `enable_domain_mapping=true`), but the committed config
-      defaults the variable to `false` — `terraform plan` shows 1 pending
-      destroy. Decide intent before the first release apply so it doesn't
-      silently remove the mapping.
+      defaults the variable to `false` — `terraform plan` shows a pending
+      destroy. Setting the default to `true` alone is not a safe fix: the
+      resource's `spec.certificate_mode` isn't pinned in config, so even
+      matching the flag forces a **replace** (destroy + recreate, real
+      downtime + cert reprovisioning) rather than a no-op. Needs the
+      correct `certificate_mode` value read from the live resource before
+      changing the default, or an explicit decision to accept the
+      recreate. Do not let a routine apply touch this un-reviewed.
 - [ ] Cloudflare SSL/TLS mode: set to Full (strict) in the dashboard
       (not yet automated via Terraform).
 - [ ] Re-scope the Cloudflare API token to enable the rate-limiting rule
