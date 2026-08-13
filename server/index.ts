@@ -8,6 +8,7 @@ import { serveStatic } from "hono/bun";
 import { env } from "#server/env";
 import { auth } from "#server/lib/auth.ts";
 import { db } from "#server/lib/db.ts";
+import { getSpaShell, MAINTENANCE_RETRY_AFTER } from "#server/spa.ts";
 import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
 
 const sentryDsn = env.SENTRY_DSN ?? env.VITE_SENTRY_DSN;
@@ -128,8 +129,11 @@ const baseRoutes = new Hono()
     return auth.handler(c.req.raw);
   })
   .use("/assets/*", serveStatic({ root: "./dist/static" }))
-  .use("/*", serveStatic({ root: "./dist/static" }))
-  .get("*", serveStatic({ path: "./dist/static/index.html" }));
+  .get("*", c =>
+    c.html(getSpaShell(), 503, {
+      "Retry-After": MAINTENANCE_RETRY_AFTER,
+    })
+  );
 
 const apiRoutes = new Hono()
   .get(

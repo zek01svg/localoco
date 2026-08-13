@@ -55,6 +55,7 @@
         "zod": "^4.4.3",
       },
       "devDependencies": {
+        "@axe-core/playwright": "^4.13.0",
         "@playwright/test": "^1.62.1",
         "@sentry/vite-plugin": "^5.4.0",
         "@tailwindcss/vite": "^4.3.3",
@@ -99,6 +100,8 @@
     "@asamuzakjp/css-color": ["@asamuzakjp/css-color@6.0.5", "", { "dependencies": { "@csstools/css-calc": "^3.2.1", "@csstools/css-color-parser": "^4.1.9", "@csstools/css-parser-algorithms": "^4.0.0", "@csstools/css-tokenizer": "^4.0.0", "lru-cache": "^11.5.2" } }, "sha512-mbhpPMmnw/kwW19aRNmSUl1QzLbdGo1SCuE49BT98MNwqF6zaHb3o2owssFc/PEO/4t2UjqtCNwocuDtJornzA=="],
 
     "@asamuzakjp/dom-selector": ["@asamuzakjp/dom-selector@8.3.2", "", { "dependencies": { "bidi-js": "^1.0.3", "css-tree": "^3.2.1", "is-potential-custom-element-name": "^1.0.1", "lru-cache": "^11.5.2" } }, "sha512-93Z1N+BQNXysodoicpOIyNh2drHfz/CTf9nnT0FEx72GJcIiwgydD7tGAr78j41LsYn3hlRn+LdGPuBLn1Bl8Q=="],
+
+    "@axe-core/playwright": ["@axe-core/playwright@4.13.0", "", { "dependencies": { "axe-core": "~4.13.0" }, "peerDependencies": { "playwright-core": ">= 1.0.0" } }, "sha512-6YLx+kxXu5GJceG4ozFg+33a2EMTdjYwWGloJ3sb9Kta5pp+ZNS53uxGVog5JetIY8s++P5UrtX+cri+u0VAVg=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 
@@ -943,6 +946,8 @@
     "asynckit": ["asynckit@0.4.0", "", {}, "sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q=="],
 
     "atomically": ["atomically@1.7.0", "", {}, "sha512-Xcz9l0z7y9yQ9rdDaxlmaI4uJHf/T8g9hOEzJcsEqX2SjCj4J20uK7+ldkDHMbpJDK76wF7xEIgxc/vSlsfw5w=="],
+
+    "axe-core": ["axe-core@4.13.0", "", {}, "sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A=="],
 
     "axios": ["axios@1.19.0", "", { "dependencies": { "follow-redirects": "^1.16.0", "form-data": "^4.0.6", "https-proxy-agent": "^5.0.1", "proxy-from-env": "^2.1.0" } }, "sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw=="],
 
