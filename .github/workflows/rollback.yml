@@ -24,7 +24,6 @@ env:
 jobs:
   rollback:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Authenticate to Google Cloud (WIF)
         id: auth

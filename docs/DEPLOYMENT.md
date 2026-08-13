@@ -49,13 +49,13 @@ pass against the exact image digest.
 3. **Release (manual trigger)**: run `cd.yml` from the Actions tab, choosing
    a commit (default `main`). The pipeline is:
 
-   | Step                         | What happens                                                                                                                                                                                                                             |
-   | :--------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | `resolve-digest`             | Reads the `ghcr/image` status for the chosen commit; fails if no image was published.                                                                                                                                                    |
-   | `terraform-apply` (approved) | **Approved via the `production` environment.** WIF auth, then `terraform apply` with the exact digest image and a traffic split that holds the current revision at 100% and stages the new revision at **0% traffic**.                   |
-   | `migrate`                    | Runs committed migrations through Drizzle's native migrator over the direct `DATABASE_URL` (read from Secret Manager). Applied set is recorded in the `drizzle.__drizzle_migrations` table. Failure stops the release.                   |
-   | `smoke`                      | Authenticated checks (Bearer `SMOKE_TOKEN`) against the **zero-traffic revision URL** — `/health` plus `/api/smoke` (DB round-trip echoing the served revision). Unauthenticated requests get 401; nothing internal is exposed publicly. |
-   | `promote`                    | `terraform apply` clears the hold and atomically shifts traffic to 100% on the staged revision.                                                                                                                                          |
+   | Step              | What happens                                                                                                                                                                                                                             |
+   | :---------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `resolve-digest`  | Reads the `ghcr/image` status for the chosen commit; fails if no image was published.                                                                                                                                                    |
+   | `terraform-apply` | WIF auth, then `terraform apply` with the exact digest image and a traffic split that holds the current revision at 100% and stages the new revision at **0% traffic**.                                                                  |
+   | `migrate`         | Runs committed migrations through Drizzle's native migrator over the direct `DATABASE_URL` (read from Secret Manager). Applied set is recorded in the `drizzle.__drizzle_migrations` table. Failure stops the release.                   |
+   | `smoke`           | Authenticated checks (Bearer `SMOKE_TOKEN`) against the **zero-traffic revision URL** — `/health` plus `/api/smoke` (DB round-trip echoing the served revision). Unauthenticated requests get 401; nothing internal is exposed publicly. |
+   | `promote`         | `terraform apply` clears the hold and atomically shifts traffic to 100% on the staged revision.                                                                                                                                          |
 
    Promotion is atomic (a single Cloud Run traffic update) and happens only
    after every prior step succeeds. Migrations run while the old revision
@@ -69,8 +69,6 @@ pass against the exact image digest.
 
 - `main` exists and `publish.yml` has run (the digest status).
 - GitHub secrets set: `GCP_WIF_PROVIDER`, `GCP_SA`, `CLOUDFLARE_API_TOKEN`.
-- GitHub **environment `production`** created with required reviewers (this
-  is the approval gate on `terraform-apply`).
 - Every app secret has at least one version (Cloud Run fails the revision if
   a referenced secret version is missing) — see §3.
 
@@ -116,8 +114,7 @@ so moving traffic is instant and reversible.
    in that release's Actions summary; any revision can be listed with:
    `gcloud run revisions list --region=asia-southeast1`.
 2. Run the **Rollback Cloud Run traffic** workflow from the Actions tab with
-   the revision name (e.g. `localoco-00003-abcd`). The `production`
-   environment approval is required.
+   the revision name (e.g. `localoco-00003-abcd`).
 3. Verify: `curl https://localoco.ciav.dev/health` and check the served
    revision via `/api/smoke` with `SMOKE_TOKEN`.
 
