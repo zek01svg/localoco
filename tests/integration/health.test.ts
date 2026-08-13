@@ -29,6 +29,25 @@ describe("server HTTP seam", () => {
     await expect(response.json()).resolves.toEqual({ status: "ok" });
   });
 
+  it("GET / returns 503 with Retry-After and the SPA shell", async () => {
+    const response = await app.request("/");
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("3600");
+    const body = await response.text();
+    expect(body).toContain("LocaLoco");
+    expect(body).toContain('<div id="root">');
+  });
+
+  it("deep page routes also answer 503 with the SPA shell", async () => {
+    const response = await app.request("/some/deep/link");
+
+    expect(response.status).toBe(503);
+    const body = await response.text();
+    expect(body).toContain("LocaLoco");
+    expect(body).toContain('<div id="root">');
+  });
+
   it("GET /api/runtime.js only exposes VITE_-prefixed keys", async () => {
     const response = await app.request("/api/runtime.js");
 
