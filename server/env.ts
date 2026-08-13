@@ -10,6 +10,7 @@ export const env = createEnv({
   },
   server: {
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    PORT: z.coerce.number().default(4001),
     DATABASE_URL: z.url(),
     SENTRY_DSN: z.url().optional(),
     SENTRY_AUTH_TOKEN: z.string().min(1).optional(),
@@ -36,6 +37,7 @@ export const env = createEnv({
   clientPrefix: "VITE_",
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT ?? "4001",
     VITE_APP_URL: process.env.VITE_APP_URL ?? `http://localhost:4000`,
     VITE_SENTRY_DSN: process.env.VITE_SENTRY_DSN,
     VITE_SENTRY_ORG: process.env.VITE_SENTRY_ORG,

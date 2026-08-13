@@ -8,7 +8,7 @@ This guide covers building, containerizing, configuring, and deploying the **Rea
 
 In production, the application is packaged into a single containerized Bun process that handles both API routing and static asset delivery:
 
-- **Backend Execution**: Bun executes the minified server entry point `dist/index.js` on port `4001`.
+- **Backend Execution**: Bun executes the minified server entry point `dist/index.js`, listening on the injected `PORT` environment variable (default `4001`) on all interfaces.
 - **Static File Serving**: Hono serves compiled React SPA static assets (`dist/static/`) directly from memory and disk using Bun's native `serveStatic` middleware.
 - **Client SPA Fallback**: Unmatched non-API requests fallback to `dist/static/index.html` to support client-side HTML5 routing.
 - **Runtime Env Injection**: `/api/runtime.js` injects production server environment variables (`VITE_*`) into `window.__env` at startup.
@@ -17,7 +17,11 @@ In production, the application is packaged into a single containerized Bun proce
 
 ## 2. Docker Container Deployment (Recommended)
 
-The repository provides an optimized multi-stage `Dockerfile` based on `oven/bun:1-alpine`.
+The repository provides an optimized multi-stage `Dockerfile` based on `oven/bun:1.3.14-alpine` (pinned to the `packageManager` version). The runtime stage ships only production artifacts (`dist/`, production `node_modules`, `package.json`) and runs as the non-root `bun` user. The image starts the server directly — it never runs database migrations or seeds.
+
+The production install runs `bun install --production --omit=peer` so the runtime stage ships only what the server and UI actually load (about 300 MB of `node_modules` in the image, roughly 40% smaller than a naive install): dev-only tooling (`vite`, `vitest`, `tsc`, `drizzle-kit`, …) is excluded, including the test toolchain bun would otherwise pull in as an optional peer of `better-auth`. Peers that the runtime truly needs (`react-is` for `recharts`, `react`/`react-dom`, `hono`, `zod`) are explicit root dependencies instead.
+
+The container build runs as a pull-request gate in the `ci` workflow, and the image ships a Docker `HEALTHCHECK` that probes `/health` on the injected `PORT` (default `4001`). Merging to `main` publishes `ghcr.io/zek01svg/localoco` (tags `main` and `sha-<short>`) via the `publish` workflow and records the immutable image digest as a commit status; it does not deploy.
 
 ### Multi-Stage Build Breakdown
 
@@ -26,7 +30,7 @@ The repository provides an optimized multi-stage `Dockerfile` based on `oven/bun
                           │
 [Stage 2: install] ───► Installs build tools (g++, python3, native libs)
                           ├──► Installs full node_modules (/temp/dev)
-                          └──► Installs production node_modules (/temp/prod)
+                          └──► Installs production node_modules (/temp/prod, --omit=peer)
                           │
 [Stage 3: build] ─────► Runs 'bun run build'
                           ├──► Bun builds dist/index.js
@@ -61,24 +65,25 @@ The following environment variables control production application runtime:
 
 ### Server Environment Variables (Secrets & Backend Settings)
 
-| Variable                | Type    | Required | Description                                     | Example                                    |
-| :---------------------- | :------ | :------- | :---------------------------------------------- | :----------------------------------------- |
-| `NODE_ENV`              | Enum    | Yes      | Environment mode (`production`, `development`)  | `production`                               |
-| `DATABASE_URL`          | URL     | Yes      | PostgreSQL connection string                    | `postgres://user:pass@db:5432/app`         |
-| `BETTER_AUTH_SECRET`    | String  | Yes      | Encryption secret for Better Auth (>= 32 chars) | `super-secret-production-key-32ch`         |
-| `SMTP_HOST`             | String  | Yes      | Production SMTP host                            | `smtp.sendgrid.net`                        |
-| `SMTP_PORT`             | Number  | Yes      | Production SMTP port                            | `587`                                      |
-| `SMTP_SECURE`           | Boolean | Yes      | Enable SSL/TLS for SMTP                         | `true`                                     |
-| `SMTP_USER`             | String  | Yes      | SMTP authentication username                    | `apikey`                                   |
-| `SMTP_PASS`             | String  | Yes      | SMTP authentication password                    | `your-smtp-password`                       |
-| `SMTP_FROM`             | String  | Yes      | Default sender email address                    | `noreply@yourdomain.com`                   |
-| `AWS_ACCESS_KEY_ID`     | String  | Yes      | S3 / MinIO access key                           | `AKIAIOSFODNN7EXAMPLE`                     |
-| `AWS_SECRET_ACCESS_KEY` | String  | Yes      | S3 / MinIO secret key                           | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
-| `AWS_REGION`            | String  | Yes      | AWS S3 region                                   | `us-east-1`                                |
-| `AWS_S3_ENDPOINT`       | String  | Yes      | S3 API endpoint URL                             | `https://s3.amazonaws.com`                 |
-| `AWS_S3_BUCKET`         | String  | Yes      | Storage bucket name                             | `my-production-bucket`                     |
-| `FORCE_PATH_STYLE`      | Boolean | Yes      | Set true for MinIO, false for AWS S3            | `false`                                    |
-| `SENTRY_DSN`            | URL     | No       | Server Sentry DSN for error tracing             | `https://key@sentry.io/123`                |
+| Variable                | Type    | Required | Description                                       | Example                                    |
+| :---------------------- | :------ | :------- | :------------------------------------------------ | :----------------------------------------- |
+| `NODE_ENV`              | Enum    | Yes      | Environment mode (`production`, `development`)    | `production`                               |
+| `PORT`                  | Number  | No       | HTTP listen port (all interfaces), default `4001` | `8080`                                     |
+| `DATABASE_URL`          | URL     | Yes      | PostgreSQL connection string                      | `postgres://user:pass@db:5432/app`         |
+| `BETTER_AUTH_SECRET`    | String  | Yes      | Encryption secret for Better Auth (>= 32 chars)   | `super-secret-production-key-32ch`         |
+| `SMTP_HOST`             | String  | Yes      | Production SMTP host                              | `smtp.sendgrid.net`                        |
+| `SMTP_PORT`             | Number  | Yes      | Production SMTP port                              | `587`                                      |
+| `SMTP_SECURE`           | Boolean | Yes      | Enable SSL/TLS for SMTP                           | `true`                                     |
+| `SMTP_USER`             | String  | Yes      | SMTP authentication username                      | `apikey`                                   |
+| `SMTP_PASS`             | String  | Yes      | SMTP authentication password                      | `your-smtp-password`                       |
+| `SMTP_FROM`             | String  | Yes      | Default sender email address                      | `noreply@yourdomain.com`                   |
+| `AWS_ACCESS_KEY_ID`     | String  | Yes      | S3 / MinIO access key                             | `AKIAIOSFODNN7EXAMPLE`                     |
+| `AWS_SECRET_ACCESS_KEY` | String  | Yes      | S3 / MinIO secret key                             | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
+| `AWS_REGION`            | String  | Yes      | AWS S3 region                                     | `us-east-1`                                |
+| `AWS_S3_ENDPOINT`       | String  | Yes      | S3 API endpoint URL                               | `https://s3.amazonaws.com`                 |
+| `AWS_S3_BUCKET`         | String  | Yes      | Storage bucket name                               | `my-production-bucket`                     |
+| `FORCE_PATH_STYLE`      | Boolean | Yes      | Set true for MinIO, false for AWS S3              | `false`                                    |
+| `SENTRY_DSN`            | URL     | No       | Server Sentry DSN for error tracing               | `https://key@sentry.io/123`                |
 
 ### Client Environment Variables (Injected via `/api/runtime.js`)
 
@@ -146,5 +151,5 @@ server {
 - **Docker Healthcheck Spec**:
   ```dockerfile
   HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:4001/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-4001}/health || exit 1
   ```

@@ -1,6 +1,6 @@
-# use the official Bun image
+# use the official Bun image pinned to the packageManager version
 # see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1.3.14-alpine AS base
 WORKDIR /app
 
 # install dependencies into temp directory
@@ -27,9 +27,12 @@ COPY package.json bun.lock /temp/dev/
 RUN cd /temp/dev && bun install --frozen-lockfile
 
 # install with --production (exclude devDependencies)
+# --omit=peer: bun auto-installs a prod package's optional peers that happen to
+# match our devDeps (e.g. better-auth's optional vitest peer pulls the whole
+# test toolchain into prod). Peers that matter are explicit root dependencies.
 RUN mkdir -p /temp/prod
 COPY package.json bun.lock /temp/prod/
-RUN cd /temp/prod && bun install --production --frozen-lockfile
+RUN cd /temp/prod && bun install --production --omit=peer --frozen-lockfile
 
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
@@ -49,5 +52,6 @@ COPY --chown=bun:bun package.json /app/
 USER bun
 EXPOSE 4001/tcp
 ENV NODE_ENV=production
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-4001}/health || exit 1
 ENTRYPOINT [ "bun", "dist/index.js" ]
-# CMD ["sleep", "infinity"]

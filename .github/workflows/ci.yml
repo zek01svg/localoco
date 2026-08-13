@@ -46,3 +46,6 @@ jobs:
 
       - name: Run dependency audit
         run: bun run security:audit
+
+      - name: Build container image
+        run: docker build -t localoco:gate .

@@ -189,7 +189,7 @@ app.onError((err, c) => {
 });
 
 const server = {
-  port: 4001,
+  port: env.PORT,
   fetch: app.fetch,
 };
 

@@ -21,12 +21,5 @@ export default defineConfig({
     command: "bun run dev:server",
     url: "http://localhost:4001/health",
     reuseExistingServer: !process.env.CI,
-    env: {
-      // NODE_ENV=test makes server/env.ts skip validation, so the webServer
-      // boots without a .env file. Set via Playwright's env option (not a
-      // POSIX shell prefix) because Playwright spawns commands through cmd on
-      // Windows, where `VAR=x cmd` breaks.
-      NODE_ENV: "test",
-    },
   },
 });
