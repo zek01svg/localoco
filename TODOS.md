@@ -15,6 +15,11 @@ Deferred work, tracked here rather than presented as implemented. See
 - [ ] Run `cd.yml` (dispatch, default `main`) to exercise the release
       pipeline end to end and capture the first digest + revision as the
       rollback target.
+- [ ] Apply the `google_service_account_iam_member.infra_actas_default_compute`
+      binding in `infra/iam.tf` (`terraform apply`) — the first real `cd.yml`
+      run failed with `PERMISSION_DENIED: iam.serviceaccounts.actAs` because
+      the `terraform` service account could not act as the Cloud Run
+      runtime's default compute service account.
 
 ## Pre-existing infra drift
 
