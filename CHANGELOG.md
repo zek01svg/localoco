@@ -2,76 +2,179 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.0.0] - 2026-08-14
 
 ### Added
 
-- **Rewrite spine**: Imported the `react-hono-template` v1.3.0 spine as the
-  base of the LocaLoco rewrite (Bun + Hono server, React 19 SPA via TanStack
-  Router and Vite).
-- **Legacy relocation**: Moved the old Express/React application to
-  `legacy/`, kept read-only and excluded from all quality and build lanes.
-- **Quality lanes**: Repaired `type:check` (real app/node projects),
-  restored `src/*` and `@/*` path aliases, and decoupled the client env shape
-  from the server env.
-- **HTTP seam test**: Vitest integration coverage for `/health` and
-  `/api/runtime.js` (VITE_-key filtering) in `tests/integration/`.
-- **Tooling**: `concurrently`-based `dev` script, frozen-lockfile Docker
-  installs, committed `.env.example`, and a LocaLoco readme.
+- **Rewrite spine**: Bootstrapped the rewrite on a Bun + Hono backend with a
+  React 19 SPA (TanStack Router, Vite, Tailwind CSS v4), replacing the old
+  Express + plain-React application. The prior app is preserved read-only
+  under `legacy/`, excluded from every quality and build lane.
+- **CI quality gate**: GitHub Actions lane for every pull request — secret
+  scanning, formatting, linting, type checking, unit/integration tests, and
+  the production build.
+- **Container publish pipeline**: Automated build and publish of the
+  production container image to GHCR, gated on a green CI run.
+- **Infrastructure baseline**: Terraform-managed GCP Cloud Run service and
+  Cloudflare edge configuration for `localoco.ciav.dev`, including IAM,
+  Secret Manager wiring, and remote state.
+- **Protected production release workflow**: `cd.yml` resolves the published
+  image digest, deploys it as a zero-traffic staged revision behind a
+  required approval gate, runs database migrations, runs authenticated smoke
+  checks against the staged revision, then atomically promotes it to 100%
+  traffic. `rollback.yml` shifts traffic back to any retained revision
+  without rebuilding.
+- **Maintenance landing page**: Every page route (SPA routes, root) now
+  serves a branded, accessible LocaLoco maintenance page with `503 Service
+Unavailable` and a `Retry-After` header while the rewrite is in progress;
+  `/health` keeps returning `200` and depends on nothing external.
 
 ### Changed
 
-- Stripped the template demo surface (data-table demo, dead providers and
-  constants, template landing page, demo seed script).
-- `server/env.ts` validation now fails fast with a clear error when required
-  variables are missing.
+- Documentation (`docs/DEPLOYMENT.md`, `docs/CONTRIBUTING.md`,
+  `docs/README.md`) rewritten to describe the new stack, release flow, and
+  operator prerequisites.
 
-## [1.3.0] - 2026-05-11
+### Notes
 
-### Added
+- This release ships infrastructure and a maintenance placeholder, not
+  feature parity with the legacy application — see `TODOS.md` for the
+  operator steps still required before the first live production release.
 
-- **Observability**: Integrated unified structured logging with Logtape for both frontend and backend.
-- **Error Tracking**: Added Sentry instrumentation for comprehensive production observability.
-
-## [1.2.0] - 2026-05-10
+## [1.2.0] - 2025-11-07
 
 ### Added
 
-- **CI/CD**: GitHub Actions workflow with secret scanning (gitleaks), formatting, linting, type checking, tests, and build checks on every push and pull request.
-- **Stricter linting**: Merged oxlint/oxfmt configs from a stricter baseline — added `suspicious` error category, `no-console`, `no-floating-promises`, `no-misused-promises`, `node/no-process-env`, and `no-shadow` rules.
-- **Shared module**: `shared/` directory for code shared between the server and client (e.g. date preset constants).
+- Full-featured React frontend rebuilt under `frontend/` (renamed from
+  `src/`), including business profile, forum, map discovery, bookmarks, and
+  settings pages, an app sidebar, and an auth store.
+- Map Discovery page: dropdown business search, geocoding fallback when
+  lat/lng are missing (falling back to the database otherwise), dynamic map
+  pin filtering, and a map border.
+- Public landing page mounted at the base route, with fade-in styling for
+  images on load.
+- Business card/detail improvements: dropdown search on the explore page,
+  average rating surfaced from the backend, and fixes for missing images.
+- "Add Business" dialog and improved profile page display, including a
+  working "add business" button and profile picture rendering across forum
+  and review pages.
+- Settings page with account deletion.
+- Signup page postal code validation and a unique-constraint check on
+  UEN/email during business signup.
 
 ### Changed
 
-- **Config format**: Converted `oxlint.config.ts` to `.oxlintrc.json` to avoid TypeScript parse errors in CI.
-- **oxfmt**: Standardised `printWidth` to 100 and aligned formatting options with project conventions.
+- Backend now serves a catch-all route so React Router can handle
+  client-side navigation.
+- Announcement page's manual URL input replaced with a proper file upload
+  button, and its data now posted via POST instead of query params.
+- Referral links now point at the Azure-hosted app instead of localhost.
+- README rewritten for project submission, including the SQL script
+  location.
 
----
+### Fixed
 
-## [1.1.0] - 2026-04-22
+- Business registration page bugs preventing businesses from registering,
+  voucher redemption bugs, and password reset flow issues.
+- Hardcoded URLs throughout the frontend replaced with environment-based
+  configuration.
+- Various merge-conflict cleanups and bug fixes across the forum, sidebar,
+  and edit-business dialog surfaced during final integration of teammate
+  branches.
+
+### Removed
+
+- Deleted submission screenshots and the Azure App Service GitHub Actions
+  workflow file ahead of handoff.
+
+## [1.1.0] - 2025-11-02
 
 ### Added
 
-- **API Documentation**: Integrated interactive Scalar UI at `/api/scalar` powered by `hono-openapi`.
-- **Feature Modules**: Implemented feature-based directory structure (`src/features/`) with new Landing Page and Not Found components.
-- **Structured Validation**: Added a global error handler for schema validation failures with consistent JSON responses.
-- **Tooling**: Added Lefthook for pre-commit quality gates.
+- Business signup fields and new `businessReviews` and `forumPosts` tables,
+  later split into dedicated `ForumModel` and `ReviewModel` with a
+  `featureRouter` for reviews/forum endpoints.
+- Business registration flow: new route, controller, and model to handle
+  business sign-ups, plus a base template for the business registration
+  page.
+- Azure Blob Storage integration for image uploads (new router for
+  token/filename generation, dependencies added), replacing local `/uploads`
+  storage.
+- Password reset via email, using a new Azure Communication Service
+  integration, with matching email verification configuration and styled
+  email templates for reset/verification.
+- Announcement/newsletter feature: new tables, models, and endpoints for
+  business announcements, plus an endpoint to fetch a user's own businesses.
+- Referral and voucher support: new fields, relations, and a
+  `handleReferral` function/route, with a database trigger for referral
+  codes and points.
+- Session handling additions (`logout`, `get session`) and bookmarks feature
+  (new type, routes, controller, and model).
+- Azure App Service CI/CD workflow for build and deployment.
+- Migrated the backend from JavaScript to TypeScript and moved `main.ts`
+  under `src/`.
 
 ### Changed
 
-- **Performance**: Migrated backend server to the Bun-native runtime, removing the `@hono/node-server` dependency.
-- **Tooling**: Migrated from ESLint and Prettier to the Oxc suite (`oxlint` and `oxfmt`) for near-instant developer feedback loops.
-- **Project Structure**: Refined organization of server libraries and frontend features.
+- Consolidated all dependencies into the root `package.json` for simpler
+  installs.
+- Login/signup handling moved to the backend so environment variables could
+  be used safely, with the deployed app URL added to trusted CORS origins
+  and hardcoded URLs replaced by environment-based configuration.
+- Database schema reset and refreshed several times as the
+  auth/referral/voucher/announcement tables stabilized; child tables updated
+  to cascade on delete.
+- Environment variable loading (`loadEnv.ts`) made to run before the server
+  starts, and `DATABASE_URL` renamed to `DB_URL` for consistency.
 
----
+### Removed
 
-## [1.0.0] - 2025-10-15
+- Dropped the `password` column from the businesses table and the
+  `Business` type.
+- Deleted the local `uploads/` directory now that images are served from
+  Azure Blob Storage.
+- Removed the unnecessary `dotenv` dependency (later reintroduced at the
+  root level).
+
+### Fixed
+
+- Various deployment bugs: workflow steps ordered to `cd backend` before
+  running migrations, `node_modules` removed before deploy, SSL config
+  chosen based on prod/dev, and a hardcoded localhost API URL causing 404s
+  in production replaced with environment-based URLs.
+- UEN not being passed to the database on business signup.
+
+## [1.0.0] - 2025-10-26
 
 ### Added
 
-- **Initial Release**: Baseline full-stack foundation for React and Hono.
-- **Authentication**: Native integration with Better Auth for secure user management.
-- **Persistence**: Built-in support for Drizzle ORM and PostgreSQL.
-- **Routing**: Type-safe, file-based routing using TanStack Router.
-- **Styling**: Modern, utility-first design system with Tailwind CSS v4.
-- **Runtime Configuration**: Dynamic environment variable injection mechanism for flexible deployments.
+- Initial Express/TypeScript backend and Vite frontend scaffold, migrating
+  the project off its previous PHP application (better-auth handler
+  mounted, Drizzle ORM configured, root `package.json` with concurrent dev
+  script).
+- Better-auth tables and Google login support wired into the user auth
+  flow.
+- New Vite-based frontend project (replacing the earlier vanilla setup)
+  with initial auth dependencies.
+- Reusable SQL seed script (adapted from the previous backend) for local
+  dummy data.
+
+### Changed
+
+- Repository layout reshuffled repeatedly (auth schema moved into
+  `src/database`, scripts consolidated in root `package.json`, drizzle
+  migration output directory changed).
+- Cross-platform script updates so setup works on both macOS and
+  Windows/Linux.
+
+### Docs
+
+- Added baseline setup instructions to the README and iterated on them.
+
+## [0.1.0] - Unreleased (no repository history)
+
+The original PHP application predates this repository. Its commit history
+was never migrated here, so no dated changelog entries exist for it — this
+entry is a placeholder marking that an earlier PHP version of LocaLoco
+existed before the 2025-10-24 Express/TypeScript rewrite recorded as
+`1.0.0` above.
