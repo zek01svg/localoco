@@ -54,3 +54,13 @@ resource "google_project_iam_member" "infra" {
   role     = each.key
   member   = "serviceAccount:${google_service_account.infra.email}"
 }
+
+# Cloud Run revisions run as the default compute service account (no custom
+# runtime service_account is set in cloud-run.tf). `gcloud run deploy` in
+# cd.yml's deploy-stage job needs iam.serviceAccounts.actAs on that identity
+# to deploy a revision, which none of the infra_roles above grant.
+resource "google_service_account_iam_member" "infra_actas_default_compute" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.infra.email}"
+}
