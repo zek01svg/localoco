@@ -45,13 +45,14 @@ If you are setting up your local environment, adding new features, or submitting
 
 ### Production & Deployment
 
-If you are deploying the application to staging or production using Docker:
+If you are deploying the application or understanding the automated release pipeline:
 
 - [**Deployment Guide**](./DEPLOYMENT.md)
-  - Multi-stage Docker Build Pipeline (`Dockerfile`)
-  - Runtime Environment Variable Configuration
-  - Static Asset Serving & Health Check Endpoints
-  - Docker Compose Service Definitions
+  - Production Architecture (Cloud Run + Cloudflare edge)
+  - Automated Release Flow (CI → Publish → CD via `workflow_run`)
+  - Configuration & Secrets (GCP Secret Manager)
+  - Rollback & Incident Runbook
+  - Health Checks & Monitoring
 
 ### API Reference & Standards
 

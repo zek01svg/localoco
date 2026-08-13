@@ -1,0 +1,192 @@
+name: Deploy LocaLoco to GCP Cloud Run
+
+on:
+  workflow_run:
+    workflows: ["Publish LocaLoco container image to GHCR"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+  packages: read
+  statuses: read
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: localoco-505304
+  REGION: asia-southeast1
+  SERVICE: localoco
+  IMAGE: ghcr.io/zek01svg/localoco
+
+jobs:
+  resolve-digest:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    outputs:
+      image: ${{ steps.resolve.outputs.image }}
+    steps:
+      - name: Log in to GHCR (read-only)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image by commit SHA tag
+        id: resolve
+        run: |
+          sha_tag="sha-$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)"
+          image="${{ env.IMAGE }}:${sha_tag}"
+
+          # Verify the image exists in GHCR
+          docker manifest inspect "$image" > /dev/null 2>&1 || {
+            echo "::error::Image '$image' not found in GHCR"
+            exit 1
+          }
+
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "Resolved image: $image"
+
+  deploy-stage:
+    runs-on: ubuntu-latest
+    needs: resolve-digest
+    outputs:
+      hold_revision: ${{ steps.pin.outputs.revision }}
+      staged_revision: ${{ steps.deploy.outputs.revision }}
+      staged_url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Authenticate to Google Cloud (WIF)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Pin currently serving revision
+        id: pin
+        run: |
+          hold="$(gcloud run services describe "${{ env.SERVICE }}" --region="${{ env.REGION }}" \
+            --project="${{ env.PROJECT_ID }}" --format=json \
+            | jq -r '.status.traffic[] | select(.percent > 0) | .revision')"
+          echo "revision=$hold" >> "$GITHUB_OUTPUT"
+          echo "Holding revision: $hold"
+
+      - name: Deploy revision at 0% traffic with 'staged' tag
+        id: deploy
+        run: |
+          gcloud run deploy "${{ env.SERVICE }}" \
+            --image="${{ needs.resolve-digest.outputs.image }}" \
+            --no-traffic \
+            --tag="staged" \
+            --region="${{ env.REGION }}" \
+            --project="${{ env.PROJECT_ID }}"
+
+          # Retrieve tag-specific URL and revision name created by gcloud
+          json="$(gcloud run services describe "${{ env.SERVICE }}" --region="${{ env.REGION }}" --project="${{ env.PROJECT_ID }}" --format=json)"
+          revision="$(echo "$json" | jq -r '.status.traffic[] | select(.tag == "staged") | .revision')"
+          url="$(echo "$json" | jq -r '.status.traffic[] | select(.tag == "staged") | .url')"
+
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Staged revision: $revision"
+          echo "Smoke target URL: $url"
+
+  migrate:
+    runs-on: ubuntu-latest
+    needs: deploy-stage
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Run committed migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bunx drizzle-kit migrate
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: [deploy-stage, migrate]
+    steps:
+      - name: Authenticate to Google Cloud (WIF)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Read SMOKE_TOKEN from Secret Manager
+        id: secret
+        run: |
+          token="$(gcloud secrets versions access latest --secret=SMOKE_TOKEN --project="${{ env.PROJECT_ID }}")"
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke check staged revision URL
+        env:
+          SMOKE_TOKEN: ${{ steps.secret.outputs.token }}
+          TARGET_URL: ${{ needs.deploy-stage.outputs.staged_url }}
+          EXPECTED_REVISION: ${{ needs.deploy-stage.outputs.staged_revision }}
+        run: |
+          curl -fsS --retry 5 --retry-delay 3 --retry-all-errors \
+            "$TARGET_URL/health"
+          echo ""
+          response="$(curl -fsS -H "Authorization: Bearer $SMOKE_TOKEN" \
+            "$TARGET_URL/api/smoke")"
+          echo "$response"
+          served="$(echo "$response" | jq -r '.revision')"
+          if [ "$EXPECTED_REVISION" != "$served" ]; then
+            echo "::error::Smoke hit revision '$served', expected staged revision '$EXPECTED_REVISION'"
+            exit 1
+          fi
+
+  promote:
+    runs-on: ubuntu-latest
+    needs: [deploy-stage, resolve-digest, smoke]
+    steps:
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Promote staged revision to 100% traffic
+        run: |
+          gcloud run services update-traffic "${{ env.SERVICE }}" \
+            --region="${{ env.REGION }}" \
+            --project="${{ env.PROJECT_ID }}" \
+            --to-revisions="${{ needs.deploy-stage.outputs.staged_revision }}=100"
+
+      - name: Record release
+        run: |
+          echo "## Release Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: \`${{ needs.resolve-digest.outputs.image }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Active Revision: \`${{ needs.deploy-stage.outputs.staged_revision }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Previous Revision: \`${{ needs.deploy-stage.outputs.hold_revision }}\` (retained for rollback)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Traffic: 100% shifted via gcloud" >> "$GITHUB_STEP_SUMMARY"

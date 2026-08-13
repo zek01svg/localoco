@@ -34,17 +34,48 @@ Client ──► Cloudflare edge (proxied, WAF, Universal SSL, strict origin TLS
 
 ## 2. Release Flow
 
-1. **Build gate (CI)**: every push runs the `ci` workflow — format, lint,
-   typecheck, build, unit/integration/e2e tests, dependency audit, secret
-   scan, Docker image build, and a Terraform plan (no apply).
-2. **Publish (merge to `main`)**: the `publish` workflow builds and pushes
-   `ghcr.io/zek01svg/localoco` tagged `main` and `sha-<short>`, and records
-   the immutable image digest as a commit status (`ghcr/image`). It does not
-   deploy.
-3. **Deploy (manual, immutable)**: a deploy ticket promotes a verified
-   digest to production per ADR-0007 — set the origin image and apply. The
-   application container never runs migrations or seeds; those run
-   separately. Apply is deliberate and not automated.
+The release pipeline is fully automated — every merge to `main` triggers a
+linear chain of GitHub Actions workflows. Each step gates the next; traffic
+is only promoted after authenticated smoke checks pass against the staged
+revision.
+
+```
+push to main → CI → Publish → CD
+```
+
+1. **CI (`ci.yml`)**: every push runs format, lint, typecheck, build,
+   unit/integration/e2e tests, dependency audit, secret scan, Docker image
+   build, and Terraform plan (no apply).
+
+2. **Publish (`publish.yml`)**: triggered automatically via `workflow_run`
+   when CI succeeds on `main`. Builds and pushes
+   `ghcr.io/zek01svg/localoco` tagged `main` and `sha-<short>` to GHCR.
+   It does not deploy. The SHA-tagged image is the production identity.
+
+3. **Deploy (`cd.yml`)**: triggered automatically via `workflow_run` when
+   Publish succeeds on `main`. The pipeline is:
+
+   | Step             | What happens                                                                                                                                                                                              |
+   | :--------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `resolve-digest` | Logs into GHCR and resolves the image by `sha-<short>` tag matching the triggering commit; fails if no image was published.                                                                               |
+   | `deploy-stage`   | WIF auth to GCP, pins the currently-serving revision for rollback, then deploys the resolved image as a new revision at **0% traffic** with a `staged` tag. Outputs the staged revision name and tag URL. |
+   | `migrate`        | Runs committed migrations through Drizzle Kit over the direct `DATABASE_URL`. Failure stops the release. Migrations are additive so the old revision keeps working.                                       |
+   | `smoke`          | Authenticated checks (Bearer `SMOKE_TOKEN`) against the **zero-traffic staged revision URL** — `/health` plus `/api/smoke` (DB round-trip echoing the served revision).                                   |
+   | `promote`        | Atomically shifts 100% traffic to the staged revision via `gcloud run services update-traffic`.                                                                                                           |
+
+   Promotion is atomic and happens only after every prior step succeeds.
+
+4. **Rollback (manual trigger)**: `rollback.yml` points traffic at any
+   retained revision without rebuilding. Cloud Run retains previous
+   revisions automatically. See the runbook below.
+
+### Operator prerequisites (one-time)
+
+- `main` exists and the full CI → Publish chain has run at least once.
+- GitHub secrets set: `GCP_WIF_PROVIDER`, `GCP_SA`, `DATABASE_URL`.
+- `SMOKE_TOKEN` stored in GCP Secret Manager (accessed at deploy time).
+- Every app secret has at least one version (Cloud Run fails the revision if
+  a referenced secret version is missing) — see §3.
 
 ---
 
@@ -58,6 +89,7 @@ protected channels (Secret Manager).
 | :------------------- | :------------------------------------------ |
 | `DATABASE_URL`       | PostgreSQL connection string                |
 | `BETTER_AUTH_SECRET` | Better Auth encryption secret (>= 32 chars) |
+| `SMOKE_TOKEN`        | Bearer token for the release smoke check    |
 | `SMTP_HOST`          | SMTP host                                   |
 | `SMTP_PORT`          | SMTP port (e.g. `587`)                      |
 | `SMTP_SECURE`        | TLS for SMTP (`true`/`false`)               |
@@ -76,7 +108,37 @@ first need them, not provisioned ahead of time.
 
 ---
 
-## 4. Health Checks & Monitoring
+## 4. Rollback & Incidents
+
+Rollback never rebuilds an artifact: Cloud Run retains deployed revisions,
+so moving traffic is instant and reversible.
+
+### Rollback runbook
+
+1. Find the revision to restore — the previous release's staged revision is
+   in that release's Actions summary; any revision can be listed with:
+   `gcloud run revisions list --region=asia-southeast1`.
+2. Run the **Rollback Cloud Run traffic** workflow from the Actions tab with
+   the revision name (e.g. `localoco-00003-abcd`). The `production`
+   environment approval is required.
+3. Verify: `curl https://localoco.ciav.dev/health` and check the served
+   revision via `/api/smoke` with `SMOKE_TOKEN`.
+
+### When to roll back
+
+- Smoke checks failed but promotion already happened (race) — roll back to
+  the previous release's staged revision.
+- Any user-visible regression after promotion. The previous revision is
+  guaranteed to exist — Cloud Run retains it.
+
+### Post-incident
+
+- Record the incident in the Linear ticket, then either fix forward via a
+  new release (`cd.yml`) or re-run migrations if schema and code drifted.
+
+---
+
+## 5. Health Checks & Monitoring
 
 - **Health endpoint**: `GET /health` returns `200 OK` with `{"status": "ok"}`
 - **Docker healthcheck**: the image ships `HEALTHCHECK` probing `/health` on
@@ -86,7 +148,7 @@ first need them, not provisioned ahead of time.
 
 ---
 
-## 5. Local Standalone Run
+## 6. Local Standalone Run
 
 Without infrastructure (e.g. a VPS or local box):
 

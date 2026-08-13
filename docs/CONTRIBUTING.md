@@ -246,3 +246,7 @@ and any failing gate fails the run:
 
 The CI job is the required status check for merge: branch protection on `main`
 requires it. The `legacy/` reference tree is excluded from all gates.
+
+On `main`, CI completion also triggers the downstream release chain
+(`publish.yml` → `cd.yml`). See [DEPLOYMENT.md](./DEPLOYMENT.md#2-release-flow)
+for the full pipeline.

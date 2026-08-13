@@ -12,6 +12,7 @@ infra
 docs
 tasks
 data
+drizzle
 
 .env*
 *.log

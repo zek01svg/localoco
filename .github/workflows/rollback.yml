@@ -1,0 +1,56 @@
+name: Rollback Cloud Run traffic
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Retained revision to serve 100% (e.g. localoco-00003-abcd)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: localoco-505304
+  REGION: asia-southeast1
+  SERVICE: localoco
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate to Google Cloud (WIF)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Verify retained revision exists
+        run: |
+          gcloud run revisions describe "${{ inputs.revision }}" \
+            --region="${{ env.REGION }}" --project="${{ env.PROJECT_ID }}" --quiet
+
+      - name: Promote revision to 100% traffic (no rebuild)
+        run: |
+          gcloud run services update-traffic "${{ env.SERVICE }}" \
+            --region="${{ env.REGION }}" --project="${{ env.PROJECT_ID }}" \
+            --to-revisions="${{ inputs.revision }}=100" --quiet
+
+      - name: Record rollback
+        run: |
+          echo "## Rollback" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ${{ inputs.revision }} now serves 100% of traffic." >> "$GITHUB_STEP_SUMMARY"
+          echo "- No image rebuild required; the revision was already retained." >> "$GITHUB_STEP_SUMMARY"
