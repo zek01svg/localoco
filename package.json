@@ -26,7 +26,8 @@
     "test:e2e": "playwright test",
     "security:audit": "bun audit --audit-level=high",
     "db:push": "bun drizzle-kit push",
-    "db:studio": "bun drizzle-kit studio"
+    "db:studio": "bun drizzle-kit studio",
+    "db:migrate": "bun server/database/migrate.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

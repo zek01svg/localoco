@@ -1,6 +1,8 @@
 # The application origin. ADR-0006: one Cloud Run origin behind Cloudflare.
 # Request-based billing (cpu_idle), zero minimum instances, max three.
-# The placeholder image is swapped for the real ghcr image by deploy tickets.
+# The placeholder image is swapped for the real ghcr image by CD (PRS-165);
+# every release deploys an exact digest and stages it at 0% traffic until
+# smoke checks pass, then promotes atomically.
 
 resource "google_cloud_run_v2_service" "origin" {
   name     = "localoco"
@@ -20,7 +22,38 @@ resource "google_cloud_run_v2_service" "origin" {
       resources {
         cpu_idle = true
       }
+      # App secrets as env refs. Versions must exist before apply (operator
+      # step, see docs/DEPLOYMENT.md); a missing version fails the release.
+      dynamic "env" {
+        for_each = toset(local.app_secrets)
+        content {
+          name = env.value
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.app[env.value].id
+              version = "latest"
+            }
+          }
+        }
+      }
     }
+  }
+
+  # Release traffic: a pinned hold revision keeps 100% while the newly
+  # deployed latest revision stages at var.origin_traffic_latest (0%).
+  # Promotion clears the hold and sets the latest target to 100%.
+  dynamic "traffic" {
+    for_each = var.origin_traffic_hold != "" ? [1] : []
+    content {
+      percent  = 100
+      revision = var.origin_traffic_hold
+      type     = "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION"
+    }
+  }
+
+  traffic {
+    percent = var.origin_traffic_latest
+    type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
   }
 }
 

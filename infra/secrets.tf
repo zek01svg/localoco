@@ -6,6 +6,7 @@ locals {
   app_secrets = [
     "DATABASE_URL",
     "BETTER_AUTH_SECRET",
+    "SMOKE_TOKEN",
     "SMTP_HOST",
     "SMTP_PORT",
     "SMTP_SECURE",

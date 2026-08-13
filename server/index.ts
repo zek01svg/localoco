@@ -1,11 +1,13 @@
 import { Scalar } from "@scalar/hono-api-reference";
 import * as Sentry from "@sentry/bun";
+import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, openAPIRouteHandler } from "hono-openapi";
 import { serveStatic } from "hono/bun";
 
 import { env } from "#server/env";
 import { auth } from "#server/lib/auth.ts";
+import { db } from "#server/lib/db.ts";
 import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
 
 const sentryDsn = env.SENTRY_DSN ?? env.VITE_SENTRY_DSN;
@@ -154,7 +156,18 @@ const apiRoutes = new Hono()
       url: "/api/openapi",
       theme: "deepSpace",
     })
-  );
+  )
+  .get("/smoke", async c => {
+    const token = c.req.header("Authorization")?.replace(/^Bearer\s+/iu, "");
+    if (!env.SMOKE_TOKEN || token !== env.SMOKE_TOKEN) {
+      return c.json({ error: "unauthorized" }, 401);
+    }
+    await db.execute(sql`select 1`);
+    return c.json({
+      ok: true,
+      revision: env.K_REVISION ?? "local",
+    });
+  });
 
 app.route("/api", apiRoutes);
 app.route("/", baseRoutes);

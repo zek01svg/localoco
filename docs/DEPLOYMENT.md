@@ -34,17 +34,45 @@ Client ──► Cloudflare edge (proxied, WAF, Universal SSL, strict origin TLS
 
 ## 2. Release Flow
 
+The release pipeline is `.github/workflows/cd.yml` (PRS-165). Every step can
+stop the release; traffic is only promoted after authenticated smoke checks
+pass against the exact image digest.
+
 1. **Build gate (CI)**: every push runs the `ci` workflow — format, lint,
    typecheck, build, unit/integration/e2e tests, dependency audit, secret
    scan, Docker image build, and a Terraform plan (no apply).
 2. **Publish (merge to `main`)**: the `publish` workflow builds and pushes
    `ghcr.io/zek01svg/localoco` tagged `main` and `sha-<short>`, and records
    the immutable image digest as a commit status (`ghcr/image`). It does not
-   deploy.
-3. **Deploy (manual, immutable)**: a deploy ticket promotes a verified
-   digest to production per ADR-0007 — set the origin image and apply. The
-   application container never runs migrations or seeds; those run
-   separately. Apply is deliberate and not automated.
+   deploy. The digest is the production identity — a tag can move, a digest
+   cannot.
+3. **Release (manual trigger)**: run `cd.yml` from the Actions tab, choosing
+   a commit (default `main`). The pipeline is:
+
+   | Step                         | What happens                                                                                                                                                                                                                             |
+   | :--------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `resolve-digest`             | Reads the `ghcr/image` status for the chosen commit; fails if no image was published.                                                                                                                                                    |
+   | `terraform-apply` (approved) | **Approved via the `production` environment.** WIF auth, then `terraform apply` with the exact digest image and a traffic split that holds the current revision at 100% and stages the new revision at **0% traffic**.                   |
+   | `migrate`                    | Runs committed migrations through Drizzle's native migrator over the direct `DATABASE_URL` (read from Secret Manager). Applied set is recorded in the `drizzle.__drizzle_migrations` table. Failure stops the release.                   |
+   | `smoke`                      | Authenticated checks (Bearer `SMOKE_TOKEN`) against the **zero-traffic revision URL** — `/health` plus `/api/smoke` (DB round-trip echoing the served revision). Unauthenticated requests get 401; nothing internal is exposed publicly. |
+   | `promote`                    | `terraform apply` clears the hold and atomically shifts traffic to 100% on the staged revision.                                                                                                                                          |
+
+   Promotion is atomic (a single Cloud Run traffic update) and happens only
+   after every prior step succeeds. Migrations run while the old revision
+   still serves — additive, so the old code keeps working.
+
+4. **Rollback (manual trigger)**: `rollback.yml` points traffic at any
+   retained revision without rebuilding. Cloud Run retains previous
+   revisions automatically. See the runbook below.
+
+### Operator prerequisites (one-time)
+
+- `main` exists and `publish.yml` has run (the digest status).
+- GitHub secrets set: `GCP_WIF_PROVIDER`, `GCP_SA`, `CLOUDFLARE_API_TOKEN`.
+- GitHub **environment `production`** created with required reviewers (this
+  is the approval gate on `terraform-apply`).
+- Every app secret has at least one version (Cloud Run fails the revision if
+  a referenced secret version is missing) — see §3.
 
 ---
 
@@ -58,6 +86,7 @@ protected channels (Secret Manager).
 | :------------------- | :------------------------------------------ |
 | `DATABASE_URL`       | PostgreSQL connection string                |
 | `BETTER_AUTH_SECRET` | Better Auth encryption secret (>= 32 chars) |
+| `SMOKE_TOKEN`        | Bearer token for the release smoke check    |
 | `SMTP_HOST`          | SMTP host                                   |
 | `SMTP_PORT`          | SMTP port (e.g. `587`)                      |
 | `SMTP_SECURE`        | TLS for SMTP (`true`/`false`)               |
@@ -76,7 +105,37 @@ first need them, not provisioned ahead of time.
 
 ---
 
-## 4. Health Checks & Monitoring
+## 4. Rollback & Incidents
+
+Rollback never rebuilds an artifact: Cloud Run retains deployed revisions,
+so moving traffic is instant and reversible.
+
+### Rollback runbook
+
+1. Find the revision to restore — the previous release's staged revision is
+   in that release's Actions summary; any revision can be listed with:
+   `gcloud run revisions list --region=asia-southeast1`.
+2. Run the **Rollback Cloud Run traffic** workflow from the Actions tab with
+   the revision name (e.g. `localoco-00003-abcd`). The `production`
+   environment approval is required.
+3. Verify: `curl https://localoco.ciav.dev/health` and check the served
+   revision via `/api/smoke` with `SMOKE_TOKEN`.
+
+### When to roll back
+
+- Smoke checks failed but promotion already happened (race) — roll back to
+  the previous release's staged revision.
+- Any user-visible regression after promotion. The previous revision is
+  guaranteed to exist — Cloud Run retains it.
+
+### Post-incident
+
+- Record the incident in the Linear ticket, then either fix forward via a
+  new release (`cd.yml`) or re-run migrations if schema and code drifted.
+
+---
+
+## 5. Health Checks & Monitoring
 
 - **Health endpoint**: `GET /health` returns `200 OK` with `{"status": "ok"}`
 - **Docker healthcheck**: the image ships `HEALTHCHECK` probing `/health` on
@@ -86,7 +145,7 @@ first need them, not provisioned ahead of time.
 
 ---
 
-## 5. Local Standalone Run
+## 6. Local Standalone Run
 
 Without infrastructure (e.g. a VPS or local box):
 

@@ -18,21 +18,27 @@ export const env = createEnv({
     // Better Auth
     BETTER_AUTH_SECRET: z.string(),
 
-    // Mail
-    SMTP_HOST: z.string(),
-    SMTP_PORT: z.coerce.number(),
-    SMTP_SECURE: z.coerce.boolean(),
-    SMTP_USER: z.string(),
-    SMTP_PASS: z.string(),
-    SMTP_FROM: z.string(),
+    // Release smoke check gate (set only in production)
+    SMOKE_TOKEN: z.string().optional(),
 
-    // Minio
-    AWS_ACCESS_KEY_ID: z.string(),
-    AWS_SECRET_ACCESS_KEY: z.string(),
-    AWS_REGION: z.string(),
-    AWS_S3_ENDPOINT: z.string(),
-    AWS_S3_BUCKET: z.string(),
-    FORCE_PATH_STYLE: z.coerce.boolean(),
+    // Cloud Run injects the serving revision id
+    K_REVISION: z.string().optional(),
+
+    // Mail (wired when the auth/smtp slice ships)
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().optional(),
+    SMTP_SECURE: z.coerce.boolean().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASS: z.string().optional(),
+    SMTP_FROM: z.string().optional(),
+
+    // Object storage (wired when the R2 slice ships)
+    AWS_ACCESS_KEY_ID: z.string().optional(),
+    AWS_SECRET_ACCESS_KEY: z.string().optional(),
+    AWS_REGION: z.string().optional(),
+    AWS_S3_ENDPOINT: z.string().optional(),
+    AWS_S3_BUCKET: z.string().optional(),
+    FORCE_PATH_STYLE: z.coerce.boolean().optional(),
   },
   clientPrefix: "VITE_",
   runtimeEnv: {
@@ -48,6 +54,12 @@ export const env = createEnv({
 
     // Better Auth
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+
+    // Release smoke check gate (set only in production)
+    SMOKE_TOKEN: process.env.SMOKE_TOKEN,
+
+    // Cloud Run injects the serving revision id
+    K_REVISION: process.env.K_REVISION,
 
     // Mail
     SMTP_HOST: process.env.SMTP_HOST,
