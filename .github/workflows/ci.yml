@@ -49,6 +49,9 @@ jobs:
       - name: Run unit and integration tests
         run: bun run test
 
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium
+
       - name: Run e2e tests
         run: bun run test:e2e
 
