@@ -38,3 +38,9 @@ playwright-report/
 
 # Data
 data/
+
+# Terraform
+infra/.terraform/
+*.tfstate
+*.tfstate.*
+infra/*.tfvars

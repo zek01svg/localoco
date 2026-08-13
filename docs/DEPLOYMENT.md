@@ -1,155 +1,102 @@
 # Deployment & Production Guide
 
-This guide covers building, containerizing, configuring, and deploying the **React + Hono Template** to production environments.
+This guide covers the production deployment of **LocaLoco**: one Cloud Run
+origin behind the Cloudflare edge, provisioned with Terraform. Infrastructure
+details and bootstrap steps live in [`infra/README.md`](../infra/README.md);
+this page describes the release flow and runtime.
 
 ---
 
 ## 1. Production Architecture
 
-In production, the application is packaged into a single containerized Bun process that handles both API routing and static asset delivery:
+```
+Client ──► Cloudflare edge (proxied, WAF, Universal SSL, strict origin TLS)
+               └──► Cloud Run `localoco` (asia-southeast-1, project localoco-505304)
+                        ├── API routes (Hono/Bun, dist/index.js)
+                        └── static SPA assets (dist/static/)
+```
 
-- **Backend Execution**: Bun executes the minified server entry point `dist/index.js`, listening on the injected `PORT` environment variable (default `4001`) on all interfaces.
-- **Static File Serving**: Hono serves compiled React SPA static assets (`dist/static/`) directly from memory and disk using Bun's native `serveStatic` middleware.
-- **Client SPA Fallback**: Unmatched non-API requests fallback to `dist/static/index.html` to support client-side HTML5 routing.
-- **Runtime Env Injection**: `/api/runtime.js` injects production server environment variables (`VITE_*`) into `window.__env` at startup.
+- **Origin**: Cloud Run service `localoco` — request-based billing
+  (`cpu_idle`), zero minimum instances, max three. Public invoker so the
+  proxied edge can reach it.
+- **Edge**: `localoco.ciav.dev` resolves through Cloudflare Free (proxied),
+  protected by the Free Managed WAF ruleset and always-on standard DDoS
+  protection. Universal SSL covers the hostname automatically; the zone is
+  set to Full (strict) so the edge verifies the origin certificate.
+- **Backend process**: Bun runs the minified server entry `dist/index.js`,
+  listening on the injected `PORT` (default `4001`) on all interfaces. Hono
+  serves the compiled SPA from `dist/static/`; non-API requests fall back to
+  `dist/static/index.html` for client-side routing.
+- **Runtime env injection**: `/api/runtime.js` injects production `VITE_*`
+  values into `window.__env` at startup.
 
 ---
 
-## 2. Docker Container Deployment (Recommended)
+## 2. Release Flow
 
-The repository provides an optimized multi-stage `Dockerfile` based on `oven/bun:1.3.14-alpine` (pinned to the `packageManager` version). The runtime stage ships only production artifacts (`dist/`, production `node_modules`, `package.json`) and runs as the non-root `bun` user. The image starts the server directly — it never runs database migrations or seeds.
+1. **Build gate (CI)**: every push runs the `ci` workflow — format, lint,
+   typecheck, build, unit/integration/e2e tests, dependency audit, secret
+   scan, Docker image build, and a Terraform plan (no apply).
+2. **Publish (merge to `main`)**: the `publish` workflow builds and pushes
+   `ghcr.io/zek01svg/localoco` tagged `main` and `sha-<short>`, and records
+   the immutable image digest as a commit status (`ghcr/image`). It does not
+   deploy.
+3. **Deploy (manual, immutable)**: a deploy ticket promotes a verified
+   digest to production per ADR-0007 — set the origin image and apply. The
+   application container never runs migrations or seeds; those run
+   separately. Apply is deliberate and not automated.
 
-The production install runs `bun install --production --omit=peer` so the runtime stage ships only what the server and UI actually load (about 300 MB of `node_modules` in the image, roughly 40% smaller than a naive install): dev-only tooling (`vite`, `vitest`, `tsc`, `drizzle-kit`, …) is excluded, including the test toolchain bun would otherwise pull in as an optional peer of `better-auth`. Peers that the runtime truly needs (`react-is` for `recharts`, `react`/`react-dom`, `hono`, `zod`) are explicit root dependencies instead.
+---
 
-The container build runs as a pull-request gate in the `ci` workflow, and the image ships a Docker `HEALTHCHECK` that probes `/health` on the injected `PORT` (default `4001`). Merging to `main` publishes `ghcr.io/zek01svg/localoco` (tags `main` and `sha-<short>`) via the `publish` workflow and records the immutable image digest as a commit status; it does not deploy.
+## 3. Configuration & Secrets
 
-### Multi-Stage Build Breakdown
+Secret values never touch Terraform variables, plan output, or state.
+Terraform owns the containers and their IAM; operators add versions through
+protected channels (Secret Manager).
 
-```
-[Stage 1: base] ─────► oven/bun:1-alpine
-                          │
-[Stage 2: install] ───► Installs build tools (g++, python3, native libs)
-                          ├──► Installs full node_modules (/temp/dev)
-                          └──► Installs production node_modules (/temp/prod, --omit=peer)
-                          │
-[Stage 3: build] ─────► Runs 'bun run build'
-                          ├──► Bun builds dist/index.js
-                          └──► Vite builds dist/static/
-                          │
-[Stage 4: release] ───► Copies /temp/prod/node_modules and dist/
-                          └──► Executes 'bun dist/index.js' as non-root user 'bun'
-```
+| Secret container     | Purpose                                     |
+| :------------------- | :------------------------------------------ |
+| `DATABASE_URL`       | PostgreSQL connection string                |
+| `BETTER_AUTH_SECRET` | Better Auth encryption secret (>= 32 chars) |
+| `SMTP_HOST`          | SMTP host                                   |
+| `SMTP_PORT`          | SMTP port (e.g. `587`)                      |
+| `SMTP_SECURE`        | TLS for SMTP (`true`/`false`)               |
+| `SMTP_USER`          | SMTP username                               |
+| `SMTP_PASS`          | SMTP password                               |
+| `SMTP_FROM`          | Default sender address                      |
 
-### Build & Run Docker Image
+Add a version after apply:
 
 ```bash
-# 1. Build production image
-bun run build:docker
-
-# Or build directly with docker CLI
-docker build -t localoco:latest .
-
-# 2. Run container
-docker run -d \
-  --name localoco \
-  -p 4001:4001 \
-  --env-file .env.production \
-  localoco:latest
+gcloud secrets versions add DATABASE_URL --project localoco-505304 --data-file=-
 ```
 
----
-
-## 3. Environment Variable Matrix
-
-The following environment variables control production application runtime:
-
-### Server Environment Variables (Secrets & Backend Settings)
-
-| Variable                | Type    | Required | Description                                       | Example                                    |
-| :---------------------- | :------ | :------- | :------------------------------------------------ | :----------------------------------------- |
-| `NODE_ENV`              | Enum    | Yes      | Environment mode (`production`, `development`)    | `production`                               |
-| `PORT`                  | Number  | No       | HTTP listen port (all interfaces), default `4001` | `8080`                                     |
-| `DATABASE_URL`          | URL     | Yes      | PostgreSQL connection string                      | `postgres://user:pass@db:5432/app`         |
-| `BETTER_AUTH_SECRET`    | String  | Yes      | Encryption secret for Better Auth (>= 32 chars)   | `super-secret-production-key-32ch`         |
-| `SMTP_HOST`             | String  | Yes      | Production SMTP host                              | `smtp.sendgrid.net`                        |
-| `SMTP_PORT`             | Number  | Yes      | Production SMTP port                              | `587`                                      |
-| `SMTP_SECURE`           | Boolean | Yes      | Enable SSL/TLS for SMTP                           | `true`                                     |
-| `SMTP_USER`             | String  | Yes      | SMTP authentication username                      | `apikey`                                   |
-| `SMTP_PASS`             | String  | Yes      | SMTP authentication password                      | `your-smtp-password`                       |
-| `SMTP_FROM`             | String  | Yes      | Default sender email address                      | `noreply@yourdomain.com`                   |
-| `AWS_ACCESS_KEY_ID`     | String  | Yes      | S3 / MinIO access key                             | `AKIAIOSFODNN7EXAMPLE`                     |
-| `AWS_SECRET_ACCESS_KEY` | String  | Yes      | S3 / MinIO secret key                             | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
-| `AWS_REGION`            | String  | Yes      | AWS S3 region                                     | `us-east-1`                                |
-| `AWS_S3_ENDPOINT`       | String  | Yes      | S3 API endpoint URL                               | `https://s3.amazonaws.com`                 |
-| `AWS_S3_BUCKET`         | String  | Yes      | Storage bucket name                               | `my-production-bucket`                     |
-| `FORCE_PATH_STYLE`      | Boolean | Yes      | Set true for MinIO, false for AWS S3              | `false`                                    |
-| `SENTRY_DSN`            | URL     | No       | Server Sentry DSN for error tracing               | `https://key@sentry.io/123`                |
-
-### Client Environment Variables (Injected via `/api/runtime.js`)
-
-| Variable          | Type | Required | Description                                  | Example                      |
-| :---------------- | :--- | :------- | :------------------------------------------- | :--------------------------- |
-| `VITE_APP_URL`    | URL  | Yes      | Public application URL                       | `https://app.yourdomain.com` |
-| `VITE_SENTRY_DSN` | URL  | No       | Client Sentry DSN for browser error tracking | `https://key@sentry.io/456`  |
+Deferred credentials (R2, Maps, Upstash) are attached to the slices that
+first need them, not provisioned ahead of time.
 
 ---
 
-## 4. Manual Standalone Deployment
+## 4. Health Checks & Monitoring
 
-If deploying directly to a Virtual Private Server (VPS) without Docker:
+- **Health endpoint**: `GET /health` returns `200 OK` with `{"status": "ok"}`
+- **Docker healthcheck**: the image ships `HEALTHCHECK` probing `/health` on
+  the injected `PORT` (default `4001`)
+- Cloud Run restarts unhealthy instances automatically; the Cloudflare edge
+  absorbs traffic during instance scaling
+
+---
+
+## 5. Local Standalone Run
+
+Without infrastructure (e.g. a VPS or local box):
 
 ```bash
-# 1. Install dependencies
 bun install --frozen-lockfile
-
-# 2. Build backend and frontend bundles
 bun run build
-
-# 3. Start production server
-NODE_ENV=production bun dist/index.js
+NODE_ENV=production PORT=4001 bun dist/index.js
 ```
 
----
-
-## 5. Reverse Proxy Setup (Nginx Example)
-
-In production, place a reverse proxy (such as Nginx, Caddy, or Cloudflare) in front of the container to manage SSL/TLS termination and HTTP/2:
-
-```nginx
-server {
-    listen 80;
-    server_name app.yourdomain.com;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name app.yourdomain.com;
-
-    ssl_certificate /etc/letsencrypt/live/app.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/app.yourdomain.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:4001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
----
-
-## 6. Health Checks & Monitoring
-
-- **Health Endpoint**: `GET http://localhost:4001/health`
-  - Response (`200 OK`): `{"status": "ok"}`
-- **Docker Healthcheck Spec**:
-  ```dockerfile
-  HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-4001}/health || exit 1
-  ```
+A reverse proxy (Nginx, Caddy, or Cloudflare) terminates TLS and forwards to
+the server on `127.0.0.1:4001`, preserving the original `Host` and
+`X-Forwarded-*` headers. This path is for evaluation; production runs on
+Cloud Run behind Cloudflare.
