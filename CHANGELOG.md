@@ -28,6 +28,9 @@ All notable changes to this project will be documented in this file.
   serves a branded, accessible LocaLoco maintenance page with `503 Service
 Unavailable` and a `Retry-After` header while the rewrite is in progress;
   `/health` keeps returning `200` and depends on nothing external.
+- **Agent workflow instructions**: `AGENTS.md`, root `CONTEXT.md` (shared
+  domain glossary), and `docs/agents/` (issue tracker and triage-label
+  conventions) for coding agents working in this repository.
 
 ### Changed
 
