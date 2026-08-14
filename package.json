@@ -25,9 +25,8 @@
     "test": "vitest run server/tests/unit src tests/integration",
     "test:e2e": "playwright test",
     "security:audit": "bun audit --audit-level=high",
-    "db:push": "bun drizzle-kit push",
     "db:studio": "bun drizzle-kit studio",
-    "db:migrate": "bun server/database/migrate.ts"
+    "db:migrate": "bunx drizzle-kit migrate"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

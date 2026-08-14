@@ -35,6 +35,8 @@ jobs:
         run: bun run build
       - name: Run unit and integration tests
         run: bun run test
+      - name: Check schema and migration history for drift
+        run: bunx drizzle-kit check
       - name: Install Playwright browsers
         run: bunx playwright install chromium
       - name: Run e2e tests

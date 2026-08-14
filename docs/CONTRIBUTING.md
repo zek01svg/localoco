@@ -146,15 +146,29 @@ bunx lefthook run pre-commit
 
 ## 5. Database Management Workflow
 
-Database operations use **Drizzle ORM** and **Drizzle Kit**.
+Database operations use **Drizzle ORM** and **Drizzle Kit**. The schema in
+`server/database/` is the single canonical source; committed migrations in
+`drizzle/` are generated from it.
 
-### Push Schema Changes
+### Run Migrations
 
-When you modify database schemas in `server/database/`:
+Apply the committed migrations to your local database (start the
+infrastructure containers first, see section 2.4):
 
 ```bash
-bun db:push
+bun db:migrate
 ```
+
+Schema changes must land as a new committed migration, generated from the
+schema:
+
+```bash
+bunx drizzle-kit generate
+```
+
+Production migrations run from CI only (`cd.yml` migrate job) — never at
+container startup. Schema push (`drizzle-kit push`) is not used; CI fails on
+drift between the schema and the migration history.
 
 ### Inspect Database (Drizzle Studio)
 
@@ -162,14 +176,6 @@ Launch interactive database browser UI:
 
 ```bash
 bun db:studio
-```
-
-### Seed Development Data
-
-To populate your database with initial development seeds:
-
-```bash
-bun scripts/db-seed.ts
 ```
 
 ---

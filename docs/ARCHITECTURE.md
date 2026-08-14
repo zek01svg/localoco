@@ -155,7 +155,7 @@ The backend is built with **Hono**, a high-performance web framework designed fo
 
 - **PostgreSQL 17**: Primary relational database storage.
 - **Drizzle ORM**: Type-safe ORM located under `server/database/`. Schema definitions and migrations are configured via `drizzle.config.ts`.
-- **Database Connection Pool**: Managed via `postgres` driver in `server/lib/db.ts`.
+- **Database Connection Pool**: Bounded per-instance postgres-js pool (`max: 15`) in `server/lib/db.ts` — three Cloud Run instances x 15 stays under Supabase Free's 60-connection limit. Production migrations run from CI only, against the direct connection, never at container startup.
 
 ### Authentication Layer
 
