@@ -34,3 +34,15 @@ resource "google_secret_manager_secret_iam_member" "app" {
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.infra.email}"
 }
+
+# Cloud Run revisions run as the default compute service account (no custom
+# runtime service_account is set in cloud-run.tf) and read these secrets at
+# deploy/boot time - it needs its own accessor grant, separate from the
+# terraform SA's grant above which only covers Terraform-driven reads.
+resource "google_secret_manager_secret_iam_member" "app_runtime" {
+  for_each  = toset(local.app_secrets)
+  project   = var.project_id
+  secret_id = each.key
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+}
