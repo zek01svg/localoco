@@ -81,7 +81,7 @@ jobs:
         run: |
           hold="$(gcloud run services describe "${{ env.SERVICE }}" --region="${{ env.REGION }}" \
             --project="${{ env.PROJECT_ID }}" --format=json \
-            | jq -r '.status.traffic[] | select(.percent > 0) | .revision')"
+            | jq -r '.status.traffic[] | select(.percent > 0) | .revisionName')"
           echo "revision=$hold" >> "$GITHUB_OUTPUT"
           echo "Holding revision: $hold"
 
@@ -97,7 +97,7 @@ jobs:
 
           # Retrieve tag-specific URL and revision name created by gcloud
           json="$(gcloud run services describe "${{ env.SERVICE }}" --region="${{ env.REGION }}" --project="${{ env.PROJECT_ID }}" --format=json)"
-          revision="$(echo "$json" | jq -r '.status.traffic[] | select(.tag == "staged") | .revision')"
+          revision="$(echo "$json" | jq -r '.status.traffic[] | select(.tag == "staged") | .revisionName')"
           url="$(echo "$json" | jq -r '.status.traffic[] | select(.tag == "staged") | .url')"
 
           echo "revision=$revision" >> "$GITHUB_OUTPUT"
