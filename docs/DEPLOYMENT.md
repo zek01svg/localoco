@@ -141,12 +141,11 @@ so moving traffic is instant and reversible.
 ## 5. Health Checks & Monitoring
 
 - **Health endpoint**: `GET /health` returns `200 OK` with `{"status": "ok"}`
-- **Maintenance landing (PRS-168)**: while the rewrite is in progress, every
-  page route answers `503 Service Unavailable` with a `Retry-After` header and
-  serves the SPA shell, whose `LandingPage` feature renders the branded
-  maintenance copy. Crawlers and monitors see the "not ready" status; `/health`
-  still reports success so Cloud Run keeps the instance alive. Swap the page
-  route for the SPA fallback once the app is ready to serve.
+- **Page routes**: every non-API, non-health page route answers `200 OK` with
+  the SPA shell (`Cache-Control: no-store`); the client-rendered React app
+  draws the landing page and any route-level pending, error, and not-found
+  states. Fingerprinted build assets under `/assets/*` are served with
+  `Cache-Control: public, max-age=31536000, immutable`.
 - **Docker healthcheck**: the image ships `HEALTHCHECK` probing `/health` on
   the injected `PORT` (default `4001`)
 - Cloud Run restarts unhealthy instances automatically; the Cloudflare edge

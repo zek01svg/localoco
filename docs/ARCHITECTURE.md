@@ -218,7 +218,7 @@ During production execution (`bun start`):
 2. Hono serves API routes at `/api/*`.
 3. Hono serves static assets from `dist/static/` via `serveStatic`.
 4. Fallback wildcard route `*` returns `dist/static/index.html` for client SPA
-   routing. While the rewrite is in progress, every non-API, non-health,
-   non-asset page route instead returns the SPA shell with `503 Service
-Unavailable` and a `Retry-After` header — see
-   [DEPLOYMENT.md §5](./DEPLOYMENT.md#5-health-checks--monitoring).
+   routing with `Cache-Control: no-store`; the client renders the landing page
+   and any route-level pending, error, and not-found states. Fingerprinted
+   assets under `/assets/*` are served `public, max-age=31536000, immutable` —
+   see [DEPLOYMENT.md §5](./DEPLOYMENT.md#5-health-checks--monitoring).

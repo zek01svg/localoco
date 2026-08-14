@@ -8,7 +8,7 @@ import { serveStatic } from "hono/bun";
 import { env } from "#server/env";
 import { auth } from "#server/lib/auth.ts";
 import { db } from "#server/lib/db.ts";
-import { getSpaShell, MAINTENANCE_RETRY_AFTER } from "#server/spa.ts";
+import { getSpaShell } from "#server/spa.ts";
 import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
 
 const sentryDsn = env.SENTRY_DSN ?? env.VITE_SENTRY_DSN;
@@ -122,16 +122,31 @@ const baseRoutes = new Hono()
     window.__env = ${JSON.stringify(Object.fromEntries(Object.entries(env).filter(([key]) => key.startsWith("VITE_"))), null, 2)}
     `.trim(),
       200,
-      { "Content-Type": "application/javascript" }
+      {
+        "Content-Type": "application/javascript",
+        "Cache-Control": "no-store",
+      }
     );
   })
   .on(["POST", "GET"], "/api/auth/*", c => {
     return auth.handler(c.req.raw);
   })
+  .use("/assets/*", async (c, next) => {
+    // Vite fingerprints every emitted asset, so content-addressed URLs are
+    // immutable once published. The header must be set before serveStatic
+    // runs: hono/bun's serveStatic returns the body without calling next().
+    c.header("Cache-Control", "public, max-age=31536000, immutable");
+    await next();
+    if (c.res.status !== 200) {
+      // Never cache misses or errors with the immutable directive.
+      c.header("Cache-Control", "no-store");
+    }
+  })
   .use("/assets/*", serveStatic({ root: "./dist/static" }))
+  .use("/assets/*", c => c.notFound())
   .get("*", c =>
-    c.html(getSpaShell(), 503, {
-      "Retry-After": MAINTENANCE_RETRY_AFTER,
+    c.html(getSpaShell(), 200, {
+      "Cache-Control": "no-store",
     })
   );
 

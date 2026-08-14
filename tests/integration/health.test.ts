@@ -29,23 +29,30 @@ describe("server HTTP seam", () => {
     await expect(response.json()).resolves.toEqual({ status: "ok" });
   });
 
-  it("GET / returns 503 with Retry-After and the SPA shell", async () => {
+  it("GET / returns the SPA shell uncached", async () => {
     const response = await app.request("/");
 
-    expect(response.status).toBe(503);
-    expect(response.headers.get("Retry-After")).toBe("3600");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
     const body = await response.text();
     expect(body).toContain("LocaLoco");
     expect(body).toContain('<div id="root">');
   });
 
-  it("deep page routes also answer 503 with the SPA shell", async () => {
+  it("deep page routes fall back to the SPA shell", async () => {
     const response = await app.request("/some/deep/link");
 
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(200);
     const body = await response.text();
     expect(body).toContain("LocaLoco");
     expect(body).toContain('<div id="root">');
+  });
+
+  it("missing assets answer 404 without the immutable cache header", async () => {
+    const response = await app.request("/assets/not-found-zzz.js");
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
 
   it("GET /api/runtime.js only exposes VITE_-prefixed keys", async () => {

@@ -1,11 +1,8 @@
 import { readFileSync } from "node:fs";
 
-// Maintenance release (PRS-168): page routes answer 503 + Retry-After so
-// crawlers and monitors read the status correctly; /health keeps returning
-// success so Cloud Run knows the process is alive. The shell boots the SPA,
-// whose LandingPage feature renders the branded maintenance copy.
-export const MAINTENANCE_RETRY_AFTER = "3600";
-
+// The SPA shell boots the client-rendered React application. Page routes
+// answer 200 with this shell; the router renders route-level pending,
+// error, not-found, and empty states client-side.
 let spaShell: string | undefined;
 export function getSpaShell(): string {
   if (!spaShell) {
