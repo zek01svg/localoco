@@ -41,6 +41,9 @@ export const env = createEnv({
     FORCE_PATH_STYLE: z.coerce.boolean().optional(),
   },
   clientPrefix: "VITE_",
+  // t3-env defaults to "window exists => client", which is wrong under
+  // vitest's jsdom. The server bundle only runs where `process` is real.
+  isServer: "process" in globalThis,
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     PORT: process.env.PORT ?? "4001",

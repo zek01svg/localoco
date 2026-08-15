@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **API contract and error envelope** (PRS-166): `GET /api/listings` with
+  keyset pagination, contract-validated response payloads, and a
+  standardized error envelope for every failure on the `/api/*` surface.
+  Server-owned `X-Request-Id` correlation ids are echoed on responses and
+  attached to server-side log lines. Development environments serve
+  interactive API docs (Scalar) at `/api/scalar` and the generated OpenAPI
+  document at `/api/openapi`, both absent in production.
+- **Pretty development logs**: logtape output is formatted as readable,
+  signale-style lines in development (browser and server) and as one JSON
+  object per line in production.
+
 ## [2.0.0] - 2026-08-14
 
 ### Added

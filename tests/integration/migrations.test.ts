@@ -1,8 +1,29 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { Pool } from "pg";
 import { describe, expect, it } from "vitest";
+import { z } from "zod/v4";
 
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
+const journalSchema = z.object({
+  entries: z.array(
+    z.object({
+      idx: z.number(),
+      version: z.string(),
+      when: z.number(),
+      tag: z.string(),
+    })
+  ),
+});
+
+// Every committed migration must be applied by the rehearsal; the expected
+// count is derived from the journal rather than hard-coded so future
+// migrations do not require editing this test.
+const expectedMigrationCount = () =>
+  journalSchema.parse(
+    JSON.parse(readFileSync("server/database/drizzle/meta/_journal.json", "utf8"))
+  ).entries.length;
 
 // Rehearses the exact command CD runs against production (`.github/workflows/cd.yml`
 // migrate job) against a real, isolated PostgreSQL from testcontainers. Spawned
@@ -39,14 +60,14 @@ describe("committed migration history", () => {
         const journal = await pool.query<{ n: number }>(
           `select count(*)::int as n from drizzle."__drizzle_migrations"`
         );
-        expect(journal.rows[0].n).toBe(1);
+        expect(journal.rows[0].n).toBe(expectedMigrationCount());
 
         const second = runMigrate(databaseUrl);
         expect(second.status, `re-run failed:\n${second.stdout}${second.stderr}`).toBe(0);
         const journalAfter = await pool.query<{ n: number }>(
           `select count(*)::int as n from drizzle."__drizzle_migrations"`
         );
-        expect(journalAfter.rows[0].n).toBe(1);
+        expect(journalAfter.rows[0].n).toBe(expectedMigrationCount());
       } finally {
         await pool.end();
       }

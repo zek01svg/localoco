@@ -1,4 +1,11 @@
-import { configureSync, getConsoleSink, getLogger, withFilter } from "@logtape/logtape";
+import {
+  configureSync,
+  getConsoleSink,
+  getLogger,
+  jsonLinesFormatter,
+  withFilter,
+} from "@logtape/logtape";
+import { prettyFormatter } from "@logtape/pretty";
 import { getSentrySink } from "@logtape/sentry";
 
 export type AppRuntime = "browser" | "server";
@@ -16,8 +23,13 @@ export const configureAppLogging = ({
   enableSentrySink,
   sentryBreadcrumbs = true,
 }: ConfigureAppLoggingOptions): void => {
+  // Development reads best as the pretty, signale-style output; production
+  // emits one JSON object per line so logs stay machine-parseable.
+  const formatter = isDevelopment ? prettyFormatter : jsonLinesFormatter;
   const consoleSink =
-    !isDevelopment && enableSentrySink ? withFilter(getConsoleSink(), "warning") : getConsoleSink();
+    !isDevelopment && enableSentrySink
+      ? withFilter(getConsoleSink({ formatter }), "warning")
+      : getConsoleSink({ formatter });
   const sinks = {
     console: consoleSink,
     ...(enableSentrySink
