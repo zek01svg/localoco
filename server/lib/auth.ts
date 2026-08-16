@@ -4,7 +4,7 @@ import { openAPI } from "better-auth/plugins";
 
 import { env } from "#server/env";
 import { db } from "#server/lib/db";
-import { mailer } from "#server/lib/mailer";
+import { enqueueEmail, renderPasswordResetEmail, renderVerificationEmail } from "#server/lib/email";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -18,19 +18,29 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }, _request) => {
-      await mailer.sendMail({
+      const template = renderPasswordResetEmail({
+        name: user.name,
+        url,
+      });
+      await enqueueEmail({
         to: user.email,
-        subject: "Reset your password",
-        text: `Click the link to reset your password: ${url}`,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
       });
     },
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }, _request) => {
-      await mailer.sendMail({
+      const template = renderVerificationEmail({
+        name: user.name,
+        url,
+      });
+      await enqueueEmail({
         to: user.email,
-        subject: "Verify your email",
-        text: `Click the link to verify your email: ${url}`,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
       });
     },
   },

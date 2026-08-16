@@ -24,15 +24,7 @@ export const env = createEnv({
     // Cloud Run injects the serving revision id
     K_REVISION: z.string().optional(),
 
-    // Mail (wired when the auth/smtp slice ships)
-    SMTP_HOST: z.string().optional(),
-    SMTP_PORT: z.coerce.number().optional(),
-    SMTP_SECURE: z.coerce.boolean().optional(),
-    SMTP_USER: z.string().optional(),
-    SMTP_PASS: z.string().optional(),
-    SMTP_FROM: z.string().optional(),
-
-    // Object storage (wired when the R2 slice ships)
+    // Object storage (MinIO / S3)
     AWS_ACCESS_KEY_ID: z.string().optional(),
     AWS_SECRET_ACCESS_KEY: z.string().optional(),
     AWS_REGION: z.string().optional(),
@@ -43,6 +35,16 @@ export const env = createEnv({
     // Upstash Redis (Caching & Rate Limiting)
     UPSTASH_REDIS_REST_URL: z.url().optional(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+
+    // Upstash QStash (Transactional Email Queue)
+    QSTASH_TOKEN: z.string().min(1).optional(),
+    QSTASH_CURRENT_SIGNING_KEY: z.string().min(1).optional(),
+    QSTASH_NEXT_SIGNING_KEY: z.string().min(1).optional(),
+    QSTASH_URL: z.url().optional(),
+
+    // Email (Resend)
+    RESEND_API_KEY: z.string().min(1).optional(),
+    EMAIL_FROM: z.string().default("LocaLoco <noreply@localoco.ciav.dev>"),
   },
   clientPrefix: "VITE_",
   // t3-env defaults to "window exists => client", which is wrong under
@@ -68,15 +70,7 @@ export const env = createEnv({
     // Cloud Run injects the serving revision id
     K_REVISION: process.env.K_REVISION,
 
-    // Mail
-    SMTP_HOST: process.env.SMTP_HOST,
-    SMTP_PORT: process.env.SMTP_PORT,
-    SMTP_SECURE: process.env.SMTP_SECURE,
-    SMTP_USER: process.env.SMTP_USER,
-    SMTP_PASS: process.env.SMTP_PASS,
-    SMTP_FROM: process.env.SMTP_FROM,
-
-    // Minio
+    // Minio / S3
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
     AWS_REGION: process.env.AWS_REGION,
@@ -87,6 +81,16 @@ export const env = createEnv({
     // Upstash Redis
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+
+    // Upstash QStash
+    QSTASH_TOKEN: process.env.QSTASH_TOKEN,
+    QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
+    QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
+    QSTASH_URL: process.env.QSTASH_URL,
+
+    // Email (Resend)
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
   },
   emptyStringAsUndefined: true,
   skipValidation:

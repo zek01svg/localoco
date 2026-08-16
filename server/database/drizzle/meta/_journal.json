@@ -15,6 +15,13 @@
       "when": 1786798720295,
       "tag": "0001_listings",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786865481278,
+      "tag": "0002_email_delivery",
+      "breakpoints": true
     }
   ]
 }

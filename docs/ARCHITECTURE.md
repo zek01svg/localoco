@@ -162,13 +162,65 @@ The backend is built with **Hono**, a high-performance web framework designed fo
 - **Better Auth (`server/lib/auth.ts`)**: Production-ready authentication engine configured with Drizzle ORM PostgreSQL adapter.
 - **Features**:
   - Email and Password authentication enabled by default.
-  - Email verification and password reset hooks integrated with Nodemailer SMTP.
+  - Email verification and password reset hooks decoupled via an asynchronous transactional email queue.
   - Interactive OpenAPI authentication documentation plugin attached at `/api/auth/docs`.
   - Client schema generation via `@better-auth/cli` (`server/database/auth.ts`).
 
 ---
 
-## 7. Observability & Telemetry
+## 7. Asynchronous Transactional Email Pipeline
+
+The transactional email pipeline decouples latency-sensitive client operations (user registration, password resets) from third-party email delivery providers and network latency.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Client / Browser
+    participant Auth as Better Auth / API
+    participant DB as PostgreSQL (email_delivery)
+    participant QStash as Upstash QStash (Queue)
+    participant Webhook as Webhook Consumer (/api/webhooks/qstash/*)
+    participant Provider as Email Provider (Resend / SMTP)
+
+    User->>Auth: Request password reset / sign up
+    Auth->>DB: INSERT email_delivery (status: 'pending')
+    Auth->>QStash: Publish message { jobId }
+    Auth-->>User: Immediate 200 OK (no delivery wait)
+
+    Note over QStash,Webhook: Asynchronous Dispatch & Retry Loop
+    QStash->>Webhook: POST /api/webhooks/qstash/email-delivery (with HMAC signature)
+    Webhook->>Webhook: Verify upstash-signature
+    Webhook->>DB: Atomic claim (status: 'pending' -> 'processing', attempt_count + 1)
+    alt Successfully Claimed
+        Webhook->>Provider: Send email payload
+        alt Delivery Succeeded
+            Webhook->>DB: UPDATE status: 'delivered', provider_message_id
+            Webhook-->>QStash: 200 OK (done)
+        else Transient Failure (429, 5xx, Network Timeout)
+            Webhook->>DB: UPDATE status: 'retryable', last_error
+            Webhook-->>QStash: 503 Service Unavailable (QStash retries)
+        else Terminal Failure (400, 401, Invalid Recipient)
+            Webhook->>DB: UPDATE status: 'failed', last_error
+            Webhook-->>QStash: 200 OK (stops retries)
+        end
+    else Skipped (Already Processing or Max Attempts)
+        Webhook-->>QStash: 200 OK (skip duplicate)
+    end
+```
+
+### Key Architectural Properties
+
+1. **Opaque Queue Payloads**: Only `{ jobId: string }` is enqueued into QStash. Sensitive email content, recipients, and verification tokens remain securely stored inside PostgreSQL with zero third-party queue leakage.
+2. **Atomic Job Claiming**: Database status transitions (`pending`/`retryable` -> `processing`) execute with atomic row locks, ensuring exactly-once delivery guarantees even under duplicate webhook delivery.
+3. **Robust Sanitization & Defense**:
+   - CRLF injection detection on all email headers (`to`, `subject`, `from`).
+   - HTML entity escaping on dynamic template parameters (`escapeHtml`).
+   - Sensitive credential and token scrubbing in logged error traces (`sanitizeErrorMessage`).
+4. **Resilient Provider Seam**: Direct **Resend** integration for production and staging, and a lightweight in-memory **FakeEmailProvider** for local development and hermetic unit/integration testing.
+
+---
+
+## 8. Observability & Telemetry
 
 Observability is built-in across both client and server tiers:
 
@@ -198,7 +250,7 @@ Observability is built-in across both client and server tiers:
 
 ---
 
-## 8. Build & Distribution Pipeline
+## 9. Build & Distribution Pipeline
 
 Production builds combine backend JavaScript bundling with static asset production:
 

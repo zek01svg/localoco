@@ -85,19 +85,17 @@ Secret values never touch Terraform variables, plan output, or state.
 Terraform owns the containers and their IAM; operators add versions through
 protected channels (Secret Manager).
 
-| Secret container           | Purpose                                              |
-| :------------------------- | :--------------------------------------------------- |
-| `DATABASE_URL`             | PostgreSQL connection string                         |
-| `BETTER_AUTH_SECRET`       | Better Auth encryption secret (>= 32 chars)          |
-| `SMOKE_TOKEN`              | Bearer token for the release smoke check             |
-| `SMTP_HOST`                | SMTP host                                            |
-| `SMTP_PORT`                | SMTP port (e.g. `587`)                               |
-| `SMTP_SECURE`              | TLS for SMTP (`true`/`false`)                        |
-| `SMTP_USER`                | SMTP username                                        |
-| `SMTP_PASS`                | SMTP password                                        |
-| `SMTP_FROM`                | Default sender address                               |
-| `UPSTASH_REDIS_REST_URL`   | Upstash Redis REST URL for caching and rate limiting |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST Token                             |
+| Secret container             | Purpose                                                |
+| :--------------------------- | :----------------------------------------------------- |
+| `DATABASE_URL`               | PostgreSQL connection string                           |
+| `BETTER_AUTH_SECRET`         | Better Auth encryption secret (>= 32 chars)            |
+| `SMOKE_TOKEN`                | Bearer token for the release smoke check               |
+| `UPSTASH_REDIS_REST_URL`     | Upstash Redis REST URL for caching and rate limiting   |
+| `UPSTASH_REDIS_REST_TOKEN`   | Upstash Redis REST Token                               |
+| `QSTASH_TOKEN`               | Upstash QStash REST Token for email queue publishing   |
+| `QSTASH_CURRENT_SIGNING_KEY` | Upstash QStash current signing key for HMAC validation |
+| `QSTASH_NEXT_SIGNING_KEY`    | Upstash QStash next signing key for key rotation       |
+| `RESEND_API_KEY`             | Resend API Key for transactional email sending         |
 
 Add a version after apply:
 

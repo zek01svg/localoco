@@ -54,7 +54,14 @@ describe("committed migration history", () => {
              where table_schema = 'public' order by table_name`
         );
         expect(tables.rows.map(row => row.table_name)).toEqual(
-          expect.arrayContaining(["account", "session", "user", "verification"])
+          expect.arrayContaining([
+            "account",
+            "email_delivery",
+            "listing",
+            "session",
+            "user",
+            "verification",
+          ])
         );
 
         const journal = await pool.query<{ n: number }>(

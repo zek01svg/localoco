@@ -13,7 +13,7 @@ import {
   initSentry,
   publicRateLimit,
 } from "#server/lib";
-import { healthRoutes, listingsRoutes, smokeRoutes } from "#server/routes";
+import { healthRoutes, listingsRoutes, smokeRoutes, webhooksRoutes } from "#server/routes";
 import { getSpaShell } from "#server/spa.ts";
 import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
 
@@ -83,6 +83,7 @@ const apiRoutes = new Hono()
     );
   })
   .route("/", smokeRoutes)
+  .route("/", webhooksRoutes)
   .use("/auth/*", authRateLimit)
   .on(["POST", "GET"], "/auth/*", c => {
     return auth.handler(c.req.raw);

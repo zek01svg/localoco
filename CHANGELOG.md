@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Asynchronous transactional email pipeline** (PRS-170): Decoupled email
+  delivery pipeline using Upstash QStash and Resend. Outgoing verification and
+  password reset emails are recorded in PostgreSQL (`email_delivery`) with status
+  tracking and enqueued as opaque `{ jobId }` payloads. Incoming QStash webhooks
+  (`/api/webhooks/qstash/email-delivery`) verify HMAC signatures, atomically
+  claim jobs, and route delivery through Resend or SMTP with automatic
+  transient error retries (503) and terminal failure categorization. Includes
+  HTML entity escaping, CRLF injection defense, and sensitive token sanitization.
 - **API contract and error envelope** (PRS-166): `GET /api/listings` with
   keyset pagination, contract-validated response payloads, and a
   standardized error envelope for every failure on the `/api/*` surface.

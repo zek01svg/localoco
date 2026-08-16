@@ -1,41 +1,42 @@
-# Task: Upstash Redis Caching & Rate Limiting
+# Task: Code Simplification & Review Findings Fixes
 
-## Status: Built & Verified
+## Status: Complete
 
-- [x] Plan approval & environment configuration
-  - [x] Add `@upstash/redis` and `@upstash/ratelimit` dependencies
-  - [x] Update `server/env.ts` with `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
-  - [x] Update `.env.example`
-  - [x] Update `infra/secrets.tf` and `docs/DEPLOYMENT.md`
-- [x] Core Redis Integration
-  - [x] Create `server/lib/redis.ts` with direct Upstash Redis client initialization (REST connectionless)
-- [x] Distributed Rate Limiting Engine
-  - [x] Create `server/lib/rate-limit.ts` using `@upstash/ratelimit`
-  - [x] Implement client IP extraction for Cloudflare/Cloud Run (`cf-connecting-ip` / `x-forwarded-for`)
-  - [x] Implement 429 response handling with standard headers (`Retry-After`, `X-RateLimit-*`) and `HttpError(429, "rate_limited", ...)` matching the error envelope
-  - [x] Implement error handling for Redis outages (fail-open for public routes, graceful fallback)
-- [x] Redis Caching Helper
-  - [x] Create `server/lib/cache.ts` for clean, transparent read/write caching
-  - [x] Add error handling: transparent fallback to origin on Redis read/write failure
-  - [x] Integrate caching into `GET /api/listings` in `server/routes/listings.ts`
-- [x] Server Wiring & Route Protection
-  - [x] Mount rate limiting middleware on `/api/*` and `/api/auth/*` in `server/index.ts`
-  - [x] Keep system routes (`/health`, `/smoke`, `/api/runtime.js`) exempt
-  - [x] Create `server/lib/index.ts` barrel export and ensure `oxlint` max-dependencies rule passes
-- [x] Documentation
-  - [x] Update `docs/API.md` with rate limiting headers and 429 error documentation
-- [x] Verification & Testing
-  - [x] Create unit tests in `server/tests/unit/rate-limit.test.ts`
-  - [x] Create unit tests in `server/tests/unit/cache.test.ts`
-  - [x] Create integration tests in `tests/integration/rate-limit.test.ts`
+- [x] Dead Code & Dependency Removal
+  - [x] Delete `server/lib/mailer.ts` and `server/lib/email/providers/smtp.ts`
+  - [x] Remove `nodemailer` and `@types/nodemailer` from `package.json` and `bun.lock`
+  - [x] Clean up SMTP / `EMAIL_PROVIDER` env variables in `server/env.ts` and `infra/secrets.tf`
+- [x] Provider Seam Simplification
+  - [x] Refactor `server/lib/email/provider.ts` to use simple factory functions (`createResendProvider`, `createFakeProvider`)
+  - [x] Preserve HTTP status codes on Resend provider errors
+  - [x] Remove `server/lib/email/providers/` directory
+- [x] Native Utilities & Classifier Simplification
+  - [x] Replace `node:crypto` import with global `crypto.randomUUID()` in `server/database/email.ts` and `server/lib/email/pipeline.ts`
+  - [x] Use native `Bun.escapeHTML()` with fallback in `server/lib/email/sanitizer.ts`
+  - [x] Simplify error classification and regex extraction in `server/lib/email/classifier.ts`
+- [x] Template Deduplication & Glossary Compliance
+  - [x] Extract `renderEmailLayout` in `server/lib/email/templates.ts` to deduplicate HTML boilerplate
+  - [x] Remove forbidden glossary term `"account"` per `CONTEXT.md`
+- [x] Robust Pipeline & Stale Lease Recovery
+  - [x] Add stale in-flight job lease recovery (> 5 min) to `claimEmailJob` in `server/lib/email/pipeline.ts`
+  - [x] Unify failure outcome recording into a single `recordJobOutcome` helper
+- [x] Webhook Route Simplification
+  - [x] Use Zod schema validation in `server/routes/webhooks.ts`
+- [x] Test Simplification & Contract Verification
+  - [x] Simplify `server/tests/unit/email-test-helper.ts` (remove AST SQL parser)
+  - [x] Add contract tests against local HTTP fake in `tests/integration/email-fake-contract.test.ts`
+  - [x] Update unit test suites to reflect simplified structure
+- [x] Full Repository Validation
   - [x] Run `bun run lint:check`, `bun run format:check`, `bun run type:check`, `bun run test`, `bun run build`
 
 ## Review
 
-All builder deliverables have been implemented and verified:
+All findings from the Ponytail, Standards, and Spec reviews were resolved:
 
-- Distributed rate limiting is implemented via `@upstash/ratelimit` with IP resolution via `CF-Connecting-IP` / `X-Forwarded-For`.
-- Rate limiting enforces 100 req/60s on public endpoints and 30 req/60s on auth endpoints, while exempting `/health`, `/smoke`, and `/api/runtime.js`.
-- Outage resilience: rate limiting fails open on Redis errors; caching falls back to origin on Redis read/write errors.
-- Standard error envelope is preserved on 429 errors with `Retry-After` and `X-RateLimit-*` headers.
-- All linter (`oxlint`), formatter (`oxfmt`), TypeScript (`tsc`), Vitest unit & integration tests, and build checks pass with 0 errors and 0 warnings.
+- **Net Code Reduction**: -359 lines across 23 files; eliminated `nodemailer` and `@types/nodemailer` dependencies.
+- **Provider Seam**: Simplified class hierarchies into functional factories (`createResendProvider`, `createFakeProvider`).
+- **Error Status Handling**: Preserved HTTP status codes on Resend API errors via `ResendApiError`.
+- **Fault Recovery**: Added stale in-flight job lease recovery (> 5 minutes) to `claimEmailJob` to prevent permanent stalls on worker crashes.
+- **Contract Tests**: Added local HTTP fake tests covering provider contract, HTTP 429 rate limit classification, and HTTP 422 terminal handling.
+- **Ubiquitous Language**: Aligned email templates with `CONTEXT.md` glossary (avoided `"account"`).
+- **Validation**: 100% passing test suite (17 test files, 109 tests), 0 lint/typecheck/format warnings or errors, clean server & client production build.
