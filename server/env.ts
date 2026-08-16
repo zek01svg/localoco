@@ -39,6 +39,10 @@ export const env = createEnv({
     AWS_S3_ENDPOINT: z.string().optional(),
     AWS_S3_BUCKET: z.string().optional(),
     FORCE_PATH_STYLE: z.coerce.boolean().optional(),
+
+    // Upstash Redis (Caching & Rate Limiting)
+    UPSTASH_REDIS_REST_URL: z.url().optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
   },
   clientPrefix: "VITE_",
   // t3-env defaults to "window exists => client", which is wrong under
@@ -79,6 +83,10 @@ export const env = createEnv({
     AWS_S3_ENDPOINT: process.env.AWS_S3_ENDPOINT,
     AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
     FORCE_PATH_STYLE: process.env.FORCE_PATH_STYLE,
+
+    // Upstash Redis
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
   },
   emptyStringAsUndefined: true,
   skipValidation:

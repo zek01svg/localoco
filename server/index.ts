@@ -5,9 +5,14 @@ import { openAPIRouteHandler } from "hono-openapi";
 import { serveStatic } from "hono/bun";
 
 import { env } from "#server/env";
-import { auth } from "#server/lib/auth.ts";
-import { createErrorHandler, HttpError } from "#server/lib/errors";
-import { initSentry } from "#server/lib/sentry";
+import {
+  auth,
+  authRateLimit,
+  createErrorHandler,
+  HttpError,
+  initSentry,
+  publicRateLimit,
+} from "#server/lib";
 import { healthRoutes, listingsRoutes, smokeRoutes } from "#server/routes";
 import { getSpaShell } from "#server/spa.ts";
 import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
@@ -77,10 +82,12 @@ const apiRoutes = new Hono()
       }
     );
   })
+  .route("/", smokeRoutes)
+  .use("/auth/*", authRateLimit)
   .on(["POST", "GET"], "/auth/*", c => {
     return auth.handler(c.req.raw);
   })
-  .route("/smoke", smokeRoutes)
+  .use("*", publicRateLimit)
   .route("/", listingsRoutes);
 
 // Chained from the first call so `typeof app` infers every route: hono/client

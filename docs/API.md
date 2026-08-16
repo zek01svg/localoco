@@ -110,6 +110,7 @@ Query parameters:
   `nextCursor` is `null` on the final page. The server fetches `limit + 1` rows to detect a following page, so no empty trailing page is ever returned.
 
 - **Response `400`**: query parameters failed validation (`invalid_request`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
 - **Response `503`**: the data source failed or returned rows that violate the contract (`dependency_unavailable`). A dependency failure is never reported as a success or an empty collection.
 
 ---
@@ -133,7 +134,34 @@ Authentication is powered by **Better Auth**. All authentication routes are moun
 
 ---
 
-## 5. Standardized Error Response Format
+## 5. Distributed Rate Limiting & Caching
+
+Rate limiting and caching are backed by **Upstash Redis** (connectionless REST HTTPS) and shared across all Cloud Run instances.
+
+### Rate Limit Tiers
+
+| Surface              | Path Pattern    | Limit                       | Identification                          |
+| :------------------- | :-------------- | :-------------------------- | :-------------------------------------- |
+| Public API           | `/api/*`        | 100 requests per 60s window | `CF-Connecting-IP` or `X-Forwarded-For` |
+| Auth Endpoints       | `/api/auth/*`   | 30 requests per 60s window  | `CF-Connecting-IP` or `X-Forwarded-For` |
+| System Health/Probes | `/health`, etc. | Unlimited (Exempt)          | N/A                                     |
+
+### Rate Limit Headers
+
+Every rate-limited API response includes standard rate-limiting headers:
+
+| Header                  | Description                                                  |
+| :---------------------- | :----------------------------------------------------------- |
+| `X-RateLimit-Limit`     | Maximum number of allowed requests in the current window     |
+| `X-RateLimit-Remaining` | Number of remaining requests allowed in the current window   |
+| `X-RateLimit-Reset`     | Unix timestamp in milliseconds when the limit window resets  |
+| `Retry-After`           | Seconds until retry is allowed (included on `429` responses) |
+
+When the limit is exceeded, the server returns `429 Too Many Requests` with the standard error envelope (`code: "rate_limited"`).
+
+---
+
+## 6. Standardized Error Response Format
 
 Every error response carries the same envelope, defined once in `shared/contracts/error.ts`:
 

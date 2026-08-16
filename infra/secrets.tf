@@ -13,6 +13,8 @@ locals {
     "SMTP_USER",
     "SMTP_PASS",
     "SMTP_FROM",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
   ]
 }
 
