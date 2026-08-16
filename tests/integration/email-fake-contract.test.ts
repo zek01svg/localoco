@@ -7,6 +7,44 @@ import { classifyEmailError } from "#server/lib/email/classifier";
 
 import { createServer } from "node:http";
 
+async function startFakeEmailServer(
+  onRequest: (entry: { method: string; body: unknown }) => void,
+  getResponse: () => { status: number; body: Record<string, unknown> }
+): Promise<{ server: Server; port: number }> {
+  const fakeServer = createServer((req, res) => {
+    let body = "";
+    req.on("data", chunk => {
+      body += typeof chunk === "string" ? chunk : String(chunk);
+    });
+    req.on("end", () => {
+      let parsedBody: unknown = null;
+      try {
+        parsedBody = body ? JSON.parse(body) : null;
+      } catch {
+        parsedBody = body;
+      }
+
+      onRequest({
+        method: req.method ?? "GET",
+        body: parsedBody,
+      });
+
+      const { status, body: respBody } = getResponse();
+      res.writeHead(status, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(respBody));
+    });
+  });
+
+  const port = await new Promise<number>(resolve => {
+    fakeServer.listen(0, "127.0.0.1", () => {
+      const addr = fakeServer.address();
+      resolve(typeof addr === "object" && addr ? addr.port : 0);
+    });
+  });
+
+  return { server: fakeServer, port };
+}
+
 describe("Local HTTP Fake Contract Tests", () => {
   let fakeServer: Server;
   let serverPort = 0;
@@ -15,38 +53,14 @@ describe("Local HTTP Fake Contract Tests", () => {
   const receivedRequests: Array<{ method: string; body: unknown }> = [];
 
   beforeAll(async () => {
-    fakeServer = createServer((req, res) => {
-      let body = "";
-      req.on("data", chunk => {
-        body += typeof chunk === "string" ? chunk : String(chunk);
-      });
-      req.on("end", () => {
-        let parsedBody: unknown = null;
-        try {
-          parsedBody = body ? JSON.parse(body) : null;
-        } catch {
-          parsedBody = body;
-        }
-
-        receivedRequests.push({
-          method: req.method ?? "GET",
-          body: parsedBody,
-        });
-
-        res.writeHead(fakeStatus, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(fakeResponse));
-      });
-    });
-
-    await new Promise<void>(resolve => {
-      fakeServer.listen(0, "127.0.0.1", () => {
-        const addr = fakeServer.address();
-        if (typeof addr === "object" && addr) {
-          serverPort = addr.port;
-        }
-        resolve();
-      });
-    });
+    const started = await startFakeEmailServer(
+      req => {
+        receivedRequests.push(req);
+      },
+      () => ({ status: fakeStatus, body: fakeResponse })
+    );
+    fakeServer = started.server;
+    serverPort = started.port;
   });
 
   afterAll(async () => {

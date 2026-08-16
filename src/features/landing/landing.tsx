@@ -8,6 +8,8 @@ import {
   UsersIcon,
 } from "lucide-react";
 
+import { useSession } from "#client/features/auth";
+
 const navLinks = [
   { label: "Why LocaLoco", href: "#why" },
   { label: "How it works", href: "#how" },
@@ -55,6 +57,51 @@ const steps = [
   },
 ];
 
+function LandingAuthNav() {
+  const { user, isAuthenticated, isVerified, signOut } = useSession();
+
+  if (isAuthenticated && user) {
+    return (
+      <li className="flex items-center gap-3">
+        <span className="text-foreground flex items-center gap-1.5 font-medium">
+          {user.name}
+          {isVerified ? null : (
+            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-normal text-amber-600 dark:text-amber-400">
+              Unverified
+            </span>
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            void signOut();
+          }}
+          className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
+        >
+          Sign out
+        </button>
+      </li>
+    );
+  }
+
+  return (
+    <li className="flex items-center gap-3">
+      <a
+        href="/login"
+        className="text-muted-foreground hover:text-foreground font-medium transition-colors"
+      >
+        Sign in
+      </a>
+      <a
+        href="/signup"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-4 py-1.5 font-medium transition-colors"
+      >
+        Sign up
+      </a>
+    </li>
+  );
+}
+
 function LandingHeader() {
   return (
     <header className="border-border/60 border-b">
@@ -76,6 +123,7 @@ function LandingHeader() {
               </a>
             </li>
           ))}
+          <LandingAuthNav />
         </ul>
       </nav>
     </header>

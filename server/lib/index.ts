@@ -1,4 +1,5 @@
 export { auth } from "./auth";
+export { type AuthSession, type AuthUser, requireAuth, requireVerified } from "./auth-middleware";
 export { getOrSetCache } from "./cache";
 export { db } from "./db";
 export * from "./email";

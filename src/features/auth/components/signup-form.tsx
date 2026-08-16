@@ -1,0 +1,295 @@
+import { useForm } from "@tanstack/react-form";
+import { Link } from "@tanstack/react-router";
+import { CheckCircle2Icon, MailIcon } from "lucide-react";
+import * as React from "react";
+
+import { Button } from "#client/components/ui/button";
+import { Input } from "#client/components/ui/input";
+import { Label } from "#client/components/ui/label";
+import { Skeleton } from "#client/components/ui/skeleton";
+
+import { useSignUpMutation } from "../hooks/auth-queries";
+
+export function SignupFormSkeleton() {
+  return (
+    <div className="bg-card text-card-foreground border-border mx-auto max-w-md space-y-6 rounded-xl border p-8 shadow-sm">
+      <div className="space-y-2 text-center">
+        <Skeleton className="mx-auto h-7 w-40" />
+        <Skeleton className="mx-auto h-4 w-64" />
+      </div>
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+        <div className="space-y-1.5">
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+        <div className="space-y-1.5">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+        <div className="space-y-1.5">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+        <Skeleton className="h-9 w-full rounded-md" />
+      </div>
+    </div>
+  );
+}
+
+function SignupSuccessView({ email }: { email: string }) {
+  return (
+    <div className="bg-card text-card-foreground border-border mx-auto max-w-md rounded-xl border p-8 shadow-sm">
+      <div className="flex flex-col items-center text-center">
+        <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
+          <MailIcon aria-hidden="true" className="size-6" />
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight">Check your email</h2>
+        <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+          We sent a verification link to{" "}
+          <span className="text-foreground font-semibold">{email}</span>. Please verify your email
+          address to unlock community contributions and listings.
+        </p>
+        <div className="border-border/60 bg-muted/40 text-muted-foreground mt-6 flex w-full items-center gap-3 rounded-lg border p-3 text-left text-xs">
+          <CheckCircle2Icon aria-hidden="true" className="text-primary size-5 shrink-0" />
+          <span>You can close this window after confirming the email link.</span>
+        </div>
+        <Link
+          to="/login"
+          className="text-primary mt-6 inline-block text-sm font-medium hover:underline"
+        >
+          Return to sign in
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function SignupFormHeader() {
+  return (
+    <div className="mb-6 text-center">
+      <h1 className="text-2xl font-bold tracking-tight">Join LocaLoco</h1>
+      <p className="text-muted-foreground mt-1.5 text-sm">
+        Discover local gems and connect with your neighborhood
+      </p>
+    </div>
+  );
+}
+
+function SignupFormFooter() {
+  return (
+    <p className="text-muted-foreground mt-6 text-center text-xs">
+      Already registered?{" "}
+      <Link to="/login" className="text-primary font-medium hover:underline">
+        Sign in
+      </Link>
+    </p>
+  );
+}
+
+function SignupFormContainer({
+  children,
+  errorMessage,
+}: {
+  children: React.ReactNode;
+  errorMessage: string | null;
+}) {
+  return (
+    <div className="bg-card text-card-foreground border-border mx-auto max-w-md rounded-xl border p-8 shadow-sm">
+      <SignupFormHeader />
+
+      {errorMessage ? (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="border-destructive/30 bg-destructive/10 text-destructive mb-6 rounded-lg border p-3.5 text-sm font-medium"
+        >
+          {errorMessage}
+        </div>
+      ) : null}
+
+      {children}
+      <SignupFormFooter />
+    </div>
+  );
+}
+
+export function SignupForm() {
+  const signUpMutation = useSignUpMutation();
+
+  const form = useForm({
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+    onSubmit: ({ value }) => {
+      signUpMutation.mutate({
+        name: value.name,
+        email: value.email,
+        password: value.password,
+      });
+    },
+  });
+
+  if (signUpMutation.isSuccess) {
+    return <SignupSuccessView email={form.getFieldValue("email")} />;
+  }
+
+  const errorMessage = signUpMutation.error ? signUpMutation.error.message : null;
+
+  return (
+    <SignupFormContainer errorMessage={errorMessage}>
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          e.stopPropagation();
+          void form.handleSubmit();
+        }}
+        className="space-y-4"
+      >
+        <form.Field
+          name="name"
+          validators={{ onChange: ({ value }) => (value ? undefined : "Full name is required") }}
+        >
+          {field => (
+            <div className="space-y-1.5">
+              <Label htmlFor={field.name}>Full Name</Label>
+              <Input
+                id={field.name}
+                name={field.name}
+                type="text"
+                required
+                autoComplete="name"
+                placeholder="Alice Tan"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={e => {
+                  field.handleChange(e.target.value);
+                }}
+                disabled={signUpMutation.isPending}
+              />
+              {field.state.meta.errors[0] ? (
+                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
+              ) : null}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field
+          name="email"
+          validators={{ onChange: ({ value }) => (value ? undefined : "Email is required") }}
+        >
+          {field => (
+            <div className="space-y-1.5">
+              <Label htmlFor={field.name}>Email</Label>
+              <Input
+                id={field.name}
+                name={field.name}
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="alice@example.com"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={e => {
+                  field.handleChange(e.target.value);
+                }}
+                disabled={signUpMutation.isPending}
+              />
+              {field.state.meta.errors[0] ? (
+                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
+              ) : null}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field
+          name="password"
+          validators={{
+            onChange: ({ value }) =>
+              value
+                ? value.length < 8
+                  ? "Password must be at least 8 characters long."
+                  : undefined
+                : "Password is required",
+          }}
+        >
+          {field => (
+            <div className="space-y-1.5">
+              <Label htmlFor={field.name}>Password</Label>
+              <Input
+                id={field.name}
+                name={field.name}
+                type="password"
+                required
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={e => {
+                  field.handleChange(e.target.value);
+                }}
+                disabled={signUpMutation.isPending}
+              />
+              {field.state.meta.errors[0] ? (
+                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
+              ) : null}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field
+          name="confirmPassword"
+          validators={{
+            onChange: ({ value, fieldApi }) =>
+              value
+                ? value === fieldApi.form.getFieldValue("password")
+                  ? undefined
+                  : "Passwords do not match. Please try again."
+                : "Please confirm your password",
+          }}
+        >
+          {field => (
+            <div className="space-y-1.5">
+              <Label htmlFor={field.name}>Confirm Password</Label>
+              <Input
+                id={field.name}
+                name={field.name}
+                type="password"
+                required
+                autoComplete="new-password"
+                placeholder="Re-enter password"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={e => {
+                  field.handleChange(e.target.value);
+                }}
+                disabled={signUpMutation.isPending}
+              />
+              {field.state.meta.errors[0] ? (
+                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
+              ) : null}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Subscribe selector={state => [state.canSubmit, state.isSubmitting]}>
+          {([canSubmit]) => (
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!canSubmit || signUpMutation.isPending}
+            >
+              {signUpMutation.isPending ? "Joining..." : "Join LocaLoco"}
+            </Button>
+          )}
+        </form.Subscribe>
+      </form>
+    </SignupFormContainer>
+  );
+}

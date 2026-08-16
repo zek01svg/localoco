@@ -63,8 +63,11 @@ const envelope = (
 // The single failure path for the whole app: typed HttpErrors render as-is,
 // anything else becomes a generic 500 whose message never leaves the server.
 export const createErrorHandler =
-  (deps: { logger: LoggerLike; captureException?: (err: unknown) => void }) =>
-  (err: Error, c: Context<{ Variables: { requestId: string } }>) => {
+  <E extends { Variables: { requestId: string } } = { Variables: { requestId: string } }>(deps: {
+    logger: LoggerLike;
+    captureException?: (err: unknown) => void;
+  }) =>
+  (err: Error, c: Context<E>) => {
     const request = {
       request_id: c.get("requestId"),
       method: c.req.method,

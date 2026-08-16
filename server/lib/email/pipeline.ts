@@ -66,7 +66,8 @@ export async function enqueueEmail(
 ): Promise<{ jobId: string }> {
   const recipient = validateRecipient(options.to);
   const subject = validateEmailHeader(options.subject, "subject");
-  const fromAddress = options.from ? validateEmailHeader(options.from, "from") : env.EMAIL_FROM;
+  const defaultFrom = env.EMAIL_FROM || "LocaLoco <noreply@localoco.ciav.dev>";
+  const fromAddress = options.from ? validateEmailHeader(options.from, "from") : defaultFrom;
 
   const jobId = crypto.randomUUID();
   const maxAttempts = options.maxAttempts ?? 3;

@@ -6,7 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Email/password registration and verification** (PRS-171): Built authentication
+  and email verification flow with Better Auth on PostgreSQL (`user`, `session`,
+  `account`, `verification`). Registration securely issues HTTP-only, SameSite=Lax
+  session cookies (cookie prefix `localoco`) and asynchronously enqueues transactional
+  verification emails to `email_delivery`. Authorization gates (`requireAuth`,
+  `requireVerified`) derive user identity and verification status directly from
+  database sessions, rejecting unverified mutations with HTTP 403 Forbidden. Auth
+  endpoints are protected with fail-closed rate limiting (HTTP 503 `dependency_unavailable`).
+  Includes accessible client authentication UI (`SignupForm`, `LoginForm`,
+  `VerifyEmailView`) with TanStack Query hooks and layout-matched structural skeletons.
 - **Asynchronous transactional email pipeline** (PRS-170): Decoupled email
+
   delivery pipeline using Upstash QStash and Resend. Outgoing verification and
   password reset emails are recorded in PostgreSQL (`email_delivery`) with status
   tracking and enqueued as opaque `{ jobId }` payloads. Incoming QStash webhooks
@@ -14,6 +25,7 @@ All notable changes to this project will be documented in this file.
   claim jobs, and route delivery through Resend or SMTP with automatic
   transient error retries (503) and terminal failure categorization. Includes
   HTML entity escaping, CRLF injection defense, and sensitive token sanitization.
+
 - **API contract and error envelope** (PRS-166): `GET /api/listings` with
   keyset pagination, contract-validated response payloads, and a
   standardized error envelope for every failure on the `/api/*` surface.

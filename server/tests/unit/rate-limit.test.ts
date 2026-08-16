@@ -209,24 +209,46 @@ describe("rate limiting outage resilience", () => {
     mockLimit.mockReset();
   });
 
-  it("fails open when Upstash Redis throws a network or server error", async () => {
+  it("fails open when Upstash Redis throws a network or server error and failClosed is false", async () => {
     mockLimit.mockRejectedValueOnce(new Error("Connection timeout to Upstash Redis"));
 
     const limiter = createRateLimiter({
       requests: 100,
       window: "60 s",
-      prefix: "test-outage",
+      prefix: "test-outage-open",
     });
 
-    const app = new Hono();
-    app.use("/test", limiter);
-    app.get("/test", c => c.json({ ok: true }));
-
+    const app = makeLimitedApp(limiter);
     const res = await app.request("/test", {
       headers: { "cf-connecting-ip": "1.2.3.4" },
     });
 
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ ok: true });
+  });
+
+  it("fails closed with 503 dependency_unavailable when Upstash Redis throws an error and failClosed is true", async () => {
+    mockLimit.mockRejectedValueOnce(new Error("Connection timeout to Upstash Redis"));
+
+    const limiter = createRateLimiter({
+      requests: 30,
+      window: "60 s",
+      prefix: "test-outage-closed",
+      failClosed: true,
+    });
+
+    const app = makeLimitedApp(limiter);
+    const res = await app.request("/test", {
+      headers: { "cf-connecting-ip": "1.2.3.4" },
+    });
+
+    expect(res.status).toBe(503);
+    await expect(res.json()).resolves.toEqual({
+      error: {
+        code: "dependency_unavailable",
+        message: "Rate limiter service unavailable. Please try again later.",
+        requestId: "req-test",
+      },
+    });
   });
 });

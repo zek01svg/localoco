@@ -16,10 +16,25 @@ export const getClientIp = (c: Context): string => {
   return "unknown";
 };
 
+function handleRateLimitFailure(ip: string, err: unknown, failClosed?: boolean): void {
+  if (err instanceof HttpError) {
+    throw err;
+  }
+  logger.warning("rate_limit.error", { ip, error: String(err) });
+  if (failClosed) {
+    throw new HttpError(
+      503,
+      "dependency_unavailable",
+      "Rate limiter service unavailable. Please try again later."
+    );
+  }
+}
+
 export const createRateLimiter = (options: {
   requests: number;
   window: `${number} ${"s" | "m" | "h" | "d"}`;
   prefix: string;
+  failClosed?: boolean;
 }): MiddlewareHandler => {
   const limiter = redis
     ? new Ratelimit({
@@ -50,11 +65,7 @@ export const createRateLimiter = (options: {
         throw new HttpError(429, "rate_limited", "Too many requests. Please try again later.");
       }
     } catch (err) {
-      if (err instanceof HttpError) {
-        throw err;
-      }
-      logger.warning("rate_limit.error", { ip, error: String(err) });
-      // Fail open so Redis outage does not block users
+      handleRateLimitFailure(ip, err, options.failClosed);
     }
 
     await next();
@@ -71,4 +82,5 @@ export const authRateLimit = createRateLimiter({
   requests: 30,
   window: "60 s",
   prefix: "auth",
+  failClosed: true,
 });

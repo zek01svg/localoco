@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { LandingPage } from "./landing";
+import { LandingPage } from "#client/features/landing/landing";
 
 describe("LandingPage", () => {
   it("renders meaningful marketing content, not just a mount point", () => {
