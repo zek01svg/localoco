@@ -1,14 +1,14 @@
+import type { ReactNode } from "react";
+
 import { useForm } from "@tanstack/react-form";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2Icon, MailIcon } from "lucide-react";
-import * as React from "react";
 
 import { Button } from "#client/components/ui/button";
-import { Input } from "#client/components/ui/input";
-import { Label } from "#client/components/ui/label";
 import { Skeleton } from "#client/components/ui/skeleton";
 
 import { useSignUpMutation } from "../hooks/auth-queries";
+import { AuthCard, FormErrorAlert, FormField } from "./shell";
 
 export function SignupFormSkeleton() {
   return (
@@ -42,8 +42,8 @@ export function SignupFormSkeleton() {
 
 function SignupSuccessView({ email }: { email: string }) {
   return (
-    <div className="bg-card text-card-foreground border-border mx-auto max-w-md rounded-xl border p-8 shadow-sm">
-      <div className="flex flex-col items-center text-center">
+    <AuthCard className="text-center">
+      <div className="flex flex-col items-center">
         <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
           <MailIcon aria-hidden="true" className="size-6" />
         </div>
@@ -64,7 +64,7 @@ function SignupSuccessView({ email }: { email: string }) {
           Return to sign in
         </Link>
       </div>
-    </div>
+    </AuthCard>
   );
 }
 
@@ -94,26 +94,18 @@ function SignupFormContainer({
   children,
   errorMessage,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   errorMessage: string | null;
 }) {
   return (
-    <div className="bg-card text-card-foreground border-border mx-auto max-w-md rounded-xl border p-8 shadow-sm">
+    <AuthCard>
       <SignupFormHeader />
 
-      {errorMessage ? (
-        <div
-          role="alert"
-          aria-live="polite"
-          className="border-destructive/30 bg-destructive/10 text-destructive mb-6 rounded-lg border p-3.5 text-sm font-medium"
-        >
-          {errorMessage}
-        </div>
-      ) : null}
+      {errorMessage ? <FormErrorAlert message={errorMessage} /> : null}
 
       {children}
       <SignupFormFooter />
-    </div>
+    </AuthCard>
   );
 }
 
@@ -157,26 +149,17 @@ export function SignupForm() {
           validators={{ onChange: ({ value }) => (value ? undefined : "Full name is required") }}
         >
           {field => (
-            <div className="space-y-1.5">
-              <Label htmlFor={field.name}>Full Name</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="text"
-                required
-                autoComplete="name"
-                placeholder="Alice Tan"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={e => {
-                  field.handleChange(e.target.value);
-                }}
-                disabled={signUpMutation.isPending}
-              />
-              {field.state.meta.errors[0] ? (
-                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
-              ) : null}
-            </div>
+            <FormField
+              id={field.name}
+              label="Full Name"
+              autoComplete="name"
+              placeholder="Alice Tan"
+              disabled={signUpMutation.isPending}
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              error={field.state.meta.errors[0]}
+            />
           )}
         </form.Field>
 
@@ -185,26 +168,18 @@ export function SignupForm() {
           validators={{ onChange: ({ value }) => (value ? undefined : "Email is required") }}
         >
           {field => (
-            <div className="space-y-1.5">
-              <Label htmlFor={field.name}>Email</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="alice@example.com"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={e => {
-                  field.handleChange(e.target.value);
-                }}
-                disabled={signUpMutation.isPending}
-              />
-              {field.state.meta.errors[0] ? (
-                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
-              ) : null}
-            </div>
+            <FormField
+              id={field.name}
+              label="Email"
+              type="email"
+              autoComplete="email"
+              placeholder="alice@example.com"
+              disabled={signUpMutation.isPending}
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              error={field.state.meta.errors[0]}
+            />
           )}
         </form.Field>
 
@@ -220,26 +195,18 @@ export function SignupForm() {
           }}
         >
           {field => (
-            <div className="space-y-1.5">
-              <Label htmlFor={field.name}>Password</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="password"
-                required
-                autoComplete="new-password"
-                placeholder="At least 8 characters"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={e => {
-                  field.handleChange(e.target.value);
-                }}
-                disabled={signUpMutation.isPending}
-              />
-              {field.state.meta.errors[0] ? (
-                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
-              ) : null}
-            </div>
+            <FormField
+              id={field.name}
+              label="Password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              disabled={signUpMutation.isPending}
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              error={field.state.meta.errors[0]}
+            />
           )}
         </form.Field>
 
@@ -255,26 +222,18 @@ export function SignupForm() {
           }}
         >
           {field => (
-            <div className="space-y-1.5">
-              <Label htmlFor={field.name}>Confirm Password</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="password"
-                required
-                autoComplete="new-password"
-                placeholder="Re-enter password"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={e => {
-                  field.handleChange(e.target.value);
-                }}
-                disabled={signUpMutation.isPending}
-              />
-              {field.state.meta.errors[0] ? (
-                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
-              ) : null}
-            </div>
+            <FormField
+              id={field.name}
+              label="Confirm Password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="Re-enter password"
+              disabled={signUpMutation.isPending}
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              error={field.state.meta.errors[0]}
+            />
           )}
         </form.Field>
 

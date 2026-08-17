@@ -79,8 +79,8 @@ export const publicRateLimit = createRateLimiter({
 });
 
 export const authRateLimit = createRateLimiter({
-  requests: 30,
-  window: "60 s",
+  requests: 10,
+  window: "10 m",
   prefix: "auth",
   failClosed: true,
 });

@@ -4,6 +4,7 @@ import { AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
 import { Skeleton } from "#client/components/ui/skeleton";
 
 import { useVerifyEmailQuery } from "../hooks/auth-queries";
+import { AuthCard } from "./shell";
 
 interface VerifyEmailViewProps {
   token?: string;
@@ -25,7 +26,7 @@ export function VerifyEmailSkeleton() {
 
 function VerifySuccessState() {
   return (
-    <div className="bg-card text-card-foreground border-border mx-auto max-w-md rounded-xl border p-8 text-center shadow-sm">
+    <AuthCard className="text-center">
       <div className="flex flex-col items-center">
         <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
           <CheckCircle2Icon aria-hidden="true" className="size-6" />
@@ -42,13 +43,13 @@ function VerifySuccessState() {
           Continue to LocaLoco
         </Link>
       </div>
-    </div>
+    </AuthCard>
   );
 }
 
 function VerifyErrorState({ errorMessage }: { errorMessage: string | null }) {
   return (
-    <div className="bg-card text-card-foreground border-border mx-auto max-w-md rounded-xl border p-8 text-center shadow-sm">
+    <AuthCard className="text-center">
       <div className="flex flex-col items-center">
         <div className="bg-destructive/10 text-destructive mb-4 flex size-12 items-center justify-center rounded-full">
           <AlertTriangleIcon aria-hidden="true" className="size-6" />
@@ -67,7 +68,7 @@ function VerifyErrorState({ errorMessage }: { errorMessage: string | null }) {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthCard>
   );
 }
 

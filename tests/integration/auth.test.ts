@@ -6,11 +6,11 @@ import type { db as dbInstance } from "#server/lib/db";
 import type { TestAppEnv } from "./auth-helpers";
 import type { Context, Hono, MiddlewareHandler, Next } from "hono";
 
-import { eq } from "drizzle-orm";
+import { and, desc, eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod/v4";
 
-import { user } from "#server/database/auth";
+import { user, verification } from "#server/database/auth";
 import { emailDelivery } from "#server/database/email";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
 
@@ -275,5 +275,138 @@ describe("Auth Session Expiration & Sign Out", () => {
     expect(protectedRes.status).toBe(401);
     const err = errorEnvelopeSchema.parse(await protectedRes.json());
     expect(err.error.code).toBe("unauthorized");
+  });
+});
+
+describe("Auth Password Reset", () => {
+  const resetEmail = "carol.tan@example.com";
+
+  function requestReset(email: string): Promise<Response> | Response {
+    return testApp.request("/api/auth/request-password-reset", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:4000",
+      },
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async function latestResetToken(email: string): Promise<string> {
+    const emails = await db
+      .select()
+      .from(emailDelivery)
+      .where(eq(emailDelivery.recipient, email))
+      .orderBy(desc(emailDelivery.createdAt));
+    const match = emails[0]?.htmlBody.match(/\/reset-password\/([^?&"'\s]+)/u);
+    if (!match) {
+      throw new Error("No reset link found in delivered email");
+    }
+    return match[1];
+  }
+
+  function resetPassword(token: string, newPassword: string): Promise<Response> | Response {
+    return testApp.request("/api/auth/reset-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:4000",
+      },
+      body: JSON.stringify({ newPassword, token }),
+    });
+  }
+
+  beforeAll(async () => {
+    await registerUser(testApp, {
+      name: "Carol Tan",
+      email: resetEmail,
+      password: "Password123!",
+    });
+  });
+
+  it("returns an identical non-enumerating response whether or not the email exists", async () => {
+    const existingResponse = await requestReset(resetEmail);
+    const unknownResponse = await requestReset("ghost@example.com");
+
+    expect(existingResponse.status).toBe(200);
+    expect(unknownResponse.status).toBe(200);
+    await expect(existingResponse.json()).resolves.toEqual(await unknownResponse.json());
+
+    const ghostEmails = await db
+      .select()
+      .from(emailDelivery)
+      .where(eq(emailDelivery.recipient, "ghost@example.com"));
+    expect(ghostEmails).toHaveLength(0);
+  });
+
+  it("enqueues a reset email asynchronously with a token link", async () => {
+    await requestReset(resetEmail);
+
+    const emails = await db
+      .select()
+      .from(emailDelivery)
+      .where(eq(emailDelivery.recipient, resetEmail))
+      .orderBy(desc(emailDelivery.createdAt));
+    expect(emails[0]?.subject).toContain("Reset your LocaLoco password");
+    expect(emails[0]?.htmlBody).toContain("/api/auth/reset-password/");
+    await expect(latestResetToken(resetEmail)).resolves.toBeTruthy();
+  });
+
+  it("rejects a replayed or already-consumed reset token", async () => {
+    await requestReset(resetEmail);
+    const token = await latestResetToken(resetEmail);
+
+    const firstReset = await resetPassword(token, "NewPassword456!");
+    expect(firstReset.status).toBe(200);
+
+    const replayReset = await resetPassword(token, "AnotherPassword789!");
+    expect([400, 401]).toContain(replayReset.status);
+  });
+
+  it("rejects an expired reset token", async () => {
+    await requestReset(resetEmail);
+    const token = await latestResetToken(resetEmail);
+
+    const [carol] = await db.select().from(user).where(eq(user.email, resetEmail));
+    await db
+      .update(verification)
+      .set({ expiresAt: new Date(Date.now() - 60_000) })
+      .where(
+        and(like(verification.identifier, "reset-password:%"), eq(verification.value, carol.id))
+      );
+
+    const expiredReset = await resetPassword(token, "ExpiredPassword123!");
+    expect([400, 401]).toContain(expiredReset.status);
+  });
+
+  it("revokes all prior sessions when a reset completes", async () => {
+    const login = await testApp.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:4000" },
+      body: JSON.stringify({ email: resetEmail, password: "NewPassword456!" }),
+    });
+    const sessionCookie = extractSessionCookie(login);
+
+    const beforeRes = await testApp.request("/api/test-protected", {
+      headers: { cookie: sessionCookie },
+    });
+    expect(beforeRes.status).toBe(200);
+
+    await requestReset(resetEmail);
+    const token = await latestResetToken(resetEmail);
+    const resetRes = await resetPassword(token, "FinalPassword789!");
+    expect(resetRes.status).toBe(200);
+
+    const afterRes = await testApp.request("/api/test-protected", {
+      headers: { cookie: sessionCookie },
+    });
+    expect(afterRes.status).toBe(401);
+
+    const newLogin = await testApp.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:4000" },
+      body: JSON.stringify({ email: resetEmail, password: "FinalPassword789!" }),
+    });
+    expect(newLogin.status).toBe(200);
   });
 });

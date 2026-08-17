@@ -58,3 +58,30 @@ export function useVerifyEmailQuery(token?: string) {
     retry: false,
   });
 }
+
+export function useRequestPasswordResetMutation() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const result = await auth.requestPasswordReset({
+        email,
+        redirectTo: "/reset-password",
+      });
+      if (result.error) {
+        throw new Error(result.error.message ?? "Could not request a password reset.");
+      }
+      return result.data;
+    },
+  });
+}
+
+export function useResetPasswordMutation() {
+  return useMutation({
+    mutationFn: async (data: { token: string; newPassword: string }) => {
+      const result = await auth.resetPassword({ token: data.token, newPassword: data.newPassword });
+      if (result.error) {
+        throw new Error(result.error.message ?? "This reset link is invalid or has expired.");
+      }
+      return result.data;
+    },
+  });
+}

@@ -2,11 +2,10 @@ import { useForm } from "@tanstack/react-form";
 import { Link } from "@tanstack/react-router";
 
 import { Button } from "#client/components/ui/button";
-import { Input } from "#client/components/ui/input";
-import { Label } from "#client/components/ui/label";
 import { Skeleton } from "#client/components/ui/skeleton";
 
 import { useSignInMutation } from "../hooks/auth-queries";
+import { AuthCard, FormErrorAlert, FormField } from "./shell";
 
 export function LoginFormSkeleton() {
   return (
@@ -41,12 +40,19 @@ function LoginFormHeader() {
 
 function LoginFormFooter() {
   return (
-    <p className="text-muted-foreground mt-6 text-center text-xs">
-      Not registered yet?{" "}
-      <Link to="/signup" className="text-primary font-medium hover:underline">
-        Sign up
-      </Link>
-    </p>
+    <div className="text-muted-foreground mt-6 space-y-2 text-center text-xs">
+      <p>
+        <Link to="/forgot-password" className="text-primary font-medium hover:underline">
+          Forgot your password?
+        </Link>
+      </p>
+      <p>
+        Not registered yet?{" "}
+        <Link to="/signup" className="text-primary font-medium hover:underline">
+          Sign up
+        </Link>
+      </p>
+    </div>
   );
 }
 
@@ -66,18 +72,10 @@ export function LoginForm() {
   const errorMessage = signInMutation.error ? signInMutation.error.message : null;
 
   return (
-    <div className="bg-card text-card-foreground border-border mx-auto max-w-md rounded-xl border p-8 shadow-sm">
+    <AuthCard>
       <LoginFormHeader />
 
-      {errorMessage ? (
-        <div
-          role="alert"
-          aria-live="polite"
-          className="border-destructive/30 bg-destructive/10 text-destructive mb-6 rounded-lg border p-3.5 text-sm font-medium"
-        >
-          {errorMessage}
-        </div>
-      ) : null}
+      {errorMessage ? <FormErrorAlert message={errorMessage} /> : null}
 
       <form
         onSubmit={e => {
@@ -94,26 +92,18 @@ export function LoginForm() {
           }}
         >
           {field => (
-            <div className="space-y-1.5">
-              <Label htmlFor={field.name}>Email</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="alice@example.com"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={e => {
-                  field.handleChange(e.target.value);
-                }}
-                disabled={signInMutation.isPending}
-              />
-              {field.state.meta.errors[0] ? (
-                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
-              ) : null}
-            </div>
+            <FormField
+              id={field.name}
+              label="Email"
+              type="email"
+              autoComplete="email"
+              placeholder="alice@example.com"
+              disabled={signInMutation.isPending}
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              error={field.state.meta.errors[0]}
+            />
           )}
         </form.Field>
 
@@ -124,26 +114,18 @@ export function LoginForm() {
           }}
         >
           {field => (
-            <div className="space-y-1.5">
-              <Label htmlFor={field.name}>Password</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="password"
-                required
-                autoComplete="current-password"
-                placeholder="Enter your password"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={e => {
-                  field.handleChange(e.target.value);
-                }}
-                disabled={signInMutation.isPending}
-              />
-              {field.state.meta.errors[0] ? (
-                <p className="text-destructive text-xs">{field.state.meta.errors[0]}</p>
-              ) : null}
-            </div>
+            <FormField
+              id={field.name}
+              label="Password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              disabled={signInMutation.isPending}
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChange={field.handleChange}
+              error={field.state.meta.errors[0]}
+            />
           )}
         </form.Field>
 
@@ -161,6 +143,6 @@ export function LoginForm() {
       </form>
 
       <LoginFormFooter />
-    </div>
+    </AuthCard>
   );
 }
