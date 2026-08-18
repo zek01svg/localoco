@@ -18,6 +18,7 @@ import {
   healthRoutes,
   listingsRoutes,
   smokeRoutes,
+  usersRoutes,
   webhooksRoutes,
 } from "#server/routes";
 import { getSpaShell } from "#server/spa.ts";
@@ -96,7 +97,8 @@ const apiRoutes = new Hono()
   })
   .use("*", publicRateLimit)
   .route("/", listingsRoutes)
-  .route("/", businessesRoutes);
+  .route("/", businessesRoutes)
+  .route("/", usersRoutes);
 
 // Chained from the first call so `typeof app` infers every route: hono/client
 // derives its client type from this export.

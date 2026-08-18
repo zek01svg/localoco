@@ -27,6 +27,12 @@ _Avoid_: vendor account, administrator
 The canonical identifier of a Business in LocaLoco.
 _Avoid_: business ID, listing ID, registration number
 
+**Public profile**:
+A User's public-facing page and API response containing only their display
+name, avatar, and public contributions — nothing else. Private account
+information is structurally absent, never conditionally hidden.
+_Avoid_: profile page, personal page
+
 ## Discovery and community
 
 **Business discovery**:

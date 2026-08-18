@@ -321,3 +321,39 @@ Validation failures carry flattened issues under `details.issues`:
 ```
 
 Unexpected errors are logged server-side (root cause, including `requestId`) and reported to Sentry when configured; the response body never contains the underlying error message, connection strings, or credentials. Unknown `/api/*` paths answer `404 not_found` instead of falling through to the SPA.
+
+---
+
+## 9. Public profiles
+
+A User's public profile is the minimal identity a visitor can see: display
+name and avatar, and nothing else. The public contract
+(`shared/contracts/profiles.ts`) is a separate response shape from any private
+profile — private account fields (email, verification state, timestamps) are
+structurally absent from it, not conditionally stripped. The route mounts no
+session middleware, so the response is byte-identical for anonymous visitors,
+signed-in Users, and the profile's owner.
+
+Public Review and Forum contribution streams are added to this endpoint by the
+Reviews and Forum slices; until then the profile is identity-only.
+
+### Get a public profile (`GET /api/users/:id`)
+
+- **Response `200 OK`** — `application/json`:
+
+  ```json
+  {
+    "id": "usr_123",
+    "displayName": "Alice Tan",
+    "avatarUrl": "https://cdn.example.com/alice.png"
+  }
+  ```
+
+  `avatarUrl` is `null` when the User has not set an avatar.
+
+- **Response `404`**: no such user (`not_found`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+- **Response `503`**: the data source failed or returned a row that violates
+  the contract (`dependency_unavailable`).
+
+---
