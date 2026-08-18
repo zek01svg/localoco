@@ -1,5 +1,7 @@
 import { z } from "zod/v4";
 
+import { listingFields, ownerListingSchema } from "./listings";
+
 // The private shape of a Business as seen by its owner or an administrator.
 // Ownership is derived from the session server-side; `ownerId` never leaves
 // the server in this contract.
@@ -9,10 +11,25 @@ export const businessSchema = z.object({
 });
 export type Business = z.infer<typeof businessSchema>;
 
-// UEN validation stays deliberately loose here; normalization, format rules,
-// and the unique database constraint arrive with the Business creation slice.
+// Singapore UEN formats, validated after normalization (trim + uppercase):
+// - nnnnnnnnX  (9 chars: 8 digits + 1 letter) — pre-2009 ACRA companies
+// - nnnnnnnnnX (10 chars: 9 digits + 1 letter) — post-2009 ACRA entities
+// - TyyXXnnnnX (10 chars: T + 2-digit year + 2 entity letters + 4 digits + 1
+//   letter) — other entities (LLP, foreign company, partnership, ...)
+export const uenField = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .refine(value => /^(\d{8}[A-Z]|\d{9}[A-Z]|T\d{2}[A-Z]{2}\d{4}[A-Z])$/u.test(value), {
+    message: "UEN must be a valid Singapore UEN",
+  });
+export type Uen = z.infer<typeof uenField>;
+
+// UEN uniqueness is enforced by the PostgreSQL unique constraint on the
+// normalized value, not by a check-then-insert, so concurrent creation of the
+// same Business cannot both succeed.
 export const businessUpdateSchema = z.object({
-  uen: z.string().trim().min(1).max(64),
+  uen: uenField,
 });
 export type BusinessUpdate = z.infer<typeof businessUpdateSchema>;
 
@@ -26,3 +43,20 @@ export const businessesResponseSchema = z.object({
   selectedId: z.string().nullable(),
 });
 export type BusinessesResponse = z.infer<typeof businessesResponseSchema>;
+
+// Creating a Business also creates its draft Listing in one atomic write. The
+// actor is never a client claim: `ownerId` is derived from the session and is
+// absent from this contract, so a submitted owner identifier is stripped by
+// validation and cannot create a Business for someone else.
+export const businessCreateSchema = z.object({
+  uen: uenField,
+  listing: z.object(listingFields),
+});
+export type BusinessCreate = z.infer<typeof businessCreateSchema>;
+
+export const businessCreationResponseSchema = z.object({
+  id: z.string().min(1),
+  uen: uenField,
+  listing: ownerListingSchema,
+});
+export type BusinessCreationResponse = z.infer<typeof businessCreationResponseSchema>;

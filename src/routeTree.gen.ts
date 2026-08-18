@@ -15,6 +15,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as BusinessesIdRouteImport } from './routes/businesses.$id'
+import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -47,6 +49,16 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
   path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusinessesIdRoute = BusinessesIdRouteImport.update({
+  id: '/businesses/$id',
+  path: '/businesses/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessesNewRoute = BusinessesNewRouteImport.update({
+  id: '/businesses/new',
+  path: '/businesses/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsersIdRoute = UsersIdRouteImport.update({
   id: '/users/$id',
   path: '/users/$id',
@@ -60,6 +72,8 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/businesses/$id': typeof BusinessesIdRoute
+  '/businesses/new': typeof BusinessesNewRoute
   '/users/$id': typeof UsersIdRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +83,8 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/businesses/$id': typeof BusinessesIdRoute
+  '/businesses/new': typeof BusinessesNewRoute
   '/users/$id': typeof UsersIdRoute
 }
 export interface FileRoutesById {
@@ -79,6 +95,8 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/businesses/$id': typeof BusinessesIdRoute
+  '/businesses/new': typeof BusinessesNewRoute
   '/users/$id': typeof UsersIdRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +108,8 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/businesses/$id'
+    | '/businesses/new'
     | '/users/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +119,8 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/businesses/$id'
+    | '/businesses/new'
     | '/users/$id'
   id:
     | '__root__'
@@ -108,6 +130,8 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/businesses/$id'
+    | '/businesses/new'
     | '/users/$id'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +142,8 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  BusinessesIdRoute: typeof BusinessesIdRoute
+  BusinessesNewRoute: typeof BusinessesNewRoute
   UsersIdRoute: typeof UsersIdRoute
 }
 
@@ -165,6 +191,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/businesses/$id': {
+      id: '/businesses/$id'
+      path: '/businesses/$id'
+      fullPath: '/businesses/$id'
+      preLoaderRoute: typeof BusinessesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/businesses/new': {
+      id: '/businesses/new'
+      path: '/businesses/new'
+      fullPath: '/businesses/new'
+      preLoaderRoute: typeof BusinessesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/users/$id': {
       id: '/users/$id'
       path: '/users/$id'
@@ -182,6 +222,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  BusinessesIdRoute: BusinessesIdRoute,
+  BusinessesNewRoute: BusinessesNewRoute,
   UsersIdRoute: UsersIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -96,7 +96,7 @@ const patchBusiness = (id: string, cookie: string | undefined, body: object) =>
   });
 
 const patchBusinessUen = (id: string, cookie?: string) =>
-  patchBusiness(id, cookie, { uen: "UEN-EDITED" });
+  patchBusiness(id, cookie, { uen: "201800999A" });
 
 beforeAll(async () => {
   const started = await startPostgresContainer();
@@ -158,8 +158,8 @@ describe("authorization matrix over PATCH /api/businesses/:id", () => {
     const daveId = await userId("dave.admin@example.com");
     await db.insert(administrator).values({ userId: daveId });
 
-    [bizA] = await seedBusiness(aliceId, "UEN-ALICE-1");
-    [bizB] = await seedBusiness(bobId, "UEN-BOB-1");
+    [bizA] = await seedBusiness(aliceId, "201800111A");
+    [bizB] = await seedBusiness(bobId, "201800112B");
   });
 
   it("rejects anonymous with 401 unauthorized", async () => {
@@ -196,21 +196,21 @@ describe("authorization matrix over PATCH /api/businesses/:id", () => {
   });
 
   it("allows the resource owner", async () => {
-    const res = await patchBusiness(bizA.id, aliceCookie, { uen: "UEN-ALICE-EDITED" });
+    const res = await patchBusiness(bizA.id, aliceCookie, { uen: "201800113C" });
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ id: bizA.id, uen: "UEN-ALICE-EDITED" });
+    await expect(res.json()).resolves.toEqual({ id: bizA.id, uen: "201800113C" });
 
     const [row] = await db
       .select({ uen: business.uen })
       .from(business)
       .where(eq(business.id, bizA.id));
-    expect(row.uen).toBe("UEN-ALICE-EDITED");
+    expect(row.uen).toBe("201800113C");
   });
 
   it("allows an administrator who owns nothing", async () => {
-    const res = await patchBusiness(bizA.id, adminCookie, { uen: "UEN-ALICE-ADMIN" });
+    const res = await patchBusiness(bizA.id, adminCookie, { uen: "201800114D" });
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ id: bizA.id, uen: "UEN-ALICE-ADMIN" });
+    await expect(res.json()).resolves.toEqual({ id: bizA.id, uen: "201800114D" });
   });
 
   it("does not reveal resource existence: missing and unauthorized answer identically", async () => {
@@ -229,14 +229,14 @@ describe("authorization matrix over PATCH /api/businesses/:id", () => {
 
   it("ignores a client-supplied owner identifier in the body", async () => {
     const asOwner = await patchBusiness(bizA.id, aliceCookie, {
-      uen: "UEN-ALICE-SELF",
+      uen: "201800115E",
       ownerId: bobId,
     });
     expect(asOwner.status).toBe(200);
-    await expect(asOwner.json()).resolves.toEqual({ id: bizA.id, uen: "UEN-ALICE-SELF" });
+    await expect(asOwner.json()).resolves.toEqual({ id: bizA.id, uen: "201800115E" });
 
     const asNonOwner = await patchBusiness(bizA.id, bobCookie, {
-      uen: "UEN-TAMPERED",
+      uen: "201800116F",
       ownerId: aliceId,
     });
     expect(asNonOwner.status).toBe(404);
@@ -261,8 +261,8 @@ describe("client-side business selection never affects authorization", () => {
     ginaCookie = await signIn("gina.verified@example.com");
     const ginaId = await userId("gina.verified@example.com");
     const bobId = await userId("bob.owner@example.com");
-    [bizG] = await seedBusiness(ginaId, "UEN-GINA-1");
-    [bizB] = await seedBusiness(bobId, "UEN-BOB-2");
+    [bizG] = await seedBusiness(ginaId, "201800117G");
+    [bizB] = await seedBusiness(bobId, "201800118H");
   });
 
   it("lists only the session user's businesses, ignoring a selected foreign business", async () => {
@@ -272,7 +272,7 @@ describe("client-side business selection never affects authorization", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     await expect(res.json()).resolves.toEqual({
-      items: [{ id: bizG.id, uen: "UEN-GINA-1" }],
+      items: [{ id: bizG.id, uen: "201800117G" }],
       selectedId: null,
     });
   });
@@ -283,7 +283,7 @@ describe("client-side business selection never affects authorization", () => {
     });
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({
-      items: [{ id: bizG.id, uen: "UEN-GINA-1" }],
+      items: [{ id: bizG.id, uen: "201800117G" }],
       selectedId: bizG.id,
     });
   });
@@ -306,7 +306,7 @@ describe("concurrency: ownership changes between read and write", () => {
     const bobCookie = await signIn("bob.owner@example.com");
     const aliceId = await userId("alice.owner@example.com");
     const bobId = await userId("bob.owner@example.com");
-    const [bizC] = await seedBusiness(aliceId, "UEN-ALICE-3");
+    const [bizC] = await seedBusiness(aliceId, "201800119I");
 
     // Swap ownership on a separate connection and hold the row lock while
     // the handler's own transaction runs: its read passes under the old
@@ -349,9 +349,9 @@ describe("concurrency: ownership changes between read and write", () => {
       .select({ uen: business.uen, ownerId: business.ownerId })
       .from(business)
       .where(eq(business.id, bizC.id));
-    expect(row).toEqual({ uen: "UEN-ALICE-3", ownerId: bobId });
+    expect(row).toEqual({ uen: "201800119I", ownerId: bobId });
 
-    const asNewOwner = await patchBusiness(bizC.id, bobCookie, { uen: "UEN-BOB-3" });
+    const asNewOwner = await patchBusiness(bizC.id, bobCookie, { uen: "201800120J" });
     expect(asNewOwner.status).toBe(200);
   }, 60_000);
 });

@@ -19,6 +19,11 @@ A Business’s public presence on LocaLoco, including the information people use
 to discover and evaluate it.
 _Avoid_: business, profile
 
+**Draft Listing**:
+A Listing created alongside its Business but not yet published; only the
+Business owner can see it, and it never appears in discovery responses.
+_Avoid_: pending listing, unpublished listing
+
 **Business owner**:
 A User who owns a Business and may manage its Listing and public Announcements.
 _Avoid_: vendor account, administrator

@@ -29,6 +29,13 @@
       "when": 1786965407990,
       "tag": "0003_authz_business_administrator",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787035001245,
+      "tag": "0004_business_listing_creation",
+      "breakpoints": true
     }
   ]
 }

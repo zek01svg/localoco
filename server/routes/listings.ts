@@ -1,4 +1,4 @@
-import { asc, gt } from "drizzle-orm";
+import { and, asc, eq, gt } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 
@@ -23,7 +23,7 @@ export const listingsRoutes = new Hono().get(
     tags: ["listings"],
     summary: "List public business listings",
     description:
-      "Cursor-paginated list of publicly visible business listings, ordered by stable id.",
+      "Cursor-paginated list of published business listings, ordered by stable id. Draft and moderated Listings are never returned here.",
     responses: {
       200: {
         description: "A page of listings",
@@ -53,9 +53,14 @@ export const listingsRoutes = new Hono().get(
             category: listing.category,
             address: listing.address,
             postalCode: listing.postalCode,
+            phone: listing.phone,
+            email: listing.email,
+            website: listing.website,
+            paymentOptions: listing.paymentOptions,
+            priceRange: listing.priceRange,
           })
           .from(listing)
-          .where(cursor ? gt(listing.id, cursor) : undefined)
+          .where(and(eq(listing.status, "published"), cursor ? gt(listing.id, cursor) : undefined))
           .orderBy(asc(listing.id))
           .limit(limit + 1);
       } catch (cause) {
