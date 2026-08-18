@@ -6,12 +6,17 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Business opening hours**: Owners can set per-day opening hours on their
-  business Listing (24-hour days, overnight intervals, wholesale schedule
-  replacement). Stored timezone-free and evaluated in Singapore time by a
-  tested evaluator; invalid or overlapping schedules are rejected at the
-  client, the API boundary, and the database.
-- **Server-side address validation and persisted coordinates**: Listing
+- **Administrator role and database-backed authorization** (PRS-175): Dedicated
+  `administrator` table (`user_id` foreign key cascade), session middleware
+  resolving `isAdmin` directly from the database on every request, and
+  `requireAdmin` route guards.
+- **Private R2 media and Listing photos** (PRS-181): Business owners can add,
+  view, and delete photos on their Listing. Objects live in a private R2
+  bucket behind short-lived presigned grants with server-generated keys, the
+  per-Business count and per-photo bounds are enforced at the boundary, and
+  abandoned uploads are purged by a QStash-signed sweep webhook. Deleting a
+  photo is permanent.
+- **Server-side address validation and persisted coordinates** (PRS-179): Listing
   addresses are resolved to street-level Singapore coordinates via the Google
   Geocoding API at write time (ADR-0006). `POST /api/businesses` always
   geocodes; `PATCH /api/businesses/:id/listing` re-geocodes only on
@@ -20,24 +25,41 @@ All notable changes to this project will be documented in this file.
   `503 dependency_unavailable` — writes never proceed without validated
   coordinates, and reads never call the provider. Listings expose nullable
   `latitude`/`longitude` in responses.
+- **Business opening hours** (PRS-180): Owners can set per-day opening hours on their
+  business Listing (24-hour days, overnight intervals, wholesale schedule
+  replacement). Stored timezone-free and evaluated in Singapore time by a
+  tested evaluator; invalid or overlapping schedules are rejected at the
+  client, the API boundary, and the database.
+- **Business and draft listing creation** (PRS-178): Authenticated and verified
+  users can register new businesses with unique Singapore UEN validation, and
+  manage draft listings with descriptions, tags, and category metadata.
+- **Personal and public profiles** (PRS-176, PRS-177): Authenticated personal
+  profile page for managing account details, requesting email address changes,
+  and viewing owned businesses; public profiles displaying user identity.
+- **Authentication & session management** (PRS-171, PRS-172, PRS-173, PRS-174):
+  Complete authentication lifecycle powered by better-auth — email & password
+  registration, email verification flow, secure password reset with signed tokens,
+  and session middleware.
+- **Asynchronous transactional email pipeline** (PRS-170): QStash-backed
+  resilient email delivery with compiled HTML/plaintext templates, email
+  classification, and Resend provider integration.
+- **Distributed rate limiting and caching** (PRS-169): Upstash Redis rate
+  limiting with memory fallback and bounded in-memory caching.
+- **API contract and OpenAPI specifications** (PRS-167): Standardized error
+  envelope, typed request schemas, and dev-only interactive Scalar reference.
+- **Postgres data schema & migration harness** (PRS-166): Drizzle migrations
+  0001 through 0007 covering auth, businesses, listings, opening hours,
+  coordinates, media objects, and administrator roles.
 - **Geocoding provider module**: `server/lib/geocoding/` follows the
   external-provider pattern (ADR-0005) — zod validation at the trust
   boundary, typed classified failures, contract tests against a local fake
   HTTP server.
-- **Maps infrastructure**: Terraform-managed server and browser API keys
-  (`infra/maps.tf`) with API and referrer restrictions, and a Cloud
-  Monitoring alert on geocoding request rate. The server key is injected
-  into Cloud Run as `GOOGLE_MAPS_API_KEY`; the browser key is dormant until a
-  map UI ships.
-- **Private R2 media and Listing photos** (PRS-181): Business owners can add,
-  view, and delete photos on their Listing. Objects live in a private R2
-  bucket behind short-lived presigned grants with server-generated keys, the
-  per-Business count and per-photo bounds are enforced at the boundary, and
-  abandoned uploads are purged by a QStash-signed sweep webhook. Deleting a
-  photo is permanent.
+- **Maps & R2 infrastructure**: Terraform-managed server/browser Google Maps API
+  keys (`infra/maps.tf`) with Cloud Monitoring alerts, and Cloudflare R2 bucket
+  configuration with Secret Manager integration (`infra/r2.tf`).
 - **Documentation**: ADRs 0005 (isolate external providers) and 0006 (geocode
-  at write time), Maps deployment steps, API coordinates and error
-  documentation.
+  at write time), Maps & R2 deployment steps, API coordinates, opening hours,
+  photos, and error documentation.
 
 ### Changed
 
