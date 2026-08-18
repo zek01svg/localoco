@@ -29,6 +29,12 @@ All notable changes to this project will be documented in this file.
   Monitoring alert on geocoding request rate. The server key is injected
   into Cloud Run as `GOOGLE_MAPS_API_KEY`; the browser key is dormant until a
   map UI ships.
+- **Private R2 media and Listing photos** (PRS-181): Business owners can add,
+  view, and delete photos on their Listing. Objects live in a private R2
+  bucket behind short-lived presigned grants with server-generated keys, the
+  per-Business count and per-photo bounds are enforced at the boundary, and
+  abandoned uploads are purged by a QStash-signed sweep webhook. Deleting a
+  photo is permanent.
 - **Documentation**: ADRs 0005 (isolate external providers) and 0006 (geocode
   at write time), Maps deployment steps, API coordinates and error
   documentation.

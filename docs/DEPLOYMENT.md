@@ -85,17 +85,21 @@ Secret values never touch Terraform variables, plan output, or state.
 Terraform owns the containers and their IAM; operators add versions through
 protected channels (Secret Manager).
 
-| Secret container             | Purpose                                                |
-| :--------------------------- | :----------------------------------------------------- |
-| `DATABASE_URL`               | PostgreSQL connection string                           |
-| `BETTER_AUTH_SECRET`         | Better Auth encryption secret (>= 32 chars)            |
-| `SMOKE_TOKEN`                | Bearer token for the release smoke check               |
-| `UPSTASH_REDIS_REST_URL`     | Upstash Redis REST URL for caching and rate limiting   |
-| `UPSTASH_REDIS_REST_TOKEN`   | Upstash Redis REST Token                               |
-| `QSTASH_TOKEN`               | Upstash QStash REST Token for email queue publishing   |
-| `QSTASH_CURRENT_SIGNING_KEY` | Upstash QStash current signing key for HMAC validation |
-| `QSTASH_NEXT_SIGNING_KEY`    | Upstash QStash next signing key for key rotation       |
-| `RESEND_API_KEY`             | Resend API Key for transactional email sending         |
+| Secret container             | Purpose                                                           |
+| :--------------------------- | :---------------------------------------------------------------- |
+| `DATABASE_URL`               | PostgreSQL connection string                                      |
+| `BETTER_AUTH_SECRET`         | Better Auth encryption secret (>= 32 chars)                       |
+| `SMOKE_TOKEN`                | Bearer token for the release smoke check                          |
+| `UPSTASH_REDIS_REST_URL`     | Upstash Redis REST URL for caching and rate limiting              |
+| `UPSTASH_REDIS_REST_TOKEN`   | Upstash Redis REST Token                                          |
+| `QSTASH_TOKEN`               | Upstash QStash REST Token for email queue publishing              |
+| `QSTASH_CURRENT_SIGNING_KEY` | Upstash QStash current signing key for HMAC validation            |
+| `QSTASH_NEXT_SIGNING_KEY`    | Upstash QStash next signing key for key rotation                  |
+| `RESEND_API_KEY`             | Resend API Key for transactional email sending                    |
+| `AWS_ACCESS_KEY_ID`          | R2 API token Access Key ID (Listing photo storage)                |
+| `AWS_SECRET_ACCESS_KEY`      | R2 API token secret (Listing photo storage)                       |
+| `AWS_S3_BUCKET`              | R2 bucket name: `localoco-listing-photos`                         |
+| `AWS_S3_ENDPOINT`            | R2 S3 endpoint, e.g. `https://<account>.r2.cloudflarestorage.com` |
 
 Add a version after apply:
 
@@ -140,8 +144,32 @@ Manual steps (need the Google Cloud console, once):
    the browser key's restriction already points at it and starts working
    immediately.
 
-Deferred credentials (R2) are attached to the slices that first need them,
-not provisioned ahead of time.
+### R2 Listing photos bootstrap (one-time)
+
+Terraform creates the bucket (`infra/r2.tf`) and the secret containers, but
+two steps need the Cloudflare dashboard or S3 API:
+
+1. **R2 API token**: create a token scoped to the `localoco-listing-photos`
+   bucket with Object Read & Write, then store its Access Key ID / Secret as
+   `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` secret versions.
+2. **CORS**: the presigned uploads are browser `PUT`s from the client origin,
+   so allow it via the S3 CORS API (the Terraform provider has no R2 CORS
+   resource):
+
+   ```bash
+   aws s3api put-bucket-cors --endpoint-url "$AWS_S3_ENDPOINT" \
+     --cors-configuration '{"CORSRules":[{"AllowedOrigins":["https://localoco.ciav.dev"],"AllowedMethods":["PUT","GET","DELETE"],"AllowedHeaders":["content-type"],"MaxAgeSeconds":3600}]}'
+   ```
+
+3. **Sweep schedule**: the media sweep endpoint must be called periodically.
+   Create a QStash schedule (or equivalent cron) that POSTs
+   `{"job":"media-sweep"}` to
+   `https://localoco.ciav.dev/api/webhooks/qstash/media-sweep` with QStash
+   signing enabled (the endpoint verifies the `upstash-signature` header);
+   hourly is a reasonable default.
+
+Local development can leave all four `AWS_*` variables unset: photo endpoints
+answer `503 dependency_unavailable` and the rest of the app is unaffected.
 
 ---
 

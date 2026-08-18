@@ -24,6 +24,7 @@ import {
   PaymentOptionsField,
   listingPayload,
 } from "./components/listing-form-fields";
+import { ListingPhotosSection } from "./components/listing-photos";
 import { BusinessesPageGates, PageSkeleton } from "./components/page-gates";
 import {
   ListingNotFoundError,
@@ -91,89 +92,92 @@ function ListingEditForm({ businessId, listing }: { businessId: string; listing:
 
   return (
     <main className="bg-background flex min-h-screen items-start justify-center p-6">
-      <Card className="mt-16 w-full max-w-xl">
-        <CardHeader>
-          <CardTitle>Your business listing</CardTitle>
-          <CardDescription>
-            Changes are published immediately. The listing shows on your public business page.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            className="space-y-4"
-            onSubmit={e => {
-              e.preventDefault();
-              e.stopPropagation();
-              void form.handleSubmit();
-            }}
-          >
-            {LISTING_FIELD_DEFS.map(def => (
-              <form.Field
-                key={def.name}
-                name={def.name}
-                validators={
-                  def.required
-                    ? {
-                        onChange: ({ value }) =>
-                          value.trim().length === 0 ? "Required" : undefined,
-                      }
-                    : undefined
-                }
-              >
+      <div className="mt-16 flex w-full max-w-xl flex-col gap-6">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Your business listing</CardTitle>
+            <CardDescription>
+              Changes are published immediately. The listing shows on your public business page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              className="space-y-4"
+              onSubmit={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                void form.handleSubmit();
+              }}
+            >
+              {LISTING_FIELD_DEFS.map(def => (
+                <form.Field
+                  key={def.name}
+                  name={def.name}
+                  validators={
+                    def.required
+                      ? {
+                          onChange: ({ value }) =>
+                            value.trim().length === 0 ? "Required" : undefined,
+                        }
+                      : undefined
+                  }
+                >
+                  {field => (
+                    <ListingField
+                      id={def.name}
+                      label={def.label}
+                      type={def.type}
+                      placeholder={def.placeholder}
+                      optional={def.optional}
+                      maxLength={def.maxLength}
+                      disabled={pendingMutation}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={field.handleChange}
+                    />
+                  )}
+                </form.Field>
+              ))}
+
+              <form.Field name="hours">
                 {field => (
-                  <ListingField
-                    id={def.name}
-                    label={def.label}
-                    type={def.type}
-                    placeholder={def.placeholder}
-                    optional={def.optional}
-                    maxLength={def.maxLength}
-                    disabled={pendingMutation}
+                  <HoursSection
                     value={field.state.value}
-                    onBlur={field.handleBlur}
                     onChange={field.handleChange}
+                    disabled={pendingMutation}
                   />
                 )}
               </form.Field>
-            ))}
 
-            <form.Field name="hours">
-              {field => (
-                <HoursSection
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={pendingMutation}
-                />
-              )}
-            </form.Field>
+              <form.Field name="paymentOptions">
+                {field => (
+                  <PaymentOptionsField
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={pendingMutation}
+                  />
+                )}
+              </form.Field>
 
-            <form.Field name="paymentOptions">
-              {field => (
-                <PaymentOptionsField
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={pendingMutation}
-                />
-              )}
-            </form.Field>
+              {updateListingMutation.error ? (
+                <p className="text-destructive text-sm">{updateListingMutation.error.message}</p>
+              ) : null}
 
-            {updateListingMutation.error ? (
-              <p className="text-destructive text-sm">{updateListingMutation.error.message}</p>
-            ) : null}
-
-            <div className="flex items-center justify-between gap-4">
-              {updateListingMutation.isSuccess ? (
-                <p className="text-muted-foreground text-sm">Changes saved.</p>
-              ) : (
-                <span />
-              )}
-              <Button type="submit" disabled={pendingMutation}>
-                {pendingMutation ? "Saving…" : "Save changes"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              <div className="flex items-center justify-between gap-4">
+                {updateListingMutation.isSuccess ? (
+                  <p className="text-muted-foreground text-sm">Changes saved.</p>
+                ) : (
+                  <span />
+                )}
+                <Button type="submit" disabled={pendingMutation}>
+                  {pendingMutation ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+        <ListingPhotosSection businessId={businessId} />
+      </div>
     </main>
   );
 }

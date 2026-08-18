@@ -8,6 +8,10 @@ export const baseConfig = defineConfig({
       "#client": path.resolve(import.meta.dirname, "./src"),
       "#server": path.resolve(import.meta.dirname, "./server"),
       "#shared": path.resolve(import.meta.dirname, "./shared"),
+      // Bun's built-in "bun" module cannot be resolved by vitest's node
+      // runtime; the stub at tests/stubs/bun.ts satisfies module loading
+      // (production never runs through vite).
+      bun: path.resolve(import.meta.dirname, "./tests/stubs/bun.ts"),
       src: path.resolve(import.meta.dirname, "./src"),
       "@": path.resolve(import.meta.dirname, "./src"),
     },

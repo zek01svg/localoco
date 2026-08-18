@@ -17,6 +17,7 @@ import {
   businessesRoutes,
   healthRoutes,
   listingsRoutes,
+  mediaRoutes,
   profileRoutes,
   smokeRoutes,
   usersRoutes,
@@ -99,6 +100,7 @@ const apiRoutes = new Hono()
   .use("*", publicRateLimit)
   .route("/", listingsRoutes)
   .route("/", businessesRoutes)
+  .route("/", mediaRoutes)
   .route("/", profileRoutes)
   .route("/", usersRoutes);
 

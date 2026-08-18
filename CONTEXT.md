@@ -24,6 +24,12 @@ A Listing created alongside its Business but not yet published; only the
 Business owner can see it, and it never appears in discovery responses.
 _Avoid_: pending listing, unpublished listing
 
+**Listing photo**:
+An image attached to a Listing by its Business owner. Stored privately in
+object storage and served only through short-lived server-issued presigned
+URLs; never publicly addressable. Deleting a Listing photo is permanent.
+_Avoid_: picture, image, attachment
+
 **Business owner**:
 A User who owns a Business and may manage its Listing and public Announcements.
 _Avoid_: vendor account, administrator

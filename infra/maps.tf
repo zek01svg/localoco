@@ -30,7 +30,7 @@ resource "google_apikeys_key" "browser" {
   display_name = "LocaLoco browser - Maps JavaScript API"
   project      = var.project_id
 
-  depends_on = [google_project_service.apikeys, google_project_service.maps]
+  depends_on = [google_project_service.apikeys]
 
   restrictions {
     browser_key_restrictions {
@@ -52,6 +52,7 @@ resource "google_apikeys_key" "browser" {
 resource "google_monitoring_alert_policy" "geocoding_request_rate" {
   project      = var.project_id
   display_name = "LocaLoco - Geocoding request rate"
+  combiner     = "OR"
 
   depends_on = [google_project_service.monitoring]
 

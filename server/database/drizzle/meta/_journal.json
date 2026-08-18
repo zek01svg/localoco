@@ -50,6 +50,13 @@
       "when": 1787059750215,
       "tag": "0006_listing_coordinates",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787060584893,
+      "tag": "0007_media",
+      "breakpoints": true
     }
   ]
 }

@@ -648,3 +648,130 @@ taken address cannot be enumerated.
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 
 ---
+
+## 11. Listing photos
+
+Listing photos are private objects in R2. The client never holds storage
+credentials and never proposes an object key: the server generates an opaque
+key (`listing-photos/{businessId}/{uuid}`) and issues a short-lived presigned
+URL for every read and write. Objects are only reachable through these grants;
+there is no public URL for any object. Bounds: at most 10 photos per Business
+(pending and active combined), at most 8 MB per photo, JPEG/PNG/WebP only, and
+the filename extension must match the declared media type. Deletion is
+permanent — objects are not versioned or backed up.
+
+Every route requires a verified session and answers `404 not_found` for both a
+missing object and one the actor may not touch, so nothing about existence
+leaks. All require storage credentials to be configured; otherwise they answer
+`503 dependency_unavailable`.
+
+### Presign a photo upload (`POST /api/businesses/:id/photos`)
+
+Validates the declared media type, byte size, and filename extension, then
+issues a presigned PUT grant. The per-Business count limit is serialized by
+locking the Business row, so concurrent uploads cannot exceed it.
+
+- **Request Body**:
+
+  ```json
+  { "contentType": "image/jpeg", "size": 123456, "filename": "front.jpg" }
+  ```
+
+- **Response `201 Created`**:
+
+  ```json
+  {
+    "id": "med_1",
+    "uploadUrl": "https://<bucket>.<account>.r2.cloudflarestorage.com/listing-photos/biz_1/<uuid>?...",
+    "expiresAt": "2026-08-18T00:15:00.000Z",
+    "headers": { "content-type": "image/jpeg" }
+  }
+  ```
+
+  The client PUTs the file to `uploadUrl` with exactly the returned
+  `content-type` header (it is part of the signature), then completes the
+  upload. The grant expires after 15 minutes. The object key is never returned
+  as a field.
+
+- **Response `400`**: body failed validation, including unsupported types,
+  oversized or empty files, and extension/type mismatches (`invalid_request`).
+- **Response `401`** / **`403`** / **`404`**: see the section intro.
+- **Response `422`**: the Business already has 10 photos
+  (`validation_failed`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+
+### List a Business's photos (`GET /api/businesses/:id/photos`)
+
+Returns every stored photo of a Business the actor owns or administers, oldest
+first, including pending uploads. The response carries metadata only (id,
+business, content type, verified size, status, creation time) — never keys.
+
+- **Response `200 OK`**:
+
+  ```json
+  {
+    "items": [
+      {
+        "id": "med_1",
+        "businessId": "biz_1",
+        "contentType": "image/jpeg",
+        "size": 123456,
+        "status": "active",
+        "createdAt": "2026-08-18T00:00:00.000Z"
+      }
+    ]
+  }
+  ```
+
+### Complete a photo upload (`POST /api/media/:id/complete`)
+
+Verifies the uploaded object exists and that its actual size and content type
+match the declaration made at presign time, then marks the photo active. A
+mismatched object is deleted (object and row) immediately, so a bad upload is
+rejected rather than left for the sweep. Completing an already-active photo
+answers `200` idempotently; completing a never-uploaded grant drops the row and
+answers `404`.
+
+- **Response `200 OK`**: the verified photo (same shape as a list item).
+- **Response `404`**: object missing or never uploaded, or the actor may not
+  touch it (`not_found`).
+- **Response `422`**: size or content-type mismatch — upload rejected and
+  purged (`validation_failed`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+
+### Fetch a photo (`GET /api/media/:id`)
+
+Resolves the object through the ownership predicate and answers
+`302 Found` redirecting to a short-lived (5-minute) presigned GET URL.
+`Cache-Control: private, no-store`. Pending uploads answer `404`, as do
+non-owned or missing objects. Public reads of published Listing photos arrive
+with the publish flow.
+
+### Delete a photo (`DELETE /api/media/:id`)
+
+Purges the object from storage first, then removes its row — if the storage
+delete fails, the row survives and the endpoint answers `503`, so a photo is
+never silently orphaned. Deletion is irreversible. Deleting a pending upload
+aborts it.
+
+- **Response `204 No Content`**: the photo was purged.
+- **Response `401`** / **`403`** / **`404`**: see the section intro.
+- **Response `503`**: storage delete failed; retry (`dependency_unavailable`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+
+### Media sweep webhook (`POST /api/webhooks/qstash/media-sweep`)
+
+QStash-signed scheduled webhook that purges abandoned pending uploads: rows
+still `pending` 24 hours after creation (their grants long expired) and their
+storage objects. Batch size 500 per invocation; partial storage failures
+answer `503` so QStash retries.
+
+- **Request Body**: `{ "job": "media-sweep" }`
+- **Headers**: `upstash-signature` (QStash HMAC; verified with the same
+  mechanism as the email-delivery webhook).
+- **Response `200 OK`**: `{ "deleted": 3 }`
+- **Response `400`**: malformed or wrong payload (`invalid_request`).
+- **Response `401`**: missing or invalid signature (`unauthorized`).
+- **Response `503`**: a storage delete failed; retry (`dependency_unavailable`).
+
+---
