@@ -1,7 +1,7 @@
 import type { AuthContext } from "#server/lib/auth-middleware";
 
 import { eq, exists, or, sql } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
 
@@ -11,7 +11,7 @@ export const business = pgTable("business", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
-  uen: text("uen").notNull(),
+  uen: varchar("uen", { length: 10 }).notNull().unique(),
   ownerId: text("owner_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),

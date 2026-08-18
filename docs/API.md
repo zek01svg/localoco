@@ -81,7 +81,9 @@ Serves dynamic JavaScript containing server-filtered `VITE_` environment variabl
 
 ### List listings (`GET /api/listings`)
 
-Returns a page of listings ordered by `id` ascending, using keyset pagination.
+Returns a page of **published** listings ordered by `id` ascending, using
+keyset pagination. Draft and moderated listings are never returned here; they
+are only visible to their owner (see `GET /api/businesses/:id/listing`).
 
 Query parameters:
 
@@ -100,12 +102,20 @@ Query parameters:
         "name": "Business 1",
         "category": "Food & Beverage",
         "address": "1 Example Street #01",
-        "postalCode": "123456"
+        "postalCode": "123456",
+        "phone": "61234567",
+        "email": "hello@example.com",
+        "website": "https://example.com",
+        "paymentOptions": ["PayNow", "Visa"],
+        "priceRange": "$10-$30"
       }
     ],
     "nextCursor": "1"
   }
   ```
+
+  The optional contact fields (`phone`, `email`, `website`, `paymentOptions`,
+  `priceRange`) are `null` when the business never set them.
 
   `nextCursor` is `null` on the final page. The server fetches `limit + 1` rows to detect a following page, so no empty trailing page is ever returned.
 
@@ -151,10 +161,135 @@ Query parameters:
 - **Response `400`**: query parameters failed validation (`invalid_request`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 
+### Create a business (`POST /api/businesses`)
+
+Creates a Business and its draft Listing in one atomic write. Requires a
+verified session. The actor is never a client claim: `ownerId` is derived from
+the session, and submitted `ownerId`/`businessId` values are stripped by
+validation. A Business with the same UEN cannot be created twice; the
+uniqueness check is the database constraint, so two concurrent creations of
+the same UEN resolve to exactly one success and one `409`.
+
+The UEN is normalized (trimmed and uppercased) at the boundary and validated
+against the Singapore UEN formats: `nnnnnnnnX`, `nnnnnnnnnX`, or `TyyXXnnnnX`.
+
+- **Request Body**:
+
+  ```json
+  {
+    "uen": "202400123a",
+    "listing": {
+      "name": "Corner Kopitiam",
+      "category": "Food & Beverage",
+      "address": "1 Boon Lay Drive",
+      "postalCode": "649902",
+      "phone": "61234567",
+      "email": "hello@cornerkopitiam.sg",
+      "website": "https://cornerkopitiam.sg",
+      "paymentOptions": ["Cash", "PayNow"],
+      "priceRange": "$10-$30"
+    }
+  }
+  ```
+
+  Listing bounds: `name` 200 chars, `category` 100, `address` 500,
+  `postalCode` 12, `phone` 32, `email` 254, `website` 500, `priceRange` 32,
+  `paymentOptions` at most 8 options. The optional fields may be omitted (or
+  sent as `null`, which is stored as SQL `NULL`).
+
+- **Response `201 Created`** — the new business plus its owner-scoped draft
+  listing:
+
+  ```json
+  {
+    "id": "biz_1",
+    "uen": "202400123A",
+    "listing": {
+      "id": "lst_1",
+      "status": "draft",
+      "name": "Corner Kopitiam",
+      "category": "Food & Beverage",
+      "address": "1 Boon Lay Drive",
+      "postalCode": "649902",
+      "phone": "61234567",
+      "email": "hello@cornerkopitiam.sg",
+      "website": "https://cornerkopitiam.sg",
+      "paymentOptions": ["Cash", "PayNow"],
+      "priceRange": "$10-$30"
+    }
+  }
+  ```
+
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: session present but email unverified (`forbidden`).
+- **Response `400`**: body failed validation, including malformed UENs
+  (`invalid_request`).
+- **Response `409`**: a business with this UEN already exists (`conflict`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+- **Response `503`**: the write failed for a non-conflict data source reason,
+  and the failed write was rolled back — no partial business or listing is
+  persisted (`dependency_unavailable`).
+
+### View the owned listing (`GET /api/businesses/:id/listing`)
+
+Returns the draft or published Listing of a business the session user owns
+(or administers), including its `status`. Draft listings are only reachable
+through this endpoint.
+
+- **Response `200 OK`**:
+
+  ```json
+  {
+    "id": "lst_1",
+    "status": "draft",
+    "name": "Corner Kopitiam",
+    "category": "Food & Beverage",
+    "address": "1 Boon Lay Drive",
+    "postalCode": "649902",
+    "phone": "61234567",
+    "email": "hello@cornerkopitiam.sg",
+    "website": "https://cornerkopitiam.sg",
+    "paymentOptions": ["Cash", "PayNow"],
+    "priceRange": "$10-$30"
+  }
+  ```
+
+  Optional fields are `null` when never set, so the owner UI can clear them.
+
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: session present but email unverified (`forbidden`).
+- **Response `404`**: no such business, or the actor may not touch it
+  (`not_found`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+- **Response `503`**: the data source failed or returned rows that violate
+  the contract (`dependency_unavailable`).
+
+### Update the owned listing (`PATCH /api/businesses/:id/listing`)
+
+Updates any subset of the Listing fields. A field sent as `null` is cleared
+to SQL `NULL`; the bounds from `POST /api/businesses` apply per field.
+
+- **Request Body** (any subset):
+
+  ```json
+  { "priceRange": "$5-$15", "website": null }
+  ```
+
+- **Response `200 OK`** — the updated listing, shaped like
+  `GET /api/businesses/:id/listing`.
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: session present but email unverified (`forbidden`).
+- **Response `404`**: no such business, or the actor may not touch it
+  (`not_found`).
+- **Response `400`**: body failed validation (`invalid_request`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+
 ### Update a business (`PATCH /api/businesses/:id`)
 
 Updates the `uen` of a business the session user owns (or administers).
-Request bodies carrying an `ownerId` are ignored; the actor is never inferred
+The submitted UEN is normalized and format-validated exactly as on creation,
+and the same uniqueness constraint applies. Request bodies carrying an
+`ownerId` are ignored; the actor is never inferred
 from a client claim. The ownership predicate is re-evaluated by the database
 at the mutation boundary, so a business that changes hands between the
 authorization read and the write is not updated.

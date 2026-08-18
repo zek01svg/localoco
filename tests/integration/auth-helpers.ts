@@ -15,10 +15,24 @@ export type TestAppEnv = {
 };
 
 export const runMigrate = (url: string) => {
+  // Test runners (vitest) inject node/vite env vars that make
+  // `bun x drizzle-kit migrate` exit 1 with no error output. Strip them.
+  const runnerVars = new Set([
+    "NODE",
+    "NPM_NODE_EXECPATH",
+    "VSCODE_GIT_ASKPASS_NODE",
+    "VITEST",
+    "VITEST_MODE",
+    "VITEST_POOL_ID",
+    "VITEST_WORKER_ID",
+  ]);
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !runnerVars.has(key))
+  );
   const result = spawnSync("bun x drizzle-kit migrate", {
     shell: true,
     cwd: process.cwd(),
-    env: { ...process.env, NODE_ENV: "test", DATABASE_URL: url },
+    env: { ...env, NODE_ENV: "test", DATABASE_URL: url },
     encoding: "utf8",
   });
   if (result.status !== 0) {
