@@ -72,8 +72,21 @@ A User’s saved reference to a Business for later access.
 _Avoid_: favorite, saved listing
 
 **Announcement**:
-A public update published by a Business owner for a Business’s audience.
+A public update published by a Business owner for a Business's audience.
 _Avoid_: notification, alert, message
+
+**Opening hours**:
+A Business's schedule of open intervals, stored as one entry per day of the
+week (Monday through Sunday). A day is either 24 hours or a single open-close
+interval in Singapore time; an interval that crosses midnight belongs to the
+day it opens on. A day without an entry means closed.
+_Avoid_: business hours, opening times, store hours
+
+**Open-now**:
+A derived, time-dependent statement about a Business: whether its Opening
+hours cover the current instant in Singapore time. A Business with no Opening
+hours is never open-now.
+_Avoid_: currently open, is-open status
 
 ## Rewards
 

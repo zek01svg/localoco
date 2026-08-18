@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Business opening hours**: Owners can set per-day opening hours on their
+  business Listing (24-hour days, overnight intervals, wholesale schedule
+  replacement). Stored timezone-free and evaluated in Singapore time by a
+  tested evaluator; invalid or overlapping schedules are rejected at the
+  client, the API boundary, and the database.
+
 ## [2.0.0] - 2026-08-14
 
 ### Added

@@ -187,7 +187,8 @@ against the Singapore UEN formats: `nnnnnnnnX`, `nnnnnnnnnX`, or `TyyXXnnnnX`.
       "email": "hello@cornerkopitiam.sg",
       "website": "https://cornerkopitiam.sg",
       "paymentOptions": ["Cash", "PayNow"],
-      "priceRange": "$10-$30"
+      "priceRange": "$10-$30",
+      "hours": []
     }
   }
   ```
@@ -195,7 +196,9 @@ against the Singapore UEN formats: `nnnnnnnnX`, `nnnnnnnnnX`, or `TyyXXnnnnX`.
   Listing bounds: `name` 200 chars, `category` 100, `address` 500,
   `postalCode` 12, `phone` 32, `email` 254, `website` 500, `priceRange` 32,
   `paymentOptions` at most 8 options. The optional fields may be omitted (or
-  sent as `null`, which is stored as SQL `NULL`).
+  sent as `null`, which is stored as SQL `NULL`). `hours` is the per-day
+  opening schedule (see `GET /api/businesses/:id/listing`); a new Business
+  starts with `[]` and its owner adds hours afterwards.
 
 - **Response `201 Created`** — the new business plus its owner-scoped draft
   listing:
@@ -215,7 +218,8 @@ against the Singapore UEN formats: `nnnnnnnnX`, `nnnnnnnnnX`, or `TyyXXnnnnX`.
       "email": "hello@cornerkopitiam.sg",
       "website": "https://cornerkopitiam.sg",
       "paymentOptions": ["Cash", "PayNow"],
-      "priceRange": "$10-$30"
+      "priceRange": "$10-$30",
+      "hours": []
     }
   }
   ```
@@ -236,6 +240,13 @@ Returns the draft or published Listing of a business the session user owns
 (or administers), including its `status`. Draft listings are only reachable
 through this endpoint.
 
+`hours` is the opening schedule: a list of per-day entries, at most one per
+day. Days are `0` (Monday) through `6` (Sunday). A timed day carries
+`is24h: false` with `openTime`/`closeTime` as `"HH:MM"` strings in Singapore
+time; `closeTime` before `openTime` means the interval crosses midnight into
+the next day. A 24-hour day is `{ "day": 1, "is24h": true }` with no times.
+A day with no entry (and an empty list overall) means closed.
+
 - **Response `200 OK`**:
 
   ```json
@@ -250,7 +261,12 @@ through this endpoint.
     "email": "hello@cornerkopitiam.sg",
     "website": "https://cornerkopitiam.sg",
     "paymentOptions": ["Cash", "PayNow"],
-    "priceRange": "$10-$30"
+    "priceRange": "$10-$30",
+    "hours": [
+      { "day": 0, "is24h": false, "openTime": "07:00", "closeTime": "19:00" },
+      { "day": 1, "is24h": true },
+      { "day": 2, "is24h": false, "openTime": "18:00", "closeTime": "02:00" }
+    ]
   }
   ```
 
@@ -269,10 +285,26 @@ through this endpoint.
 Updates any subset of the Listing fields. A field sent as `null` is cleared
 to SQL `NULL`; the bounds from `POST /api/businesses` apply per field.
 
+Sending `hours` replaces the whole opening schedule; omitting it leaves the
+schedule untouched. The same per-day rules as `GET` apply, and adjacent days
+must not overlap (an overnight interval must not reach into the next day's
+coverage). Duplicate days, equal open/close times, malformed times, and
+adjacent-day overlaps are rejected with `400`; database-level conflicts
+(unique day or overlap trigger) map to `409`.
+
 - **Request Body** (any subset):
 
   ```json
   { "priceRange": "$5-$15", "website": null }
+  ```
+
+  ```json
+  {
+    "hours": [
+      { "day": 0, "is24h": false, "openTime": "09:00", "closeTime": "18:00" },
+      { "day": 6, "is24h": false, "openTime": "10:00", "closeTime": "22:00" }
+    ]
+  }
   ```
 
 - **Response `200 OK`** — the updated listing, shaped like
@@ -282,6 +314,8 @@ to SQL `NULL`; the bounds from `POST /api/businesses` apply per field.
 - **Response `404`**: no such business, or the actor may not touch it
   (`not_found`).
 - **Response `400`**: body failed validation (`invalid_request`).
+- **Response `409`**: the schedule conflicts with stored data — duplicate
+  day or adjacent-day overlap (`conflict`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 
 ### Update a business (`PATCH /api/businesses/:id`)

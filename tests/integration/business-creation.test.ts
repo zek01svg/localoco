@@ -3,7 +3,7 @@
  */
 import type { db as dbInstance } from "#server/lib/db";
 import type { TestAppEnv } from "./auth-helpers";
-import type { Context, Next } from "hono";
+import type { Context, Hono, Next } from "hono";
 
 import { eq } from "drizzle-orm";
 import { Client } from "pg";
@@ -14,6 +14,7 @@ import { user } from "#server/database/auth";
 import { business } from "#server/database/business";
 import { emailDelivery } from "#server/database/email";
 import { listing } from "#server/database/listing";
+import { businessCreationResponseSchema } from "#shared/contracts/business";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
 
 import {
@@ -147,8 +148,7 @@ describe("creating a Business and its draft Listing", () => {
       listing: validListing,
     });
     expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body).toMatchObject({
+    await expect(res.json()).resolves.toMatchObject({
       id: expect.any(String),
       uen: "202400123A",
       listing: { ...validListing, status: "draft" },
@@ -171,8 +171,7 @@ describe("creating a Business and its draft Listing", () => {
       listing: validListing,
     });
     expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.uen).toBe("201800123A");
+    await expect(res.json()).resolves.toMatchObject({ uen: "201800123A" });
   });
 
   it("rejects internal whitespace in a UEN with 400", async () => {
@@ -213,13 +212,14 @@ describe("creating a Business and its draft Listing", () => {
       },
     });
     expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.listing).toMatchObject({
-      phone: "+65 6123 4567",
-      email: "hello@ahkow.example",
-      website: "https://ahkow.example",
-      paymentOptions: ["PayNow", "NETS"],
-      priceRange: "$10–$30",
+    await expect(res.json()).resolves.toMatchObject({
+      listing: {
+        phone: "+65 6123 4567",
+        email: "hello@ahkow.example",
+        website: "https://ahkow.example",
+        paymentOptions: ["PayNow", "NETS"],
+        priceRange: "$10–$30",
+      },
     });
   });
 
@@ -345,7 +345,7 @@ describe("viewing and editing an owned draft Listing", () => {
     if (created.status !== 201) {
       throw new Error(`setup failed: expected 201, got ${created.status}`);
     }
-    bizId = (await created.json()).id;
+    bizId = businessCreationResponseSchema.parse(await created.json()).id;
   });
 
   it("lets the owner view their draft Listing", async () => {
@@ -382,8 +382,7 @@ describe("viewing and editing an owned draft Listing", () => {
       body: JSON.stringify({ website: "" }),
     });
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.website).toBeNull();
+    await expect(res.json()).resolves.toMatchObject({ website: null });
 
     const [row] = await db
       .select({ website: listing.website })
@@ -421,8 +420,7 @@ describe("draft Listings are not publicly discoverable", () => {
 
     const res = await testApp.request("/api/listings");
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.items).toEqual([]);
+    await expect(res.json()).resolves.toMatchObject({ items: [] });
   });
 });
 
@@ -440,9 +438,9 @@ describe("ownership and uniqueness are re-checked at the write boundary", () => 
 
   it("answers 409 when a Business is patched onto an existing UEN, leaving the row unchanged", async () => {
     await createBusiness(ownerCookie, { uen: "202400135M", listing: validListing });
-    const second = await (
-      await createBusiness(ownerCookie, { uen: "202400136N", listing: validListing })
-    ).json();
+    const second = businessCreationResponseSchema.parse(
+      await (await createBusiness(ownerCookie, { uen: "202400136N", listing: validListing })).json()
+    );
 
     const res = await testApp.request(`/api/businesses/${second.id}`, {
       method: "PATCH",
@@ -459,9 +457,9 @@ describe("ownership and uniqueness are re-checked at the write boundary", () => 
   });
 
   it("denies the Listing write when ownership changes after the read, and leaves the row untouched", async () => {
-    const biz = await (
-      await createBusiness(ownerCookie, { uen: "202400137P", listing: validListing })
-    ).json();
+    const biz = businessCreationResponseSchema.parse(
+      await (await createBusiness(ownerCookie, { uen: "202400137P", listing: validListing })).json()
+    );
     const takerId = (
       await db.select({ id: user.id }).from(user).where(eq(user.email, "ida.biz@example.com"))
     )[0].id;
@@ -513,9 +511,9 @@ describe("ownership and uniqueness are re-checked at the write boundary", () => 
   }, 60_000);
 
   it("enforces payment option length in PostgreSQL, not only at the API boundary", async () => {
-    const biz = await (
-      await createBusiness(ownerCookie, { uen: "202400138Q", listing: validListing })
-    ).json();
+    const biz = businessCreationResponseSchema.parse(
+      await (await createBusiness(ownerCookie, { uen: "202400138Q", listing: validListing })).json()
+    );
 
     const tooLong = "x".repeat(33);
     await expect(

@@ -1,5 +1,7 @@
 import { z } from "zod/v4";
 
+import { businessHoursScheduleSchema } from "./business-hours";
+
 // Field-level validation shared by Business + draft Listing creation, the
 // owner's Listing edit, and every Listing response (public and owner-scoped).
 // Bounds mirror the PostgreSQL column definitions in server/database/listing.ts
@@ -66,13 +68,22 @@ export type ListingsResponse = z.infer<typeof listingsResponseSchema>;
 
 // The Listing as its owner sees it: the draft/published state plus the
 // validated fields. Database reads return NULL for absent optional columns,
-// which these schemas accept.
+// which these schemas accept. `hours` is always present: an empty array means
+// the Business has recorded no opening hours (a defined, closed-when-evaluated
+// state, never an accidental one).
 export const ownerListingSchema = listingSchema.extend({
   status: z.enum(["draft", "published"]),
+  hours: businessHoursScheduleSchema,
 });
 export type OwnerListing = z.infer<typeof ownerListingSchema>;
 
 // Any subset of the Listing fields; a client sends only what it is changing.
 // `partial` keeps every field optional without loosening the per-field bounds.
-export const ownerListingUpdateSchema = z.object(listingFields).partial();
+// `hours` replaces the whole schedule when present; absent means unchanged.
+export const ownerListingUpdateSchema = z
+  .object({
+    ...listingFields,
+    hours: businessHoursScheduleSchema,
+  })
+  .partial();
 export type OwnerListingUpdate = z.infer<typeof ownerListingUpdateSchema>;

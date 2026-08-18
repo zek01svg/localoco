@@ -1,6 +1,5 @@
 import type { OwnerListing } from "#shared/contracts/listings";
-import type { ListingFieldName, ListingFormValues } from "./components/listing-form-fields";
-import type { FieldApi } from "@tanstack/react-form";
+import type { ListingFormValues } from "./components/listing-form-fields";
 
 import { useForm } from "@tanstack/react-form";
 import { useEffect } from "react";
@@ -17,6 +16,9 @@ import { useSession } from "#client/features/auth";
 import { NotFoundPage } from "#client/features/not-found/not-found";
 
 import {
+  HoursSection,
+  hoursError,
+  hoursRowsFromEntries,
   LISTING_FIELD_DEFS,
   ListingField,
   PaymentOptionsField,
@@ -40,6 +42,7 @@ function listingToFormValues(listing: OwnerListing): ListingFormValues {
     website: listing.website ?? "",
     priceRange: listing.priceRange ?? "",
     paymentOptions: listing.paymentOptions ?? [],
+    hours: hoursRowsFromEntries(listing.hours),
   };
 }
 
@@ -79,6 +82,9 @@ function ListingEditForm({ businessId, listing }: { businessId: string; listing:
   const form = useForm({
     defaultValues: listingToFormValues(listing),
     onSubmit: ({ value }) => {
+      if (hoursError(value.hours) !== undefined) {
+        return;
+      }
       updateListingMutation.mutate(listingPayload(value));
     },
   });
@@ -114,7 +120,7 @@ function ListingEditForm({ businessId, listing }: { businessId: string; listing:
                     : undefined
                 }
               >
-                {(field: FieldApi<ListingFormValues, ListingFieldName>) => (
+                {field => (
                   <ListingField
                     id={def.name}
                     label={def.label}
@@ -130,6 +136,16 @@ function ListingEditForm({ businessId, listing }: { businessId: string; listing:
                 )}
               </form.Field>
             ))}
+
+            <form.Field name="hours">
+              {field => (
+                <HoursSection
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={pendingMutation}
+                />
+              )}
+            </form.Field>
 
             <form.Field name="paymentOptions">
               {field => (

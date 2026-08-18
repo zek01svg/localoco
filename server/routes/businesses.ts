@@ -4,10 +4,12 @@ import { describeRoute, resolver, validator } from "hono-openapi";
 import postgres from "postgres";
 
 import { business, ownedBy } from "#server/database/business";
+import { businessHours } from "#server/database/business-hours";
 import { listing } from "#server/database/listing";
 import { requireBusinessOwner, requireVerified } from "#server/lib/auth-middleware";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
+import { entryToHoursRow, hoursRowToEntry } from "#server/lib/opening-hours";
 import {
   businessCreationResponseSchema,
   businessCreateSchema,
@@ -59,6 +61,42 @@ const isUniqueViolation = (cause: unknown): boolean => {
     driverError.code === "23505" &&
     driverError.constraint_name === "business_uen_unique"
   );
+};
+
+// The schedule's database-level guards: the unique (business, day) index and
+// the overlap trigger. Both are backstops — the schedule schema rejects the
+// same inputs at the boundary — so a hit here answers 409 conflict, exactly
+// like a concurrent duplicate UEN.
+const isHoursConflict = (cause: unknown): boolean => {
+  const driverError = cause instanceof Error ? cause.cause : undefined;
+  if (!(driverError instanceof postgres.PostgresError)) {
+    return false;
+  }
+  if (
+    driverError.code === "23505" &&
+    driverError.constraint_name === "business_hours_business_day_unique"
+  ) {
+    return true;
+  }
+  return (
+    driverError.code === "P0001" && driverError.message.includes("business_hours_overlap_check")
+  );
+};
+
+// The hours rows of a Business as the owner contract expects them, sorted by
+// day. Empty when the Business has recorded no hours.
+const hoursFor = async (query: Pick<typeof db, "select">, businessId: string) => {
+  const rows = await query
+    .select({
+      day: businessHours.day,
+      is24h: businessHours.is24h,
+      openMinute: businessHours.openMinute,
+      closeMinute: businessHours.closeMinute,
+    })
+    .from(businessHours)
+    .where(eq(businessHours.businessId, businessId))
+    .orderBy(asc(businessHours.day));
+  return rows.map(hoursRowToEntry);
 };
 
 const ownerListingColumns = {
@@ -155,7 +193,8 @@ export const businessesRoutes = new Hono()
             .values({ businessId: biz.id, status: "draft", ...listingInput })
             .returning(ownerListingColumns);
 
-          return { id: biz.id, uen: biz.uen, listing: draft };
+          // A new Business has no recorded hours by definition.
+          return { id: biz.id, uen: biz.uen, listing: { ...draft, hours: [] } };
         });
 
         return c.json(created, 201);
@@ -185,7 +224,7 @@ export const businessesRoutes = new Hono()
       tags: ["businesses"],
       summary: "View an owned Listing",
       description:
-        "Returns the Listing of a Business the actor owns or administers, including its draft/published state. A missing or unauthorized Business answers 404, revealing nothing about its existence.",
+        "Returns the Listing of a Business the actor owns or administers, including its draft/published state and its opening-hours schedule. A missing or unauthorized Business answers 404, revealing nothing about its existence.",
       responses: {
         200: {
           description: "The owned Listing",
@@ -206,7 +245,10 @@ export const businessesRoutes = new Hono()
         throw new HttpError(404, "not_found", "Business not found");
       }
 
-      const parsed = ownerListingSchema.safeParse(rows[0]);
+      const parsed = ownerListingSchema.safeParse({
+        ...rows[0],
+        hours: await hoursFor(db, id),
+      });
       if (!parsed.success) {
         throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
           cause: new Error("data seam returned a row that violates the listing contract"),
@@ -224,13 +266,17 @@ export const businessesRoutes = new Hono()
       tags: ["businesses"],
       summary: "Update an owned Listing",
       description:
-        "Updates the fields of a Listing the actor owns or administers. The target Business is resolved through the ownership predicate; a submitted owner identifier is stripped by validation. Only provided fields change.",
+        "Updates the fields of a Listing the actor owns or administers. The target Business is resolved through the ownership predicate; a submitted owner identifier is stripped by validation. Only provided fields change. When the `hours` field is present it replaces the whole opening-hours schedule; validation rejects duplicate days, invalid times, and intervals that overlap across adjacent days.",
       responses: {
         200: {
           description: "The updated Listing",
           content: { "application/json": { schema: resolver(ownerListingSchema) } },
         },
         ...privateErrorResponses,
+        409: {
+          description: "The submitted opening hours conflict with the stored schedule",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
       },
     }),
     async c => {
@@ -241,6 +287,7 @@ export const businessesRoutes = new Hono()
 
       const { id } = c.req.param();
       const update = c.req.valid("json");
+      const { hours, ...listingUpdate } = update;
 
       // The write predicate runs at the mutation boundary, mirroring
       // PATCH /businesses/:id: the Business may have changed hands since the
@@ -248,34 +295,64 @@ export const businessesRoutes = new Hono()
       // first means a concurrent ownership change parks this transaction until
       // it commits, and the predicate is then re-evaluated against the latest
       // state.
-      const rows = await db.transaction(async tx => {
-        const locked = await tx
-          .select({ id: business.id })
-          .from(business)
-          .where(and(eq(business.id, id), ownedBy(auth)))
-          .for("update")
-          .limit(1);
-        if (locked.length === 0) {
-          return [];
-        }
-        return tx
-          .update(listing)
-          .set({ ...update, updatedAt: new Date() })
-          .where(eq(listing.businessId, id))
-          .returning(ownerListingColumns);
-      });
+      try {
+        const rows = await db.transaction(async tx => {
+          const locked = await tx
+            .select({ id: business.id })
+            .from(business)
+            .where(and(eq(business.id, id), ownedBy(auth)))
+            .for("update")
+            .limit(1);
+          if (locked.length === 0) {
+            return [];
+          }
 
-      if (rows.length === 0) {
-        throw new HttpError(404, "not_found", "Business not found");
-      }
+          if (Object.keys(listingUpdate).length > 0) {
+            await tx
+              .update(listing)
+              .set({ ...listingUpdate, updatedAt: new Date() })
+              .where(eq(listing.businessId, id));
+          }
+          if (hours !== undefined) {
+            await tx.delete(businessHours).where(eq(businessHours.businessId, id));
+            if (hours.length > 0) {
+              await tx
+                .insert(businessHours)
+                .values(hours.map(entry => ({ businessId: id, ...entryToHoursRow(entry) })));
+            }
+          }
 
-      const parsed = ownerListingSchema.safeParse(rows[0]);
-      if (!parsed.success) {
-        throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
-          cause: new Error("data seam returned a row that violates the listing contract"),
+          const [updated] = await tx
+            .select(ownerListingColumns)
+            .from(listing)
+            .where(eq(listing.businessId, id))
+            .limit(1);
+          return [{ ...updated, hours: await hoursFor(tx, id) }];
         });
+
+        if (rows.length === 0) {
+          throw new HttpError(404, "not_found", "Business not found");
+        }
+
+        const parsed = ownerListingSchema.safeParse(rows[0]);
+        if (!parsed.success) {
+          throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
+            cause: new Error("data seam returned a row that violates the listing contract"),
+          });
+        }
+        return c.json(parsed.data);
+      } catch (cause) {
+        if (isHoursConflict(cause)) {
+          throw new HttpError(
+            409,
+            "conflict",
+            "The submitted opening hours conflict with the stored schedule",
+            undefined,
+            { cause }
+          );
+        }
+        throw cause;
       }
-      return c.json(parsed.data);
     }
   )
   .patch(

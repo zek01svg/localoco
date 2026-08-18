@@ -1,6 +1,3 @@
-import type { ListingFieldName, ListingFormValues } from "./components/listing-form-fields";
-import type { FieldApi } from "@tanstack/react-form";
-
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -24,8 +21,6 @@ import {
 } from "./components/listing-form-fields";
 import { BusinessesPageGates } from "./components/page-gates";
 import { useCreateBusinessMutation } from "./hooks/business-queries";
-
-type CreateBusinessFormValues = ListingFormValues & { uen: string };
 
 export function CreateBusinessPage() {
   useEffect(() => {
@@ -110,7 +105,7 @@ export function CreateBusinessPage() {
                       : undefined
                   }
                 >
-                  {(field: FieldApi<CreateBusinessFormValues, ListingFieldName>) => (
+                  {field => (
                     <ListingField
                       id={def.name}
                       label={def.label}

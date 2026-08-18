@@ -111,6 +111,7 @@ describe("ownerListingSchema (server -> client)", () => {
       website: null,
       paymentOptions: null,
       priceRange: null,
+      hours: [],
     });
 
     expect(parsed.phone).toBeNull();
@@ -135,12 +136,13 @@ describe("businessCreationResponseSchema", () => {
         website: null,
         paymentOptions: null,
         priceRange: null,
+        hours: [],
       },
     });
 
     expect(parsed.listing.status).toBe("draft");
     expect(Object.keys(parsed.listing).toSorted()).toEqual(
-      Object.keys(listingFields).concat(["id", "status"]).toSorted()
+      Object.keys(listingFields).concat(["id", "status", "hours"]).toSorted()
     );
   });
 });
