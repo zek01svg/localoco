@@ -34,6 +34,10 @@ _Avoid_: picture, image, attachment
 A User who owns a Business and may manage its Listing and public Announcements.
 _Avoid_: vendor account, administrator
 
+**Administrator**:
+A User granted platform-wide administrative privileges directly in the database. An Administrator can moderate Listings, transfer ownership, and manage platform resources across all Businesses.
+_Avoid_: admin, superuser, staff, root
+
 **UEN**:
 The canonical identifier of a Business in LocaLoco.
 _Avoid_: business ID, listing ID, registration number
