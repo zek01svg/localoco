@@ -13,7 +13,13 @@ import {
   initSentry,
   publicRateLimit,
 } from "#server/lib";
-import { healthRoutes, listingsRoutes, smokeRoutes, webhooksRoutes } from "#server/routes";
+import {
+  businessesRoutes,
+  healthRoutes,
+  listingsRoutes,
+  smokeRoutes,
+  webhooksRoutes,
+} from "#server/routes";
 import { getSpaShell } from "#server/spa.ts";
 import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
 
@@ -89,7 +95,8 @@ const apiRoutes = new Hono()
     return auth.handler(c.req.raw);
   })
   .use("*", publicRateLimit)
-  .route("/", listingsRoutes);
+  .route("/", listingsRoutes)
+  .route("/", businessesRoutes);
 
 // Chained from the first call so `typeof app` infers every route: hono/client
 // derives its client type from this export.

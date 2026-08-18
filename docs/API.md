@@ -115,7 +115,72 @@ Query parameters:
 
 ---
 
-## 4. Authentication Endpoints (`/api/auth/*`)
+## 4. Businesses
+
+Business routes are the proving surface for the authorization policy matrix
+(see `server/lib/auth-middleware.ts`). The actor's identity comes from the
+session cookie; ownership and the administrator role are derived from the
+database on every request. A missing resource and one the actor may not touch
+answer identically with `404 not_found`, so nothing about resource existence
+leaks.
+
+### List businesses (`GET /api/businesses`)
+
+Returns the businesses the session user owns, plus the
+requested selection when the user owns it. Requires a verified session.
+
+Query parameters:
+
+| Name       | Type     | Default | Description                                                      |
+| :--------- | :------- | :------ | :--------------------------------------------------------------- |
+| `selected` | `string` | —       | Business `id` to echo back as `selectedId` when the user owns it |
+
+- **Response `200 OK`** — `application/json`, `Cache-Control: private, no-store`:
+
+  ```json
+  {
+    "items": [{ "id": "biz_1", "uen": "202400123A" }],
+    "selectedId": "biz_1"
+  }
+  ```
+
+  `selectedId` is `null` when no owned business was selected.
+
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: session present but email unverified (`forbidden`).
+- **Response `400`**: query parameters failed validation (`invalid_request`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+
+### Update a business (`PATCH /api/businesses/:id`)
+
+Updates the `uen` of a business the session user owns (or administers).
+Request bodies carrying an `ownerId` are ignored; the actor is never inferred
+from a client claim. The ownership predicate is re-evaluated by the database
+at the mutation boundary, so a business that changes hands between the
+authorization read and the write is not updated.
+
+- **Request Body**:
+
+  ```json
+  { "uen": "202400123A" }
+  ```
+
+- **Response `200 OK`**:
+
+  ```json
+  { "id": "biz_1", "uen": "202400123A" }
+  ```
+
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: session present but email unverified (`forbidden`).
+- **Response `404`**: no such business, or the actor may not touch it
+  (`not_found`).
+- **Response `400`**: body failed validation (`invalid_request`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+
+---
+
+## 5. Authentication Endpoints (`/api/auth/*`)
 
 Authentication is powered by **Better Auth**. All authentication routes are mounted under `/api/auth/*`.
 
@@ -134,7 +199,7 @@ Authentication is powered by **Better Auth**. All authentication routes are moun
 
 ---
 
-## 5. Webhooks & Asynchronous Processing
+## 6. Webhooks & Asynchronous Processing
 
 ### QStash Email Delivery Consumer (`POST /api/webhooks/qstash/email-delivery`)
 
@@ -172,7 +237,7 @@ Processes queued transactional email delivery jobs dispatched by Upstash QStash.
 
 ---
 
-## 6. Distributed Rate Limiting & Caching
+## 7. Distributed Rate Limiting & Caching
 
 Rate limiting and caching are backed by **Upstash Redis** (connectionless REST HTTPS) and shared across all Cloud Run instances.
 
@@ -199,7 +264,7 @@ When the limit is exceeded, the server returns `429 Too Many Requests` with the 
 
 ---
 
-## 7. Standardized Error Response Format
+## 8. Standardized Error Response Format
 
 Every error response carries the same envelope, defined once in `shared/contracts/error.ts`:
 

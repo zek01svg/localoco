@@ -1,5 +1,5 @@
 import type { AppType } from "#server/index";
-import type { AuthSession, AuthUser } from "#server/lib/auth-middleware";
+import type { AuthContext } from "#server/lib/auth-middleware";
 import type { Hono, MiddlewareHandler } from "hono";
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
@@ -9,8 +9,8 @@ import { spawnSync } from "node:child_process";
 export type TestAppEnv = {
   Variables: {
     requestId: string;
-    user: AuthUser | undefined;
-    session: AuthSession | undefined;
+    auth: AuthContext | undefined;
+    authResolved: boolean | undefined;
   };
 };
 
@@ -76,12 +76,12 @@ export async function createTestHonoApp(
       await next();
     })
     .get("/api/test-protected", requireAuthMw, c => {
-      const u = c.get("user");
-      return c.json({ ok: true, userId: u?.id });
+      const auth = c.get("auth");
+      return c.json({ ok: true, userId: auth?.userId });
     })
     .post("/api/test-verified-mutation", requireAuthMw, requireVerifiedMw, c => {
-      const u = c.get("user");
-      return c.json({ ok: true, mutatedBy: u?.id });
+      const auth = c.get("auth");
+      return c.json({ ok: true, mutatedBy: auth?.userId });
     })
     .route("/", baseApp);
 
