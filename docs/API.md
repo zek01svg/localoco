@@ -252,9 +252,10 @@ Singapore location, or resolves ambiguously, fails the whole creation with
 
 ### View the owned listing (`GET /api/businesses/:id/listing`)
 
-Returns the draft or published Listing of a business the session user owns
-(or administers), including its `status`. Draft listings are only reachable
-through this endpoint.
+Returns the Listing of a business the session user owns (or administers),
+including its full lifecycle `status` (`draft`, `pending_review`, `published`,
+`rejected`, `suspended`) and any `rejectionReason` (when rejected). Non-published
+listings are only reachable through this endpoint.
 
 `hours` is the opening schedule: a list of per-day entries, at most one per
 day. Days are `0` (Monday) through `6` (Sunday). A timed day carries
@@ -269,6 +270,7 @@ A day with no entry (and an empty list overall) means closed.
   {
     "id": "lst_1",
     "status": "draft",
+    "rejectionReason": null,
     "name": "Corner Kopitiam",
     "category": "Food & Beverage",
     "address": "1 Boon Lay Drive",
@@ -300,6 +302,9 @@ A day with no entry (and an empty list overall) means closed.
 
 Updates any subset of the Listing fields. A field sent as `null` is cleared
 to SQL `NULL`; the bounds from `POST /api/businesses` apply per field.
+
+Editing a `published` Listing immediately demotes it to `pending_review`,
+removing it from public discovery until approved again.
 
 Sending `hours` replaces the whole opening schedule; omitting it leaves the
 schedule untouched. The same per-day rules as `GET` apply, and adjacent days
@@ -344,6 +349,70 @@ stored coordinates untouched.
   quota-exhausted (`details.reason` is `provider_unavailable` or
   `quota_exhausted`), or `GOOGLE_MAPS_API_KEY` is not configured — the update
   is not applied (`dependency_unavailable`).
+
+### Submit a listing for review (`POST /api/businesses/:id/listing/submit`)
+
+Transitions an owned `draft` or `rejected` Listing to `pending_review`.
+Clears any existing `rejectionReason`.
+
+- **Response `200 OK`** — the updated listing with `status: "pending_review"`.
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: session present but email unverified (`forbidden`).
+- **Response `404`**: no such business, or the actor may not touch it (`not_found`).
+- **Response `409`**: listing is already pending review, published, or suspended (`conflict`).
+
+### Moderate a listing (`POST /api/businesses/:id/listing/moderate`)
+
+Administrative operation to `publish`, `reject`, or `suspend` a Listing.
+Requires an Administrator session. Every action requires a non-empty `reason`
+and writes an immutable audit record to `listing_moderation_audit`.
+
+- `publish`: transitions `pending_review` or `suspended` to `published`.
+- `reject`: transitions `pending_review` to `rejected`, setting `rejectionReason`.
+- `suspend`: transitions `published` to `suspended`, setting `rejectionReason`.
+
+- **Request Body**:
+
+  ```json
+  {
+    "action": "publish",
+    "reason": "Business registration and location verified."
+  }
+  ```
+
+- **Response `200 OK`** — the moderated listing.
+- **Response `400`**: missing or invalid action/reason (`invalid_request`).
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: actor is not an administrator (`forbidden`).
+- **Response `404`**: business does not exist (`not_found`).
+- **Response `409`**: illegal transition from current status (`conflict`).
+
+### View moderation audit history (`GET /api/businesses/:id/listing/audit`)
+
+Returns the chronological audit trail of all administrative moderation actions
+performed on this Listing. Requires an Administrator session.
+
+- **Response `200 OK`**:
+
+  ```json
+  {
+    "items": [
+      {
+        "id": "aud_1",
+        "listingId": "lst_1",
+        "actorId": "usr_admin",
+        "previousStatus": "pending_review",
+        "nextStatus": "published",
+        "reason": "Business registration verified.",
+        "createdAt": "2026-08-19T00:00:00.000Z"
+      }
+    ]
+  }
+  ```
+
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: actor is not an administrator (`forbidden`).
+- **Response `404`**: business not found (`not_found`).
 
 ### Update a business (`PATCH /api/businesses/:id`)
 

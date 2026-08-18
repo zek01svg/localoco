@@ -24,6 +24,14 @@ A Listing created alongside its Business but not yet published; only the
 Business owner can see it, and it never appears in discovery responses.
 _Avoid_: pending listing, unpublished listing
 
+**Listing lifecycle**:
+The sequence of states a Listing passes through: Draft, Pending review, Published, Rejected, or Suspended. Only Published Listings are discoverable by the public.
+_Avoid_: listing status, listing state, publishing workflow
+
+**Moderation**:
+The review and decision process where an Administrator evaluates a submitted Listing and publishes, rejects, or suspends it with an immutable reason.
+_Avoid_: approval, screening, curation, vetting
+
 **Listing photo**:
 An image attached to a Listing by its Business owner. Stored privately in
 object storage and served only through short-lived server-issued presigned

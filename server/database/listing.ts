@@ -1,9 +1,29 @@
 import { sql } from "drizzle-orm";
-import { check, doublePrecision, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  check,
+  doublePrecision,
+  index,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 
+import { user } from "./auth";
 import { business } from "./business";
 
 import { randomUUID } from "node:crypto";
+
+export const listingStatusEnum = pgEnum("listing_status", [
+  "draft",
+  "pending_review",
+  "published",
+  "rejected",
+  "suspended",
+]);
+
+export type ListingStatus = (typeof listingStatusEnum.enumValues)[number];
 
 export const listing = pgTable(
   "listing",
@@ -15,7 +35,8 @@ export const listing = pgTable(
       .notNull()
       .unique()
       .references(() => business.id, { onDelete: "cascade" }),
-    status: text("status").notNull().default("draft").$type<"draft" | "published">(),
+    status: listingStatusEnum("status").notNull().default("draft"),
+    rejectionReason: text("rejection_reason"),
     name: varchar("name", { length: 200 }).notNull(),
     category: varchar("category", { length: 100 }).notNull(),
     address: varchar("address", { length: 500 }).notNull(),
@@ -38,10 +59,31 @@ export const listing = pgTable(
       .notNull(),
   },
   table => [
-    check("listing_status_check", sql`${table.status} in ('draft', 'published')`),
     check(
       "listing_payment_options_cardinality_check",
       sql`array_length(${table.paymentOptions}, 1) is null or array_length(${table.paymentOptions}, 1) <= 8`
     ),
   ]
+);
+
+export const listingModerationAudit = pgTable(
+  "listing_moderation_audit",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    listingId: text("listing_id")
+      .notNull()
+      .references(() => listing.id, { onDelete: "cascade" }),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    previousStatus: listingStatusEnum("previous_status").notNull(),
+    nextStatus: listingStatusEnum("next_status").notNull(),
+    reason: text("reason").notNull(),
+    createdAt: timestamp("created_at")
+      .$defaultFn(() => new Date())
+      .notNull(),
+  },
+  table => [index("listing_moderation_audit_listing_id_idx").on(table.listingId)]
 );

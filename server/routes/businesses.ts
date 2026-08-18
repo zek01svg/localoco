@@ -1,4 +1,5 @@
 import type { Coordinates, GeocodeFailureKind } from "#server/lib/geocoding";
+import type { ListingStatus } from "#shared/contracts/listings";
 
 import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -7,8 +8,8 @@ import postgres from "postgres";
 
 import { business, ownedBy } from "#server/database/business";
 import { businessHours } from "#server/database/business-hours";
-import { listing } from "#server/database/listing";
-import { requireBusinessOwner, requireVerified } from "#server/lib/auth-middleware";
+import { listing, listingModerationAudit } from "#server/database/listing";
+import { requireAdmin, requireBusinessOwner, requireVerified } from "#server/lib/auth-middleware";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
 import { geocodeAddress, GeocodeError } from "#server/lib/geocoding";
@@ -22,7 +23,12 @@ import {
   businessUpdateSchema,
 } from "#shared/contracts/business";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
-import { ownerListingSchema, ownerListingUpdateSchema } from "#shared/contracts/listings";
+import {
+  listingAuditsResponseSchema,
+  listingModerationActionSchema,
+  ownerListingSchema,
+  ownerListingUpdateSchema,
+} from "#shared/contracts/listings";
 
 const privateErrorResponses = {
   400: {
@@ -42,7 +48,7 @@ const privateErrorResponses = {
     content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
   },
   409: {
-    description: "A Business with this UEN already exists",
+    description: "Conflict with current resource state or unique constraint",
     content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
   },
   429: {
@@ -154,6 +160,7 @@ const hoursFor = async (query: Pick<typeof db, "select">, businessId: string) =>
 const ownerListingColumns = {
   id: listing.id,
   status: listing.status,
+  rejectionReason: listing.rejectionReason,
   name: listing.name,
   category: listing.category,
   address: listing.address,
@@ -350,7 +357,7 @@ export const businessesRoutes = new Hono()
       tags: ["businesses"],
       summary: "Update an owned Listing",
       description:
-        "Updates the fields of a Listing the actor owns or administers. The target Business is resolved through the ownership predicate; a submitted owner identifier is stripped by validation. Only provided fields change. When the `hours` field is present it replaces the whole opening-hours schedule; validation rejects duplicate days, invalid times, and intervals that overlap across adjacent days.",
+        "Updates the fields of a Listing the actor owns or administers. Editing a published Listing returns it to pending_review and removes it from public discovery until approved again. Only provided fields change. When the `hours` field is present it replaces the whole opening-hours schedule.",
       responses: {
         200: {
           description: "The updated Listing",
@@ -392,21 +399,26 @@ export const businessesRoutes = new Hono()
             return [];
           }
 
+          const current = await tx
+            .select({
+              status: listing.status,
+              address: listing.address,
+              postalCode: listing.postalCode,
+            })
+            .from(listing)
+            .where(eq(listing.businessId, id))
+            .for("update")
+            .limit(1);
+          if (current.length === 0) {
+            return [];
+          }
+
           // Geocoding happens only when the address or postal code changes — a
           // phone-only edit never costs a provider call. When only one of the
           // two fields changes, the current value of the other (read above,
           // under the lock) is used for the query.
           let coordinates: Coordinates | undefined;
           if (listingUpdate.address !== undefined || listingUpdate.postalCode !== undefined) {
-            const current = await tx
-              .select({ address: listing.address, postalCode: listing.postalCode })
-              .from(listing)
-              .where(eq(listing.businessId, id))
-              .for("update")
-              .limit(1);
-            if (current.length === 0) {
-              return [];
-            }
             try {
               coordinates = await geocodeAddress({
                 address: listingUpdate.address ?? current[0].address,
@@ -417,7 +429,13 @@ export const businessesRoutes = new Hono()
             }
           }
 
-          if (Object.keys(listingUpdate).length > 0 || coordinates) {
+          const isPublished = current[0].status === "published";
+          const hasChanges =
+            Object.keys(listingUpdate).length > 0 ||
+            coordinates !== undefined ||
+            hours !== undefined;
+
+          if (Object.keys(listingUpdate).length > 0 || coordinates || (isPublished && hasChanges)) {
             await tx
               .update(listing)
               .set({
@@ -425,6 +443,7 @@ export const businessesRoutes = new Hono()
                 ...(coordinates
                   ? { latitude: coordinates.latitude, longitude: coordinates.longitude }
                   : {}),
+                ...(isPublished && hasChanges ? { status: "pending_review" } : {}),
                 updatedAt: new Date(),
               })
               .where(eq(listing.businessId, id));
@@ -469,6 +488,266 @@ export const businessesRoutes = new Hono()
         }
         throw cause;
       }
+    }
+  )
+  .post(
+    "/businesses/:id/listing/submit",
+    requireBusinessOwner,
+    describeRoute({
+      operationId: "submitListingForReview",
+      tags: ["businesses", "listings"],
+      summary: "Submit a draft or rejected Listing for review",
+      description:
+        "Transitions an owned draft or rejected Listing to pending_review. An already pending, published, or suspended Listing cannot be submitted.",
+      responses: {
+        200: {
+          description: "The submitted Listing",
+          content: { "application/json": { schema: resolver(ownerListingSchema) } },
+        },
+        ...privateErrorResponses,
+      },
+    }),
+    async c => {
+      const auth = c.get("auth");
+      if (!auth) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+
+      const { id } = c.req.param();
+
+      const rows = await db.transaction(async tx => {
+        const locked = await tx
+          .select({ id: business.id })
+          .from(business)
+          .where(and(eq(business.id, id), ownedBy(auth)))
+          .for("update")
+          .limit(1);
+        if (locked.length === 0) {
+          return [];
+        }
+
+        const current = await tx
+          .select({ status: listing.status })
+          .from(listing)
+          .where(eq(listing.businessId, id))
+          .for("update")
+          .limit(1);
+
+        if (current.length === 0) {
+          return [];
+        }
+
+        const currentStatus = current[0].status;
+        if (currentStatus !== "draft" && currentStatus !== "rejected") {
+          throw new HttpError(
+            409,
+            "conflict",
+            `Cannot submit listing in '${currentStatus}' state for review`
+          );
+        }
+
+        await tx
+          .update(listing)
+          .set({
+            status: "pending_review",
+            rejectionReason: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(listing.businessId, id));
+
+        const [updated] = await tx
+          .select(ownerListingColumns)
+          .from(listing)
+          .where(eq(listing.businessId, id))
+          .limit(1);
+
+        return [{ ...updated, hours: await hoursFor(tx, id) }];
+      });
+
+      if (rows.length === 0) {
+        throw new HttpError(404, "not_found", "Business not found");
+      }
+
+      const parsed = ownerListingSchema.safeParse(rows[0]);
+      if (!parsed.success) {
+        throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
+          cause: new Error("data seam returned a row that violates the listing contract"),
+        });
+      }
+      return c.json(parsed.data);
+    }
+  )
+  .post(
+    "/businesses/:id/listing/moderate",
+    requireAdmin,
+    validator("json", listingModerationActionSchema, onValidationError),
+    describeRoute({
+      operationId: "moderateListing",
+      tags: ["businesses", "listings", "admin"],
+      summary: "Moderate a business Listing",
+      description:
+        "Administrative endpoint to publish, reject, or suspend a Listing with an immutable reason and audit record.",
+      responses: {
+        200: {
+          description: "The moderated Listing",
+          content: { "application/json": { schema: resolver(ownerListingSchema) } },
+        },
+        ...privateErrorResponses,
+      },
+    }),
+    async c => {
+      const auth = c.get("auth");
+      if (!auth) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+
+      const { id } = c.req.param();
+      const { action, reason } = c.req.valid("json");
+
+      const rows = await db.transaction(async tx => {
+        const current = await tx
+          .select({ id: listing.id, status: listing.status })
+          .from(listing)
+          .where(eq(listing.businessId, id))
+          .for("update")
+          .limit(1);
+
+        if (current.length === 0) {
+          return [];
+        }
+
+        const previousStatus = current[0].status;
+        let nextStatus: ListingStatus;
+        let nextRejectionReason: string | null = null;
+
+        switch (action) {
+          case "publish":
+            if (previousStatus !== "pending_review" && previousStatus !== "suspended") {
+              throw new HttpError(
+                409,
+                "conflict",
+                `Cannot publish listing in '${previousStatus}' state`
+              );
+            }
+            nextStatus = "published";
+            nextRejectionReason = null;
+            break;
+
+          case "reject":
+            if (previousStatus !== "pending_review") {
+              throw new HttpError(
+                409,
+                "conflict",
+                `Cannot reject listing in '${previousStatus}' state`
+              );
+            }
+            nextStatus = "rejected";
+            nextRejectionReason = reason;
+            break;
+
+          case "suspend":
+            if (previousStatus !== "published") {
+              throw new HttpError(
+                409,
+                "conflict",
+                `Cannot suspend listing in '${previousStatus}' state`
+              );
+            }
+            nextStatus = "suspended";
+            nextRejectionReason = reason;
+            break;
+        }
+
+        // Insert immutable audit record
+        await tx.insert(listingModerationAudit).values({
+          listingId: current[0].id,
+          actorId: auth.userId,
+          previousStatus,
+          nextStatus,
+          reason,
+        });
+
+        // Update listing status and rejection reason
+        await tx
+          .update(listing)
+          .set({
+            status: nextStatus,
+            rejectionReason: nextRejectionReason,
+            updatedAt: new Date(),
+          })
+          .where(eq(listing.businessId, id));
+
+        const updatedRows = await tx
+          .select(ownerListingColumns)
+          .from(listing)
+          .where(eq(listing.businessId, id))
+          .limit(1);
+
+        return [{ ...updatedRows[0], hours: await hoursFor(tx, id) }];
+      });
+
+      if (rows.length === 0) {
+        throw new HttpError(404, "not_found", "Business not found");
+      }
+
+      const parsed = ownerListingSchema.safeParse(rows[0]);
+      if (!parsed.success) {
+        throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
+          cause: new Error("data seam returned a row that violates the listing contract"),
+        });
+      }
+      return c.json(parsed.data);
+    }
+  )
+  .get(
+    "/businesses/:id/listing/audit",
+    requireAdmin,
+    describeRoute({
+      operationId: "getListingAuditHistory",
+      tags: ["businesses", "listings", "admin"],
+      summary: "Get listing moderation audit history",
+      description:
+        "Chronological audit trail of all administrative moderation actions performed on this Listing.",
+      responses: {
+        200: {
+          description: "Listing audit history",
+          content: { "application/json": { schema: resolver(listingAuditsResponseSchema) } },
+        },
+        ...privateErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const listingRows = await db
+        .select({ id: listing.id })
+        .from(listing)
+        .where(eq(listing.businessId, id))
+        .limit(1);
+      if (listingRows.length === 0) {
+        throw new HttpError(404, "not_found", "Business not found");
+      }
+
+      const auditRows = await db
+        .select({
+          id: listingModerationAudit.id,
+          listingId: listingModerationAudit.listingId,
+          actorId: listingModerationAudit.actorId,
+          previousStatus: listingModerationAudit.previousStatus,
+          nextStatus: listingModerationAudit.nextStatus,
+          reason: listingModerationAudit.reason,
+          createdAt: listingModerationAudit.createdAt,
+        })
+        .from(listingModerationAudit)
+        .where(eq(listingModerationAudit.listingId, listingRows[0].id))
+        .orderBy(asc(listingModerationAudit.createdAt));
+
+      const parsed = listingAuditsResponseSchema.safeParse({ items: auditRows });
+      if (!parsed.success) {
+        throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
+          cause: new Error("data seam returned an audit row that violates the contract"),
+        });
+      }
+      return c.json(parsed.data);
     }
   )
   .patch(

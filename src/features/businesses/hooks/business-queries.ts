@@ -79,3 +79,28 @@ export function useUpdateListingMutation(businessId: string) {
     },
   });
 }
+
+export function useSubmitListingMutation(businessId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${apiUrl}/businesses/${businessId}/listing/submit`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      });
+      if (!res.ok) {
+        throw new Error(
+          await errorMessage(
+            res,
+            "Your listing could not be submitted for review. Try again shortly."
+          )
+        );
+      }
+      return ownerListingSchema.parse(await res.json());
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["owned-listing", businessId] });
+    },
+  });
+}

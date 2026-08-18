@@ -2,6 +2,15 @@ import { z } from "zod/v4";
 
 import { businessHoursScheduleSchema } from "./business-hours";
 
+export const listingStatusSchema = z.enum([
+  "draft",
+  "pending_review",
+  "published",
+  "rejected",
+  "suspended",
+]);
+export type ListingStatus = z.infer<typeof listingStatusSchema>;
+
 // Field-level validation shared by Business + draft Listing creation, the
 // owner's Listing edit, and every Listing response (public and owner-scoped).
 // Bounds mirror the PostgreSQL column definitions in server/database/listing.ts
@@ -74,13 +83,14 @@ export const listingsResponseSchema = z.object({
 });
 export type ListingsResponse = z.infer<typeof listingsResponseSchema>;
 
-// The Listing as its owner sees it: the draft/published state plus the
-// validated fields. Database reads return NULL for absent optional columns,
-// which these schemas accept. `hours` is always present: an empty array means
-// the Business has recorded no opening hours (a defined, closed-when-evaluated
-// state, never an accidental one).
+// The Listing as its owner sees it: the full lifecycle status, rejection reason
+// (when rejected), plus validated fields. Database reads return NULL for absent
+// optional columns, which these schemas accept. `hours` is always present: an
+// empty array means the Business has recorded no opening hours (a defined,
+// closed-when-evaluated state, never an accidental one).
 export const ownerListingSchema = listingSchema.extend({
-  status: z.enum(["draft", "published"]),
+  status: listingStatusSchema,
+  rejectionReason: z.string().nullable().optional(),
   hours: businessHoursScheduleSchema,
 });
 export type OwnerListing = z.infer<typeof ownerListingSchema>;
@@ -88,6 +98,8 @@ export type OwnerListing = z.infer<typeof ownerListingSchema>;
 // Any subset of the Listing fields; a client sends only what it is changing.
 // `partial` keeps every field optional without loosening the per-field bounds.
 // `hours` replaces the whole schedule when present; absent means unchanged.
+// `status` is not present here: clients cannot directly mutate lifecycle status
+// via general listing edits.
 export const ownerListingUpdateSchema = z
   .object({
     ...listingFields,
@@ -95,3 +107,25 @@ export const ownerListingUpdateSchema = z
   })
   .partial();
 export type OwnerListingUpdate = z.infer<typeof ownerListingUpdateSchema>;
+
+export const listingModerationActionSchema = z.object({
+  action: z.enum(["publish", "reject", "suspend"]),
+  reason: z.string().trim().min(1).max(1000),
+});
+export type ListingModerationAction = z.infer<typeof listingModerationActionSchema>;
+
+export const listingAuditRecordSchema = z.object({
+  id: z.string().min(1),
+  listingId: z.string().min(1),
+  actorId: z.string().min(1),
+  previousStatus: listingStatusSchema,
+  nextStatus: listingStatusSchema,
+  reason: z.string(),
+  createdAt: z.coerce.date(),
+});
+export type ListingAuditRecord = z.infer<typeof listingAuditRecordSchema>;
+
+export const listingAuditsResponseSchema = z.object({
+  items: z.array(listingAuditRecordSchema),
+});
+export type ListingAuditsResponse = z.infer<typeof listingAuditsResponseSchema>;

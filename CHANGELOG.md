@@ -4,8 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Added
-
+- **Listing moderation lifecycle and audit** (PRS-182): Full moderation lifecycle
+  for Listings (`draft`, `pending_review`, `published`, `rejected`, `suspended`).
+  Owners submit listings for review (`POST /api/businesses/:id/listing/submit`);
+  editing a published listing demotes it back to `pending_review` until re-approved.
+  Administrators moderate listings (`POST /api/businesses/:id/listing/moderate`) by
+  publishing, rejecting, or suspending them with a mandatory reason, writing an
+  immutable record to `listing_moderation_audit`. Rejected listings retain the
+  administrative reason so owners know what to update. Only published listings
+  appear in public discovery (`GET /api/listings`).
 - **Administrator role and database-backed authorization** (PRS-175): Dedicated
   `administrator` table (`user_id` foreign key cascade), session middleware
   resolving `isAdmin` directly from the database on every request, and
