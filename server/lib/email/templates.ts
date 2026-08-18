@@ -5,6 +5,10 @@ export interface EmailTemplateParams {
   url: string;
 }
 
+export interface ChangeEmailTemplateParams extends EmailTemplateParams {
+  newEmail: string;
+}
+
 export interface RenderedEmail {
   subject: string;
   html: string;
@@ -65,7 +69,10 @@ function renderEmailLayout(options: EmailLayoutOptions): string {
 }
 
 /**
- * Renders the verification email with escaped user-provided parameters.
+ * Renders the verification email with escaped user-provided parameters. The
+ * wording is intentionally neutral: this template serves both first-time
+ * registration and the second step of an email change (verifying the new
+ * address).
  */
 export function renderVerificationEmail(params: EmailTemplateParams): RenderedEmail {
   const safeName = params.name ? escapeHtml(params.name) : "there";
@@ -75,10 +82,36 @@ export function renderVerificationEmail(params: EmailTemplateParams): RenderedEm
   const html = renderEmailLayout({
     title: subject,
     heading: "Verify your email address",
-    bodyHtml: `<p>Hi ${safeName}, thanks for joining LocaLoco! Please confirm your email address by clicking the button below.</p>`,
+    bodyHtml: `<p>Hi ${safeName}, please confirm your email address for LocaLoco by clicking the button below.</p>`,
     buttonText: "Verify Email Address",
     buttonUrl: params.url,
     noteHtml: "If you did not sign up for LocaLoco, you can safely ignore this email.",
+  });
+
+  return { subject, html, text };
+}
+
+/**
+ * Renders the confirmation email for a requested email change, sent to the
+ * current (old) address. The new address is escaped like any other
+ * user-provided parameter.
+ */
+export function renderChangeEmailConfirmationEmail(
+  params: ChangeEmailTemplateParams
+): RenderedEmail {
+  const safeName = params.name ? escapeHtml(params.name) : "there";
+  const safeNewEmail = escapeHtml(params.newEmail);
+  const subject = "Confirm your email address change";
+  const text = `Hi ${params.name ?? "there"},\n\nYou requested to change your LocaLoco email address to:\n${params.newEmail}\n\nClick the link below to confirm:\n${params.url}\n\nIf you did not request this change, you can safely ignore this email and your address will stay the same.\n\nBest regards,\nThe LocaLoco Team`;
+
+  const html = renderEmailLayout({
+    title: subject,
+    heading: "Confirm your email address change",
+    bodyHtml: `<p>Hi ${safeName}, you requested to change your LocaLoco email address to <strong>${safeNewEmail}</strong>. Click the button below to confirm.</p>`,
+    buttonText: "Confirm Email Change",
+    buttonUrl: params.url,
+    noteHtml:
+      "If you did not request this change, you can safely ignore this email and your address will stay the same.",
   });
 
   return { subject, html, text };

@@ -50,10 +50,11 @@ export function FormErrorAlert({ message }: { message: string }) {
 interface FormFieldProps {
   id: string;
   label: string;
-  type?: "text" | "email" | "password";
+  type?: "text" | "email" | "password" | "url";
   autoComplete?: string;
   placeholder?: string;
   disabled?: boolean;
+  required?: boolean;
   error?: string;
   value: string;
   onBlur: () => void;
@@ -67,6 +68,7 @@ export function FormField({
   autoComplete,
   placeholder,
   disabled,
+  required = true,
   error,
   value,
   onBlur,
@@ -79,7 +81,7 @@ export function FormField({
         id={id}
         name={id}
         type={type}
-        required
+        required={required}
         autoComplete={autoComplete}
         placeholder={placeholder}
         value={value}

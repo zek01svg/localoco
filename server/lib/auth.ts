@@ -5,7 +5,12 @@ import { openAPI } from "better-auth/plugins";
 import * as authSchema from "#server/database/auth";
 import { env } from "#server/env";
 import { db } from "#server/lib/db";
-import { enqueueEmail, renderPasswordResetEmail, renderVerificationEmail } from "#server/lib/email";
+import {
+  enqueueEmail,
+  renderChangeEmailConfirmationEmail,
+  renderPasswordResetEmail,
+  renderVerificationEmail,
+} from "#server/lib/email";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -17,6 +22,27 @@ export const auth = betterAuth({
       verification: authSchema.verification,
     },
   }),
+  user: {
+    changeEmail: {
+      enabled: true,
+      // The first step of the double opt-in: the confirmation link goes to
+      // the current address. The second step reuses emailVerification
+      // below and verifies the new address.
+      sendChangeEmailConfirmation: async ({ user, newEmail, url }, _request) => {
+        const template = renderChangeEmailConfirmationEmail({
+          name: user.name,
+          newEmail,
+          url,
+        });
+        await enqueueEmail({
+          to: user.email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        });
+      },
+    },
+  },
   telemetry: {
     enabled: false,
   },

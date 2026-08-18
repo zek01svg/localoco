@@ -5,15 +5,7 @@ import { Skeleton } from "#client/components/ui/skeleton";
 import { NotFoundPage } from "#client/features/not-found/not-found";
 
 import { ProfileNotFoundError, usePublicProfileQuery } from "./hooks/use-public-profile-query";
-
-function initialsOf(displayName: string): string {
-  return displayName
-    .split(/\s+/u)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(part => part[0].toUpperCase())
-    .join("");
-}
+import { initialsOf } from "./initials";
 
 export function PublicProfilePage({ userId }: { userId: string }) {
   const { data, isPending, error } = usePublicProfileQuery(userId);

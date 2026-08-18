@@ -63,14 +63,17 @@ function LandingAuthNav() {
   if (isAuthenticated && user) {
     return (
       <li className="flex items-center gap-3">
-        <span className="text-foreground flex items-center gap-1.5 font-medium">
+        <a
+          href="/profile"
+          className="text-foreground flex items-center gap-1.5 font-medium hover:underline"
+        >
           {user.name}
           {isVerified ? null : (
             <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-normal text-amber-600 dark:text-amber-400">
               Unverified
             </span>
           )}
-        </span>
+        </a>
         <button
           type="button"
           onClick={() => {

@@ -33,6 +33,12 @@ name, avatar, and public contributions — nothing else. Private account
 information is structurally absent, never conditionally hidden.
 _Avoid_: profile page, personal page
 
+**Personal profile**:
+A User's private account record and API response: display name, avatar, email,
+email-verification state, and registration timestamp. Only the signed-in User
+can read or update it, and it is never cached publicly.
+_Avoid_: account settings, profile page
+
 ## Discovery and community
 
 **Business discovery**:

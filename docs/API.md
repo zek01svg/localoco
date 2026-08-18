@@ -357,3 +357,91 @@ Reviews and Forum slices; until then the profile is identity-only.
   the contract (`dependency_unavailable`).
 
 ---
+
+## 10. Personal profile
+
+The signed-in User's own profile (`shared/contracts/profiles.ts`:
+`privateProfileSchema`). The response carries the private account fields the
+public contract structurally lacks: `email`, `emailVerified`, and `createdAt`
+(an ISO-8601 string on the wire, coerced to a `Date` by the client contract).
+
+Every route mounts the session middleware, so requests without a valid session
+cookie are rejected with `401` (`unauthorized`). Responses are personalized
+(`Cache-Control: private, no-store`) and never shared.
+
+### Get the signed-in User's profile (`GET /api/profile`)
+
+- **Response `200 OK`** — `application/json`:
+
+  ```json
+  {
+    "id": "usr_123",
+    "displayName": "Alice Tan",
+    "avatarUrl": "https://cdn.example.com/alice.png",
+    "email": "alice@example.com",
+    "emailVerified": true,
+    "createdAt": "2026-08-01T00:00:00.000Z"
+  }
+  ```
+
+  `avatarUrl` is `null` when the User has not set an avatar. `createdAt` is
+  the account's registration timestamp.
+
+- **Response `401`**: no session (`unauthorized`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+- **Response `503`**: the data source failed or returned a row that violates
+  the contract (`dependency_unavailable`).
+
+### Update the signed-in User's profile (`PATCH /api/profile`)
+
+The body accepts `displayName` and `avatarUrl` (either, or both). An empty
+`avatarUrl` clears the avatar (`null`); it is not sent to the client. An empty
+body is rejected.
+
+- **Request** — `application/json`:
+
+  ```json
+  {
+    "displayName": "Alice Tan",
+    "avatarUrl": "https://cdn.example.com/alice.png"
+  }
+  ```
+
+- **Response `200 OK`** — the updated private profile (same shape as `GET
+/api/profile`).
+- **Response `400`**: validation failure — `displayName` must be 1–64
+  characters, `avatarUrl` must be a valid URL or empty, and at least one
+  field must be present (`invalid_request`).
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: the signed-in User's email is not verified
+  (`forbidden`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+- **Response `503`**: the data source failed or returned a row that violates
+  the contract (`dependency_unavailable`).
+
+### Request an email change (`POST /api/profile/email-change`)
+
+Begins a verified email-address change. Requires a verified email — an
+unverified User receives `403` (`forbidden`) with `reason: "email_not_verified"`.
+If the address is available, a confirmation email with a single-use link is
+enqueued; the response is `{ "status": "confirmation_sent" }` regardless, so a
+taken address cannot be enumerated.
+
+- **Request** — `application/json`:
+
+  ```json
+  {
+    "email": "new-address@example.com"
+  }
+  ```
+
+- **Response `200 OK`** — `application/json`:
+  `{ "status": "confirmation_sent" }`
+- **Response `400`**: validation failure — `email` must be a valid email
+  address (`invalid_request`).
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: the signed-in User's email is not verified
+  (`forbidden`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+
+---
