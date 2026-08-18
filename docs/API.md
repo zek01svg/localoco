@@ -107,7 +107,9 @@ Query parameters:
         "email": "hello@example.com",
         "website": "https://example.com",
         "paymentOptions": ["PayNow", "Visa"],
-        "priceRange": "$10-$30"
+        "priceRange": "$10-$30",
+        "latitude": 1.29027,
+        "longitude": 103.851959
       }
     ],
     "nextCursor": "1"
@@ -115,7 +117,10 @@ Query parameters:
   ```
 
   The optional contact fields (`phone`, `email`, `website`, `paymentOptions`,
-  `priceRange`) are `null` when the business never set them.
+  `priceRange`) are `null` when the business never set them. `latitude` and
+  `longitude` are the street-level coordinates resolved at listing write time
+  (see ADR-0006) and are `null` for listings written before that change —
+  reads never trigger geocoding.
 
   `nextCursor` is `null` on the final page. The server fetches `limit + 1` rows to detect a following page, so no empty trailing page is ever returned.
 
@@ -173,6 +178,13 @@ the same UEN resolve to exactly one success and one `409`.
 The UEN is normalized (trimmed and uppercased) at the boundary and validated
 against the Singapore UEN formats: `nnnnnnnnX`, `nnnnnnnnnX`, or `TyyXXnnnnX`.
 
+The listing address is resolved to coordinates before the write (ADR-0006):
+the server geocodes `address` + `postalCode` via the Google Geocoding API and
+stores `latitude`/`longitude` with the listing. The submitted address text is
+stored verbatim. An address that does not resolve to a street-level
+Singapore location, or resolves ambiguously, fails the whole creation with
+`400`.
+
 - **Request Body**:
 
   ```json
@@ -227,12 +239,16 @@ against the Singapore UEN formats: `nnnnnnnnX`, `nnnnnnnnnX`, or `TyyXXnnnnX`.
 - **Response `401`**: no session (`unauthorized`).
 - **Response `403`**: session present but email unverified (`forbidden`).
 - **Response `400`**: body failed validation, including malformed UENs
-  (`invalid_request`).
+  (`invalid_request`), or the address could not be geocoded — `details.reason`
+  is `not_found` (address resolves to nothing) or `ambiguous` (no
+  street-level Singapore match).
 - **Response `409`**: a business with this UEN already exists (`conflict`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 - **Response `503`**: the write failed for a non-conflict data source reason,
-  and the failed write was rolled back — no partial business or listing is
-  persisted (`dependency_unavailable`).
+  the geocoding provider was unreachable or quota-exhausted (`details.reason`
+  is `provider_unavailable` or `quota_exhausted`), or `GOOGLE_MAPS_API_KEY`
+  is not configured — the failed write was rolled back; no partial business
+  or listing is persisted (`dependency_unavailable`).
 
 ### View the owned listing (`GET /api/businesses/:id/listing`)
 
@@ -292,6 +308,11 @@ coverage). Duplicate days, equal open/close times, malformed times, and
 adjacent-day overlaps are rejected with `400`; database-level conflicts
 (unique day or overlap trigger) map to `409`.
 
+When `address` or `postalCode` is part of the update, the new address is
+geocoded before the write and the stored coordinates are refreshed together
+with the text; other edits never call the geocoding provider and leave the
+stored coordinates untouched.
+
 - **Request Body** (any subset):
 
   ```json
@@ -313,10 +334,16 @@ adjacent-day overlaps are rejected with `400`; database-level conflicts
 - **Response `403`**: session present but email unverified (`forbidden`).
 - **Response `404`**: no such business, or the actor may not touch it
   (`not_found`).
-- **Response `400`**: body failed validation (`invalid_request`).
+- **Response `400`**: body failed validation (`invalid_request`), or the new
+  address could not be geocoded — `details.reason` is `not_found` or
+  `ambiguous`; the update is not applied.
 - **Response `409`**: the schedule conflicts with stored data — duplicate
   day or adjacent-day overlap (`conflict`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
+- **Response `503`**: the geocoding provider was unreachable or
+  quota-exhausted (`details.reason` is `provider_unavailable` or
+  `quota_exhausted`), or `GOOGLE_MAPS_API_KEY` is not configured — the update
+  is not applied (`dependency_unavailable`).
 
 ### Update a business (`PATCH /api/businesses/:id`)
 
@@ -490,6 +517,13 @@ Validation failures carry flattened issues under `details.issues`:
 ```
 
 Unexpected errors are logged server-side (root cause, including `requestId`) and reported to Sentry when configured; the response body never contains the underlying error message, connection strings, or credentials. Unknown `/api/*` paths answer `404 not_found` instead of falling through to the SPA.
+
+External-provider failures (see ADR-0005) carry a stable machine-readable
+reason under `details.reason` equal to the classified failure kind:
+`not_found`, `ambiguous`, `quota_exhausted`, `provider_unavailable`, or
+`invalid_response`. `quota_exhausted` and `provider_unavailable` map to
+`503 dependency_unavailable`; `not_found` and `ambiguous` map to
+`400 invalid_request`.
 
 ---
 

@@ -103,8 +103,45 @@ Add a version after apply:
 gcloud secrets versions add DATABASE_URL --project localoco-505304 --data-file=-
 ```
 
-Deferred credentials (R2, Maps) are attached to the slices that
-first need them, not provisioned ahead of time.
+### Google Maps Platform
+
+Geocoding credentials are provisioned by Terraform (`infra/maps.tf`), not by
+operator steps:
+
+- **Server key** (`google_apikeys_key.server`): restricted to the Geocoding
+  API backend only, injected directly into the Cloud Run environment as
+  `GOOGLE_MAPS_API_KEY`. The app geocodes listing addresses at write time
+  (ADR-0006); without the key, listing writes fail explicitly with
+  `503 dependency_unavailable`.
+- **Browser key** (`google_apikeys_key.browser`): restricted to the Maps
+  JavaScript API and the `localoco.ciav.dev` referrer. It is dormant — no
+  client code consumes it until a map UI ships.
+- **Alert**: `google_monitoring_alert_policy.geocoding_request_rate` fires
+  when geocoding request volume exceeds 2000 requests per 5 minutes, well
+  below the 3000 queries/minute provider rate limit.
+
+Manual steps (need the Google Cloud console, once):
+
+1. Enable billing on the project (`localoco-505304`) — Maps Platform APIs
+   require a billing account.
+2. Set a daily usage cap: Google Maps Platform console → **Quotas** →
+   **Geocoding API** → cap daily usage at 40,000 requests. This stays inside
+   the $200/month free credit at Geocoding's $5 per 1,000 requests; the
+   Cloud Monitoring alert (2000 requests per 5 minutes) fires long before a
+   runaway loop reaches it. Geocoding is billed per request with no default
+   daily quota, and the cap is a console setting — it cannot be managed
+   through Terraform (Geocoding no longer exposes a Service Usage quota
+   limit).
+3. Verify a geocode round-trip after the next apply:
+   `curl -s "https://maps.googleapis.com/maps/api/geocode/json?address=1%20Boon%20Lay%20Drive%20649902&key=<server key>"` —
+   expect `"status": "OK"` with a `ROOFTOP` result in Singapore.
+4. When a map UI ships: enable the Maps JavaScript API
+   (`maps-backend.googleapis.com`) in the console or `infra/state-bucket.tf` —
+   the browser key's restriction already points at it and starts working
+   immediately.
+
+Deferred credentials (R2) are attached to the slices that first need them,
+not provisioned ahead of time.
 
 ---
 

@@ -53,6 +53,8 @@ export const listingsRoutes = new Hono().get(
             category: listing.category,
             address: listing.address,
             postalCode: listing.postalCode,
+            latitude: listing.latitude,
+            longitude: listing.longitude,
             phone: listing.phone,
             email: listing.email,
             website: listing.website,

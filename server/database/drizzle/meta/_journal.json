@@ -43,6 +43,13 @@
       "when": 1787052303147,
       "tag": "0005_business_hours",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787059750215,
+      "tag": "0006_listing_coordinates",
+      "breakpoints": true
     }
   ]
 }

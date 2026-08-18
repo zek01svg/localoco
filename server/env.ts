@@ -45,6 +45,10 @@ export const env = createEnv({
     // Email (Resend)
     RESEND_API_KEY: z.string().min(1).optional(),
     EMAIL_FROM: z.string().default("LocaLoco <noreply@localoco.ciav.dev>"),
+
+    // Maps (server-side address validation). Server-only credential: never
+    // exposed through /api/runtime.js (VITE_-prefixed keys only).
+    GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
   },
   clientPrefix: "VITE_",
   // t3-env defaults to "window exists => client", which is wrong under
@@ -91,6 +95,9 @@ export const env = createEnv({
     // Email (Resend)
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
+
+    // Maps (server-side address validation)
+    GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY,
   },
   emptyStringAsUndefined: true,
   skipValidation:

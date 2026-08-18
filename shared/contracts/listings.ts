@@ -42,9 +42,17 @@ export const listingFields = {
 // inferred from these schemas; client and server never maintain parallel
 // interfaces. Only published Listings are returned here; draft and moderated
 // Listings are structurally absent from public responses.
+//
+// Coordinates are server-derived (geocoded at write time) and are therefore
+// response-only: they are absent from `listingFields`, so a submitted
+// latitude/longitude is stripped by validation and can never be client-set.
+// Null means the row predates address validation and renders no Listing
+// location until its address is next edited.
 export const listingSchema = z.object({
   id: z.string().min(1),
   ...listingFields,
+  latitude: z.number().finite().nullable(),
+  longitude: z.number().finite().nullable(),
 });
 export type Listing = z.infer<typeof listingSchema>;
 

@@ -88,6 +88,13 @@ hours cover the current instant in Singapore time. A Business with no Opening
 hours is never open-now.
 _Avoid_: currently open, is-open status
 
+**Listing location**:
+The verified coordinates (latitude and longitude) resolved from a Listing's
+address by the geocoding provider at write time, stored on the Listing.
+`null` for Listings whose address has not been re-validated since the
+provider integration shipped.
+_Avoid_: pin, map marker, geo coordinates
+
 ## Rewards
 
 **Points**:

@@ -66,6 +66,19 @@ describe("businessCreateSchema", () => {
     expect(parsed).not.toHaveProperty("ownerId");
     expect(parsed.listing).not.toHaveProperty("businessId");
   });
+
+  it("strips client-supplied coordinates; they are derived server-side only", () => {
+    const parsed = businessCreateSchema.parse({
+      uen: "201800111A",
+      listing: { ...validListing, latitude: 9.9, longitude: 9.9 },
+    });
+
+    expect(parsed.listing).not.toHaveProperty("latitude");
+    expect(parsed.listing).not.toHaveProperty("longitude");
+    const update = ownerListingUpdateSchema.parse({ latitude: 9.9, longitude: 9.9 });
+    expect(update).not.toHaveProperty("latitude");
+    expect(update).not.toHaveProperty("longitude");
+  });
 });
 
 describe("ownerListingUpdateSchema", () => {
@@ -106,6 +119,8 @@ describe("ownerListingSchema (server -> client)", () => {
       id: "biz_1",
       ...validListing,
       status: "draft",
+      latitude: null,
+      longitude: null,
       phone: null,
       email: null,
       website: null,
@@ -131,6 +146,8 @@ describe("businessCreationResponseSchema", () => {
         id: "lst_1",
         ...validListing,
         status: "draft",
+        latitude: null,
+        longitude: null,
         phone: null,
         email: null,
         website: null,
@@ -142,7 +159,9 @@ describe("businessCreationResponseSchema", () => {
 
     expect(parsed.listing.status).toBe("draft");
     expect(Object.keys(parsed.listing).toSorted()).toEqual(
-      Object.keys(listingFields).concat(["id", "status", "hours"]).toSorted()
+      Object.keys(listingFields)
+        .concat(["id", "status", "hours", "latitude", "longitude"])
+        .toSorted()
     );
   });
 });

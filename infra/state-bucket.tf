@@ -32,3 +32,18 @@ resource "google_project_service" "iam" {
   service            = "iam.googleapis.com"
   disable_on_destroy = false
 }
+
+resource "google_project_service" "apikeys" {
+  service            = "apikeys.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "geocoding" {
+  service            = "geocoding-backend.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "monitoring" {
+  service            = "monitoring.googleapis.com"
+  disable_on_destroy = false
+}

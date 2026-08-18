@@ -2,6 +2,10 @@ import type { Context, Next } from "hono";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { existsSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
 // hono/bun's adapter destructures `Bun` at module top level, which does not
 // exist in vitest's runtime. The routes under test never reach static serving,
 // so a pass-through mock preserves the real behavior.
@@ -16,6 +20,7 @@ vi.mock("hono/bun", () => ({
 // assertions below only pass when the filter actually strips server keys.
 process.env.DATABASE_URL = "postgresql://sentinel-db-zzz";
 process.env.SMTP_PASS = "sentinel-smtp-pass-zzz";
+process.env.GOOGLE_MAPS_API_KEY = "sentinel-maps-key-zzz";
 
 // Dynamic import so the env assignments above land before the server entry
 // module (which snapshots `env` at load time) is evaluated.
@@ -69,5 +74,34 @@ describe("server HTTP seam", () => {
     expect(body).not.toContain("DATABASE_URL");
     expect(body).not.toContain("sentinel-db-zzz");
     expect(body).not.toContain("sentinel-smtp-pass-zzz");
+    expect(body).not.toContain("sentinel-maps-key-zzz");
   });
+});
+
+// The client bundle is scanned for Maps credentials. CI runs `bun run build`
+// before `bun run test`, so the scan always runs there; locally it skips when
+// no build output exists.
+const distAssetsDir = resolve(process.cwd(), "dist", "static", "assets");
+const distExists = existsSync(distAssetsDir);
+
+describe("server Maps credentials in client bundles", () => {
+  it.runIf(distExists)(
+    "the built client bundle contains no Maps credential or hardcoded key pattern",
+    async () => {
+      const files = await readdir(distAssetsDir);
+      const assets = files.filter(file => file.endsWith(".js"));
+      expect(assets.length).toBeGreaterThan(0);
+
+      const sources = await Promise.all(
+        assets.map(file => readFile(resolve(distAssetsDir, file), "utf8"))
+      );
+      const bundle = sources.join("\n");
+
+      // The seeded server-only credential value must never reach a client bundle.
+      expect(bundle).not.toContain("sentinel-maps-key-zzz");
+      // The legacy app hardcoded an AIza... key in client code; any such
+      // literal in the rewrite's client bundle is a regression.
+      expect(bundle).not.toMatch(/AIza[A-Za-z0-9_-]{20,}/u);
+    }
+  );
 });

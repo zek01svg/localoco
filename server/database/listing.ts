@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { check, doublePrecision, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 import { business } from "./business";
 
@@ -20,6 +20,11 @@ export const listing = pgTable(
     category: varchar("category", { length: 100 }).notNull(),
     address: varchar("address", { length: 500 }).notNull(),
     postalCode: varchar("postal_code", { length: 12 }).notNull(),
+    // Coordinates are written once, when the address is validated server-side
+    // at write time; reads render stored values only and never geocode. Null
+    // for rows created before address validation existed.
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
     phone: varchar("phone", { length: 32 }),
     email: varchar("email", { length: 254 }),
     website: varchar("website", { length: 500 }),

@@ -39,6 +39,17 @@ vi.mock("#server/lib/email/qstash", () => ({
   verifyQStashSignature: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
 }));
 
+const { mockGeocodeAddress } = vi.hoisted(() => ({
+  mockGeocodeAddress: vi
+    .fn<() => Promise<{ latitude: number; longitude: number }>>()
+    .mockResolvedValue({ latitude: 1.2956, longitude: 103.7764 }),
+}));
+
+vi.mock("#server/lib/geocoding", async importOriginal => {
+  const original = await importOriginal<typeof import("#server/lib/geocoding")>();
+  return { ...original, geocodeAddress: () => mockGeocodeAddress() };
+});
+
 let container: Awaited<ReturnType<typeof startPostgresContainer>>["container"];
 let sql: ReturnType<typeof postgres>;
 let testApp: Hono<TestAppEnv>;

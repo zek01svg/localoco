@@ -146,6 +146,13 @@ The backend is built with **Hono**, a high-performance web framework designed fo
 - **Error Handling & Middleware**:
   - Global error handler (`app.onError`) formats validation failures (`400 Bad Request`) and uncaught exceptions (`500 Internal Server Error`).
   - Structured request timing middleware logs HTTP completion metrics (`durationMs`, `status`, `method`, `path`).
+- **External providers** (`server/lib/geocoding/`, `server/lib/email/`): each
+  provider is a narrow module with constructor-injected fetch, zod validation
+  at the trust boundary, and typed classified failures (`not_found`,
+  `ambiguous`, `quota_exhausted`, `provider_unavailable`,
+  `invalid_response`) — see ADR-0005. Listing writes geocode the address
+  before persisting `latitude`/`longitude` (ADR-0006); reads never call the
+  provider.
 
 ---
 

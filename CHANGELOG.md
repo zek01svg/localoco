@@ -11,6 +11,33 @@ All notable changes to this project will be documented in this file.
   replacement). Stored timezone-free and evaluated in Singapore time by a
   tested evaluator; invalid or overlapping schedules are rejected at the
   client, the API boundary, and the database.
+- **Server-side address validation and persisted coordinates**: Listing
+  addresses are resolved to street-level Singapore coordinates via the Google
+  Geocoding API at write time (ADR-0006). `POST /api/businesses` always
+  geocodes; `PATCH /api/businesses/:id/listing` re-geocodes only on
+  address/postalCode changes. Unresolvable or ambiguous addresses fail with
+  `400 invalid_request`; provider outages and quota exhaustion fail with
+  `503 dependency_unavailable` — writes never proceed without validated
+  coordinates, and reads never call the provider. Listings expose nullable
+  `latitude`/`longitude` in responses.
+- **Geocoding provider module**: `server/lib/geocoding/` follows the
+  external-provider pattern (ADR-0005) — zod validation at the trust
+  boundary, typed classified failures, contract tests against a local fake
+  HTTP server.
+- **Maps infrastructure**: Terraform-managed server and browser API keys
+  (`infra/maps.tf`) with API and referrer restrictions, and a Cloud
+  Monitoring alert on geocoding request rate. The server key is injected
+  into Cloud Run as `GOOGLE_MAPS_API_KEY`; the browser key is dormant until a
+  map UI ships.
+- **Documentation**: ADRs 0005 (isolate external providers) and 0006 (geocode
+  at write time), Maps deployment steps, API coordinates and error
+  documentation.
+
+### Changed
+
+- `listing` table gains nullable `latitude`/`longitude` columns (migration
+  `0006_listing_coordinates`). Existing rows render without a Listing
+  location until their address is next edited.
 
 ## [2.0.0] - 2026-08-14
 

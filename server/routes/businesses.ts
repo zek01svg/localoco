@@ -1,3 +1,5 @@
+import type { Coordinates, GeocodeFailureKind } from "#server/lib/geocoding";
+
 import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -9,6 +11,7 @@ import { listing } from "#server/database/listing";
 import { requireBusinessOwner, requireVerified } from "#server/lib/auth-middleware";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
+import { geocodeAddress, GeocodeError } from "#server/lib/geocoding";
 import { entryToHoursRow, hoursRowToEntry } from "#server/lib/opening-hours";
 import {
   businessCreationResponseSchema,
@@ -46,9 +49,58 @@ const privateErrorResponses = {
     description: "Too many requests",
     content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
   },
+  503: {
+    description: "A dependency (data source or address validation) is temporarily unavailable",
+    content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+  },
 } as const;
 
 const dependencyMessage = "Businesses and listings are temporarily unavailable. Try again shortly.";
+
+// Classified geocoding failures map to explicit HTTP responses: a 503 for
+// provider trouble (quota, outage, misconfiguration — retry later), a 400 for
+// addresses the provider could not validate precisely. There is no fallback:
+// an address that cannot be validated never reaches the database.
+const geocodeErrorResponses: Record<
+  GeocodeFailureKind,
+  { status: 400 | 503; code: "invalid_request" | "dependency_unavailable"; message: string }
+> = {
+  not_found: {
+    status: 400,
+    code: "invalid_request",
+    message: "We could not find that address. Check the address and postal code.",
+  },
+  ambiguous: {
+    status: 400,
+    code: "invalid_request",
+    message:
+      "The address could not be matched precisely enough. Add a unit number, street name, or postal code.",
+  },
+  quota_exhausted: {
+    status: 503,
+    code: "dependency_unavailable",
+    message:
+      "Address validation is temporarily unavailable because its provider limit was reached. Try again later.",
+  },
+  provider_unavailable: {
+    status: 503,
+    code: "dependency_unavailable",
+    message: "Address validation is temporarily unavailable. Try again shortly.",
+  },
+  invalid_response: {
+    status: 503,
+    code: "dependency_unavailable",
+    message: "Address validation is temporarily unavailable. Try again shortly.",
+  },
+};
+
+const toGeocodingHttpError = (cause: unknown): HttpError => {
+  if (cause instanceof GeocodeError) {
+    const { status, code, message } = geocodeErrorResponses[cause.kind];
+    return new HttpError(status, code, message, { reason: cause.kind }, { cause });
+  }
+  throw cause;
+};
 
 // Drizzle wraps driver errors in DrizzleQueryError; the PostgreSQL error
 // (with its SQLSTATE code) is its cause. This unwraps one level and checks
@@ -106,6 +158,8 @@ const ownerListingColumns = {
   category: listing.category,
   address: listing.address,
   postalCode: listing.postalCode,
+  latitude: listing.latitude,
+  longitude: listing.longitude,
   phone: listing.phone,
   email: listing.email,
   website: listing.website,
@@ -181,6 +235,30 @@ export const businessesRoutes = new Hono()
 
       const { uen, listing: listingInput } = c.req.valid("json");
 
+      // A duplicate UEN fails the whole request before any paid provider call;
+      // the unique constraint remains the arbiter for the concurrent case.
+      const existing = await db
+        .select({ id: business.id })
+        .from(business)
+        .where(eq(business.uen, uen))
+        .limit(1);
+      if (existing.length > 0) {
+        throw new HttpError(409, "conflict", "A Business with this UEN already exists");
+      }
+
+      // Address validation runs before the write: the geocoder is a network
+      // call, so it must not hold the transaction open. The validated
+      // coordinates are then stored in the same write as the address.
+      let coordinates: Coordinates;
+      try {
+        coordinates = await geocodeAddress({
+          address: listingInput.address,
+          postalCode: listingInput.postalCode,
+        });
+      } catch (cause) {
+        throw toGeocodingHttpError(cause);
+      }
+
       try {
         const created = await db.transaction(async tx => {
           const [biz] = await tx
@@ -190,7 +268,13 @@ export const businessesRoutes = new Hono()
 
           const [draft] = await tx
             .insert(listing)
-            .values({ businessId: biz.id, status: "draft", ...listingInput })
+            .values({
+              businessId: biz.id,
+              status: "draft",
+              ...listingInput,
+              latitude: coordinates.latitude,
+              longitude: coordinates.longitude,
+            })
             .returning(ownerListingColumns);
 
           // A new Business has no recorded hours by definition.
@@ -291,10 +375,11 @@ export const businessesRoutes = new Hono()
 
       // The write predicate runs at the mutation boundary, mirroring
       // PATCH /businesses/:id: the Business may have changed hands since the
-      // authorization read in requireBusinessOwner. Locking the Business row
-      // first means a concurrent ownership change parks this transaction until
-      // it commits, and the predicate is then re-evaluated against the latest
-      // state.
+      // authorization read in requireBusinessOwner. The current address is
+      // read under a FOR UPDATE lock on the Listing row inside the same
+      // transaction: a concurrent address edit parks here until it commits,
+      // then the geocode below runs against the latest committed address, so
+      // the stored coordinates can never drift from the stored address.
       try {
         const rows = await db.transaction(async tx => {
           const locked = await tx
@@ -307,10 +392,41 @@ export const businessesRoutes = new Hono()
             return [];
           }
 
-          if (Object.keys(listingUpdate).length > 0) {
+          // Geocoding happens only when the address or postal code changes — a
+          // phone-only edit never costs a provider call. When only one of the
+          // two fields changes, the current value of the other (read above,
+          // under the lock) is used for the query.
+          let coordinates: Coordinates | undefined;
+          if (listingUpdate.address !== undefined || listingUpdate.postalCode !== undefined) {
+            const current = await tx
+              .select({ address: listing.address, postalCode: listing.postalCode })
+              .from(listing)
+              .where(eq(listing.businessId, id))
+              .for("update")
+              .limit(1);
+            if (current.length === 0) {
+              return [];
+            }
+            try {
+              coordinates = await geocodeAddress({
+                address: listingUpdate.address ?? current[0].address,
+                postalCode: listingUpdate.postalCode ?? current[0].postalCode,
+              });
+            } catch (cause) {
+              throw toGeocodingHttpError(cause);
+            }
+          }
+
+          if (Object.keys(listingUpdate).length > 0 || coordinates) {
             await tx
               .update(listing)
-              .set({ ...listingUpdate, updatedAt: new Date() })
+              .set({
+                ...listingUpdate,
+                ...(coordinates
+                  ? { latitude: coordinates.latitude, longitude: coordinates.longitude }
+                  : {}),
+                updatedAt: new Date(),
+              })
               .where(eq(listing.businessId, id));
           }
           if (hours !== undefined) {
