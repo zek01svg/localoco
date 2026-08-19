@@ -30,6 +30,12 @@ export const listingFields = {
     .max(32)
     .transform(v => v || null)
     .nullish(),
+  description: z
+    .string()
+    .trim()
+    .max(2000)
+    .transform(v => v || null)
+    .nullish(),
   email: z.email().max(254).nullish(),
   website: z
     .string()
@@ -64,6 +70,22 @@ export const listingSchema = z.object({
   longitude: z.number().nullable(),
 });
 export type Listing = z.infer<typeof listingSchema>;
+
+export const publicListingPhotoSchema = z.object({
+  id: z.string().min(1),
+  contentType: z.string().min(1),
+  size: z.number(),
+  url: z.string().min(1),
+});
+export type PublicListingPhoto = z.infer<typeof publicListingPhotoSchema>;
+
+export const publicListingDetailSchema = listingSchema.extend({
+  businessId: z.string().min(1),
+  uen: z.string().min(1),
+  hours: businessHoursScheduleSchema,
+  photos: z.array(publicListingPhotoSchema),
+});
+export type PublicListingDetail = z.infer<typeof publicListingDetailSchema>;
 
 // Viewport coordinate query parameters, parsed from strings into bounded numbers.
 // All four boundaries must be supplied together to form a valid bounding box.

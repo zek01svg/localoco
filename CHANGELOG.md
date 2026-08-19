@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Listing detail page** (PRS-188): Public listing detail view at
+  `/listings/$id` serving canonical details for published businesses
+  (`GET /api/listings/:id`). Renders business name, UEN, category, description,
+  address, contact options (phone, email, website), weekly opening hours schedule
+  with live open-now indicator in Singapore time, accepted payment options, price
+  range, and active photo gallery with thumbnail and keyboard navigation. Renders
+  Schema.org JSON-LD (`LocalBusiness`) structured data, social and canonical meta tags,
+  and stored map coordinates without read-time geocoding. Unpublished (draft,
+  pending review, rejected, suspended) listings return 404. Controlled media URLs
+  (`GET /api/media/:id`) allow public access for active photos of published
+  listings while retaining private owner access for unpublished photos.
+
 - **Map viewport filter and browser map** (PRS-187): Public discovery page
   enhancement layering an interactive Google Map on top of the directory via
   `@vis.gl/react-google-maps`. Server-side bounding box filtering (`north`,

@@ -170,6 +170,7 @@ const ownerListingColumns = {
   latitude: listing.latitude,
   longitude: listing.longitude,
   phone: listing.phone,
+  description: listing.description,
   email: listing.email,
   website: listing.website,
   paymentOptions: listing.paymentOptions,

@@ -175,6 +175,7 @@ describe("businessCreationResponseSchema", () => {
         id: "lst_1",
         ...validListing,
         status: "draft",
+        description: null,
         latitude: null,
         longitude: null,
         phone: null,

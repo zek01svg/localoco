@@ -47,6 +47,7 @@ export const listing = pgTable(
     latitude: doublePrecision("latitude"),
     longitude: doublePrecision("longitude"),
     phone: varchar("phone", { length: 32 }),
+    description: varchar("description", { length: 2000 }),
     email: varchar("email", { length: 254 }),
     website: varchar("website", { length: 500 }),
     paymentOptions: text("payment_options").array(),

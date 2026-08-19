@@ -107,16 +107,13 @@ Rows with `null` coordinates are excluded from bounded queries.
 
 Search and open-now are filters, never ranking signals: `q` is trimmed, case-folded, and
 whitespace-collapsed, and the same normalization is applied to the stored
-name, category, and address before a substring match, so minor case or
+name, category, address, and description before a substring match, so minor case or
 formatting differences never hide a Listing. LIKE wildcards in `q` are
 treated as literals. `openNow` is evaluated server-side against stored
 `business_hours` in Singapore wall-clock time before pagination, correctly
 handling 24-hour schedules, daytime intervals, and overnight windows across
 midnight. Businesses with no recorded hours evaluate to closed. Ordering stays
 `id` ascending regardless of filters, so pages remain deterministic.
-
-> Known gap: listings have no description field yet, so "descriptive text"
-> search covers the listing's name, category, and address only.
 
 - **Response `200 OK`** — `application/json`:
 
@@ -127,6 +124,7 @@ midnight. Businesses with no recorded hours evaluate to closed. Ordering stays
         "id": "1",
         "name": "Business 1",
         "category": "Food & Beverage",
+        "description": "Artisanal sourdough bakery.",
         "address": "1 Example Street #01",
         "postalCode": "123456",
         "phone": "61234567",
@@ -142,7 +140,7 @@ midnight. Businesses with no recorded hours evaluate to closed. Ordering stays
   }
   ```
 
-  The optional contact fields (`phone`, `email`, `website`, `paymentOptions`,
+  The optional contact fields (`description`, `phone`, `email`, `website`, `paymentOptions`,
   `priceRange`) are `null` when the business never set them. `latitude` and
   `longitude` are the street-level coordinates resolved at listing write time
   (see ADR-0006) and are `null` for listings written before that change —
@@ -153,6 +151,52 @@ midnight. Businesses with no recorded hours evaluate to closed. Ordering stays
 - **Response `400`**: query parameters failed validation (`invalid_request`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 - **Response `503`**: the data source failed or returned rows that violate the contract (`dependency_unavailable`). A dependency failure is never reported as a success or an empty collection.
+
+### Get listing detail (`GET /api/listings/:id`)
+
+Returns the complete public details of a single **published** listing, including
+business identification (`id`, `businessId`, `uen`), address, contact options,
+opening hours schedule, and active listing photos. Draft, pending review, rejected,
+and suspended listings return `404 not_found`.
+
+- **Response `200 OK`** — `application/json`:
+
+  ```json
+  {
+    "id": "lst_1",
+    "businessId": "biz_1",
+    "uen": "202400123A",
+    "name": "Corner Kopitiam",
+    "category": "Food & Beverage",
+    "description": "Artisanal coffee and local breakfast favorites.",
+    "address": "1 Boon Lay Drive",
+    "postalCode": "649902",
+    "latitude": 1.29027,
+    "longitude": 103.851959,
+    "phone": "+65 6123 4567",
+    "email": "hello@cornerkopitiam.sg",
+    "website": "https://cornerkopitiam.sg",
+    "paymentOptions": ["Cash", "PayNow", "NETS"],
+    "priceRange": "$$ ($10–$30)",
+    "hours": [
+      { "day": 0, "is24h": false, "openTime": "07:00", "closeTime": "19:00" },
+      { "day": 1, "is24h": true }
+    ],
+    "photos": [
+      {
+        "id": "med_1",
+        "contentType": "image/jpeg",
+        "size": 123456,
+        "url": "/api/media/med_1"
+      }
+    ]
+  }
+  ```
+
+- **Response `400`**: invalid listing ID (`invalid_request`).
+- **Response `404`**: listing not found or not published (`not_found`).
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+- **Response `503`**: the data source failed (`dependency_unavailable`).
 
 ### List listing categories (`GET /api/listings/categories`)
 

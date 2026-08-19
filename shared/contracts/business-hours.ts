@@ -67,13 +67,14 @@ export function overlappingHours(earlier: BusinessHoursEntry, later: BusinessHou
 
 export const businessHoursScheduleSchema = z
   .array(businessHoursEntrySchema)
-  .superRefine((entries, ctx) => {
+  .superRefine((entries: BusinessHoursEntry[], ctx) => {
     const days = new Set(entries.map(entry => entry.day));
     if (days.size !== entries.length) {
       ctx.addIssue({ code: "custom", message: "Each day can appear only once" });
       return;
     }
-    const sorted = [...entries].toSorted((a, b) => a.day - b.day);
+    // eslint-disable-next-line unicorn/no-array-sort
+    const sorted = [...entries].sort((a, b) => a.day - b.day);
     for (let i = 0; i < sorted.length; i += 1) {
       const earlier = sorted[i];
       const later = sorted[(i + 1) % sorted.length];
@@ -86,4 +87,51 @@ export const businessHoursScheduleSchema = z
       }
     }
   });
-export type BusinessHoursSchedule = z.infer<typeof businessHoursScheduleSchema>;
+export const HOURS_DAY_NAMES = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+export type HoursDayName = (typeof HOURS_DAY_NAMES)[number];
+
+const SG_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+export function singaporeClock(at: Date = new Date()): { day: number; minute: number } {
+  const sg = new Date(at.getTime() + SG_OFFSET_MS);
+  return {
+    day: (sg.getUTCDay() + 6) % 7,
+    minute: sg.getUTCHours() * 60 + sg.getUTCMinutes(),
+  };
+}
+
+function todayCovers(entry: BusinessHoursEntry, minute: number): boolean {
+  if (entry.is24h) {
+    return true;
+  }
+  const open = hourMinuteToMinutes(entry.openTime);
+  const close = hourMinuteToMinutes(entry.closeTime);
+  if (close > open) {
+    return open <= minute && minute < close;
+  }
+  return minute >= open;
+}
+
+export function isOpenAt(entries: BusinessHoursEntry[], at: Date = new Date()): boolean {
+  const { day, minute } = singaporeClock(at);
+  const todays = entries.find(entry => entry.day === day);
+  if (todays !== undefined && todayCovers(todays, minute)) {
+    return true;
+  }
+  const previous = entries.find(entry => entry.day === (day + 6) % 7);
+  if (previous === undefined || previous.is24h) {
+    return false;
+  }
+  const open = hourMinuteToMinutes(previous.openTime);
+  const close = hourMinuteToMinutes(previous.closeTime);
+  return close < open && minute < close;
+}

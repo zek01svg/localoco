@@ -4,17 +4,21 @@ import { and, asc, eq, gt, gte, lte, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 
+import { business } from "#server/database/business";
+import { businessHours } from "#server/database/business-hours";
 import { listing } from "#server/database/listing";
+import { mediaObject } from "#server/database/media";
 import { getOrSetCache } from "#server/lib/cache";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
-import { isOpenNowCondition } from "#server/lib/opening-hours";
+import { hoursRowToEntry, isOpenNowCondition } from "#server/lib/opening-hours";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
 import {
   listingSchema,
   listingsCategoriesResponseSchema,
   listingsQuerySchema,
   listingsResponseSchema,
+  publicListingDetailSchema,
 } from "#shared/contracts/listings";
 
 const dependencyMessage = "Listings are temporarily unavailable. Try again shortly.";
@@ -148,6 +152,7 @@ export const listingsRoutes = new Hono()
               latitude: listing.latitude,
               longitude: listing.longitude,
               phone: listing.phone,
+              description: listing.description,
               email: listing.email,
               website: listing.website,
               paymentOptions: listing.paymentOptions,
@@ -164,7 +169,8 @@ export const listingsRoutes = new Hono()
                   ? or(
                       containsNormalized(listing.name, q),
                       containsNormalized(listing.category, q),
-                      containsNormalized(listing.address, q)
+                      containsNormalized(listing.address, q),
+                      sql`${listing.description} is not null and ${containsNormalized(listing.description, q)}`
                     )
                   : undefined,
                 boundsCondition
@@ -194,5 +200,127 @@ export const listingsRoutes = new Hono()
       const data = hasFilters ? await loadPage() : await getOrSetCache(cacheKey, 60, loadPage);
 
       return c.json(data);
+    }
+  )
+  .get(
+    "/listings/:id",
+    describeRoute({
+      operationId: "getListingDetail",
+      tags: ["listings"],
+      summary: "Get a published business listing by ID",
+      description:
+        "Returns the canonical details of a single published Listing by its ID, including UEN, address, contact options, opening hours, and active photos. Draft, rejected, or suspended Listings return 404.",
+      responses: {
+        200: {
+          description: "The public listing detail",
+          content: { "application/json": { schema: resolver(publicListingDetailSchema) } },
+        },
+        400: {
+          description: "Invalid listing ID format",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
+        404: {
+          description: "The listing does not exist or is not published",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
+        429: {
+          description: "Too many requests",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
+        503: {
+          description: "The listing data source is temporarily unavailable",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      if (!id || id.trim().length === 0) {
+        throw new HttpError(400, "invalid_request", "Listing ID is required");
+      }
+
+      const listingRows = await loadOrDependencyFailure(() =>
+        db
+          .select({
+            id: listing.id,
+            businessId: listing.businessId,
+            uen: business.uen,
+            name: listing.name,
+            category: listing.category,
+            description: listing.description,
+            address: listing.address,
+            postalCode: listing.postalCode,
+            latitude: listing.latitude,
+            longitude: listing.longitude,
+            phone: listing.phone,
+            email: listing.email,
+            website: listing.website,
+            paymentOptions: listing.paymentOptions,
+            priceRange: listing.priceRange,
+          })
+          .from(listing)
+          .innerJoin(business, eq(listing.businessId, business.id))
+          .where(and(eq(listing.id, id), eq(listing.status, "published")))
+          .limit(1)
+      );
+
+      if (listingRows.length === 0) {
+        throw new HttpError(404, "not_found", "Listing not found");
+      }
+
+      const listingRow = listingRows[0];
+
+      // Batched parallel queries for hours and active photos with no fan-out
+      const [hoursRows, photoRows] = await loadOrDependencyFailure(() =>
+        Promise.all([
+          db
+            .select({
+              day: businessHours.day,
+              is24h: businessHours.is24h,
+              openMinute: businessHours.openMinute,
+              closeMinute: businessHours.closeMinute,
+            })
+            .from(businessHours)
+            .where(eq(businessHours.businessId, listingRow.businessId))
+            .orderBy(asc(businessHours.day)),
+          db
+            .select({
+              id: mediaObject.id,
+              contentType: mediaObject.contentType,
+              size: mediaObject.size,
+            })
+            .from(mediaObject)
+            .where(
+              and(
+                eq(mediaObject.businessId, listingRow.businessId),
+                eq(mediaObject.status, "active"),
+                eq(mediaObject.purpose, "listing_photo")
+              )
+            )
+            .orderBy(asc(mediaObject.createdAt)),
+        ])
+      );
+
+      const hours = hoursRows.map(hoursRowToEntry);
+      const photos = photoRows.map(p => ({
+        id: p.id,
+        contentType: p.contentType,
+        size: p.size,
+        url: `/api/media/${p.id}`,
+      }));
+
+      const parsed = publicListingDetailSchema.safeParse({
+        ...listingRow,
+        hours,
+        photos,
+      });
+
+      if (!parsed.success) {
+        throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
+          cause: new Error("data seam returned a row that violates the listing detail contract"),
+        });
+      }
+
+      return c.json(parsed.data);
     }
   );

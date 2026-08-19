@@ -5,8 +5,9 @@ import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 
 import { business, ownedBy } from "#server/database/business";
+import { listing } from "#server/database/listing";
 import { mediaObject } from "#server/database/media";
-import { requireBusinessOwner, requireVerified } from "#server/lib/auth-middleware";
+import { requireBusinessOwner, requireVerified, resolveAuth } from "#server/lib/auth-middleware";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
 import {
@@ -72,6 +73,34 @@ const mediaRowColumns = {
 // administer the Business the object belongs to. A missing or unauthorized
 // object answers 404, revealing nothing about its existence. `key` stays on
 // the server — it is never returned to clients.
+// The read predicate for photo serving: the actor owns/administers the Business,
+// or the photo is active on a published Listing. A missing or unauthorized
+// object answers 404, revealing nothing about its existence.
+const mediaRowForPublicOrActor = async (id: string, actor: AuthContext | undefined) => {
+  if (actor) {
+    const ownedRows = await db
+      .select({ key: mediaObject.key, status: mediaObject.status })
+      .from(mediaObject)
+      .innerJoin(business, eq(mediaObject.businessId, business.id))
+      .where(and(eq(mediaObject.id, id), ownedBy(actor)))
+      .limit(1);
+    if (ownedRows.length > 0 && ownedRows[0].status === "active") {
+      return ownedRows[0];
+    }
+  }
+
+  const publicRows = await db
+    .select({ key: mediaObject.key, status: mediaObject.status })
+    .from(mediaObject)
+    .innerJoin(listing, eq(mediaObject.businessId, listing.businessId))
+    .where(
+      and(eq(mediaObject.id, id), eq(mediaObject.status, "active"), eq(listing.status, "published"))
+    )
+    .limit(1);
+
+  return publicRows.length === 0 ? null : publicRows[0];
+};
+
 const mediaRowForActor = async (id: string, actor: AuthContext) => {
   const rows = await db
     .select({ ...mediaRowColumns, key: mediaObject.key, purpose: mediaObject.purpose })
@@ -287,13 +316,13 @@ export const mediaRoutes = new Hono()
   )
   .get(
     "/media/:id",
-    requireVerified,
+    resolveAuth,
     describeRoute({
       operationId: "readListingPhoto",
       tags: ["businesses"],
-      summary: "Fetch a Listing photo as its owner",
+      summary: "Fetch a Listing photo",
       description:
-        "Resolves the object through the ownership predicate and redirects to a short-lived presigned GET URL. The response is private and never cached. Pending uploads answer 404 because their object does not exist yet. Public reads of published Listing photos arrive with the publish flow.",
+        "Resolves the object through the ownership predicate (for owners) or published listing status (for the public) and redirects to a short-lived presigned GET URL. Pending uploads and unauthorized objects answer 404.",
       responses: {
         302: {
           description: "Redirect to a short-lived presigned GET URL",
@@ -302,14 +331,11 @@ export const mediaRoutes = new Hono()
       },
     }),
     async c => {
-      const auth = c.get("auth");
-      if (!auth) {
-        throw new HttpError(401, "unauthorized", "Authentication required");
-      }
       requireStorage();
 
+      const auth = c.get("auth");
       const { id } = c.req.param();
-      const row = await mediaRowForActor(id, auth);
+      const row = await mediaRowForPublicOrActor(id, auth);
       if (!row || row.status !== "active") {
         throw new HttpError(404, "not_found", "Media object not found");
       }

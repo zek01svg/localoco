@@ -5,47 +5,14 @@ import { sql } from "drizzle-orm";
 
 import { businessHours } from "#server/database/business-hours";
 import { listing } from "#server/database/listing";
-import { hourMinuteToMinutes, minutesToHourMinute } from "#shared/contracts/business-hours";
+import {
+  hourMinuteToMinutes,
+  isOpenAt,
+  minutesToHourMinute,
+  singaporeClock,
+} from "#shared/contracts/business-hours";
 
-// The single place a UTC instant becomes Singapore wall-clock time. Singapore
-// is UTC+8 year-round with no DST, so the offset is exact arithmetic rather
-// than a timezone database lookup. Timestamps are stored in UTC everywhere
-// else in the system; this boundary is the only place the wall clock exists.
-const SG_OFFSET_MS = 8 * 60 * 60 * 1000;
-
-// The Singapore wall clock of a UTC instant: `day` is 0 = Monday .. 6 =
-// Sunday (ISO ordering) and `minute` is minutes since midnight.
-export function singaporeClock(at: Date): { day: number; minute: number } {
-  const sg = new Date(at.getTime() + SG_OFFSET_MS);
-  // getUTC* getters on the shifted instant read Singapore wall-clock values.
-  // getUTCDay() is Sunday=0; shift to Monday=0.
-  return {
-    day: (sg.getUTCDay() + 6) % 7,
-    minute: sg.getUTCHours() * 60 + sg.getUTCMinutes(),
-  };
-}
-
-// True when the Business is open at the instant `at`, in Singapore time.
-// A day with no recorded hours is closed: an empty schedule evaluates to
-// false rather than to an accidental "open". An overnight interval is stored
-// under its opening day and spills into the next day's morning, so the
-// previous day's row is consulted too — but only for its spill: the rest of
-// the previous day's coverage belongs to the previous day.
-export function isOpenAt(entries: BusinessHoursEntry[], at: Date): boolean {
-  const { day, minute } = singaporeClock(at);
-  const todays = entries.find(entry => entry.day === day);
-  if (todays !== undefined && todayCovers(todays, minute)) {
-    return true;
-  }
-  const previous = entries.find(entry => entry.day === (day + 6) % 7);
-  if (previous === undefined || previous.is24h) {
-    return false;
-  }
-  const open = hourMinuteToMinutes(previous.openTime);
-  const close = hourMinuteToMinutes(previous.closeTime);
-  // Overnight only: the spill covers [0, close) of this day.
-  return close < open && minute < close;
-}
+export { isOpenAt, singaporeClock };
 
 // Server-side filter applied before pagination: matches Listings whose
 // Business has a business_hours entry covering the instant `at` in Singapore
@@ -77,21 +44,6 @@ export function isOpenNowCondition(at: Date = new Date()): SQL {
         )
       )
   )`;
-}
-
-// Coverage of a timed or 24-hour entry on its OWN calendar day. An overnight
-// entry covers [open, 1440) of its own day; its morning [0, close) is the
-// next day's, evaluated through the spill check above.
-function todayCovers(entry: BusinessHoursEntry, minute: number): boolean {
-  if (entry.is24h) {
-    return true;
-  }
-  const open = hourMinuteToMinutes(entry.openTime);
-  const close = hourMinuteToMinutes(entry.closeTime);
-  if (close > open) {
-    return open <= minute && minute < close;
-  }
-  return minute >= open;
 }
 
 // Data-seam mapping: a business_hours row to its wire entry. The shape

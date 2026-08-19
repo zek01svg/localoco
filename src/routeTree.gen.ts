@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as ListingsRouteImport } from './routes/listings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -19,6 +18,8 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as BusinessesIdRouteImport } from './routes/businesses.$id'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
+import { Route as ListingsIndexRouteImport } from './routes/listings.index'
+import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,11 +30,6 @@ const IndexRoute = IndexRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ListingsRoute = ListingsRouteImport.update({
-  id: '/listings',
-  path: '/listings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -71,6 +67,16 @@ const BusinessesNewRoute = BusinessesNewRouteImport.update({
   path: '/businesses/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListingsIndexRoute = ListingsIndexRouteImport.update({
+  id: '/listings/',
+  path: '/listings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListingsIdRoute = ListingsIdRouteImport.update({
+  id: '/listings/$id',
+  path: '/listings/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsersIdRoute = UsersIdRouteImport.update({
   id: '/users/$id',
   path: '/users/$id',
@@ -80,7 +86,6 @@ const UsersIdRoute = UsersIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/listings': typeof ListingsRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -88,12 +93,13 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
+  '/listings/': typeof ListingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/listings': typeof ListingsRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -101,13 +107,14 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
+  '/listings': typeof ListingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
-  '/listings': typeof ListingsRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -115,14 +122,15 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
+  '/listings/': typeof ListingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/forgot-password'
-    | '/listings'
     | '/login'
     | '/profile'
     | '/reset-password'
@@ -130,12 +138,13 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/listings/$id'
     | '/users/$id'
+    | '/listings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/forgot-password'
-    | '/listings'
     | '/login'
     | '/profile'
     | '/reset-password'
@@ -143,12 +152,13 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/listings/$id'
     | '/users/$id'
+    | '/listings'
   id:
     | '__root__'
     | '/'
     | '/forgot-password'
-    | '/listings'
     | '/login'
     | '/profile'
     | '/reset-password'
@@ -156,13 +166,14 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/listings/$id'
     | '/users/$id'
+    | '/listings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
-  ListingsRoute: typeof ListingsRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -170,7 +181,9 @@ export interface RootRouteChildren {
   VerifyEmailRoute: typeof VerifyEmailRoute
   BusinessesIdRoute: typeof BusinessesIdRoute
   BusinessesNewRoute: typeof BusinessesNewRoute
+  ListingsIdRoute: typeof ListingsIdRoute
   UsersIdRoute: typeof UsersIdRoute
+  ListingsIndexRoute: typeof ListingsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -187,13 +200,6 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/listings': {
-      id: '/listings'
-      path: '/listings'
-      fullPath: '/listings'
-      preLoaderRoute: typeof ListingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -245,6 +251,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/listings/': {
+      id: '/listings/'
+      path: '/listings'
+      fullPath: '/listings/'
+      preLoaderRoute: typeof ListingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/listings/$id': {
+      id: '/listings/$id'
+      path: '/listings/$id'
+      fullPath: '/listings/$id'
+      preLoaderRoute: typeof ListingsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/users/$id': {
       id: '/users/$id'
       path: '/users/$id'
@@ -258,7 +278,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
-  ListingsRoute: ListingsRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -266,7 +285,9 @@ const rootRouteChildren: RootRouteChildren = {
   VerifyEmailRoute: VerifyEmailRoute,
   BusinessesIdRoute: BusinessesIdRoute,
   BusinessesNewRoute: BusinessesNewRoute,
+  ListingsIdRoute: ListingsIdRoute,
   UsersIdRoute: UsersIdRoute,
+  ListingsIndexRoute: ListingsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

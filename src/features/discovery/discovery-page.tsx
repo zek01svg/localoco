@@ -1,6 +1,7 @@
 import type { Listing } from "#shared/contracts/listings";
 import type { MapBounds } from "./hooks/use-listings";
 
+import { Link } from "@tanstack/react-router";
 import clsx from "clsx";
 import { LoaderCircleIcon, MapPinIcon, SearchIcon, XIcon } from "lucide-react";
 import { parseAsBoolean, useQueryState } from "nuqs";
@@ -57,7 +58,18 @@ function ListingCard({
     >
       <div className="flex flex-col gap-2 p-5">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">{listing.name}</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            <Link
+              to="/listings/$id"
+              params={{ id: listing.id }}
+              className="hover:underline focus:underline"
+              onClick={e => {
+                e.stopPropagation();
+              }}
+            >
+              {listing.name}
+            </Link>
+          </h2>
           <Badge variant="secondary">{listing.category}</Badge>
         </div>
         <p className="text-muted-foreground flex items-center gap-1.5 text-sm">

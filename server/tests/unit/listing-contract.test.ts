@@ -8,6 +8,7 @@ import {
   listingsCategoriesResponseSchema,
   listingsQuerySchema,
   ownerListingSchema,
+  publicListingDetailSchema,
 } from "#shared/contracts/listings";
 
 const validListing = {
@@ -281,5 +282,95 @@ describe("listingsCategoriesResponseSchema", () => {
 
   it("rejects non-string categories", () => {
     expect(listingsCategoriesResponseSchema.safeParse({ items: [1] }).success).toBe(false);
+  });
+});
+
+describe("publicListingDetailSchema", () => {
+  it("parses a complete public listing detail payload", () => {
+    const full = {
+      id: "lst_101",
+      businessId: "biz_101",
+      uen: "202400123A",
+      name: "Tanjong Pagar Artisan Bakery",
+      category: "Bakery",
+      description: "Artisanal sourdough and French pastries baked fresh daily.",
+      address: "120 Tanjong Pagar Road",
+      postalCode: "088532",
+      latitude: 1.2789,
+      longitude: 103.8432,
+      phone: "+65 6123 4567",
+      email: "hello@tanjongbakery.sg",
+      website: "https://tanjongbakery.sg",
+      paymentOptions: ["Cash", "PayNow", "NETS", "Visa"],
+      priceRange: "$$ ($10-$30)",
+      hours: [
+        { day: 0, is24h: false, openTime: "08:00", closeTime: "18:00" },
+        { day: 1, is24h: true },
+        { day: 2, is24h: false, openTime: "08:00", closeTime: "18:00" },
+      ],
+      photos: [
+        {
+          id: "med_1",
+          contentType: "image/jpeg",
+          size: 102400,
+          url: "/api/media/med_1",
+        },
+      ],
+    };
+
+    const parsed = publicListingDetailSchema.parse(full);
+    expect(parsed.id).toBe("lst_101");
+    expect(parsed.businessId).toBe("biz_101");
+    expect(parsed.uen).toBe("202400123A");
+    expect(parsed.description).toBe("Artisanal sourdough and French pastries baked fresh daily.");
+    expect(parsed.hours).toHaveLength(3);
+    expect(parsed.photos).toHaveLength(1);
+    expect(parsed.photos[0].url).toBe("/api/media/med_1");
+  });
+
+  it("accepts absent and null optional fields cleanly", () => {
+    const minimal = {
+      id: "lst_102",
+      businessId: "biz_102",
+      uen: "202400124B",
+      name: "Minimalist Coffee",
+      category: "Cafe",
+      description: null,
+      address: "50 Orchard Road",
+      postalCode: "238865",
+      latitude: null,
+      longitude: null,
+      phone: null,
+      email: null,
+      website: null,
+      paymentOptions: null,
+      priceRange: null,
+      hours: [],
+      photos: [],
+    };
+
+    const parsed = publicListingDetailSchema.parse(minimal);
+    expect(parsed.description).toBeNull();
+    expect(parsed.latitude).toBeNull();
+    expect(parsed.longitude).toBeNull();
+    expect(parsed.phone).toBeNull();
+    expect(parsed.email).toBeNull();
+    expect(parsed.hours).toEqual([]);
+    expect(parsed.photos).toEqual([]);
+  });
+
+  it("rejects missing mandatory fields", () => {
+    expect(
+      publicListingDetailSchema.safeParse({
+        id: "lst_103",
+        // missing businessId and uen
+        name: "Test Place",
+        category: "Retail",
+        address: "1 Street",
+        postalCode: "111111",
+        hours: [],
+        photos: [],
+      }).success
+    ).toBe(false);
   });
 });
