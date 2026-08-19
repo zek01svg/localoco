@@ -6,6 +6,7 @@ import { Badge } from "#client/components/ui/badge";
 import { Button } from "#client/components/ui/button";
 import { Card, CardContent } from "#client/components/ui/card";
 import { ListingAnnouncementsSection } from "#client/features/announcements";
+import { ListingEventsSection } from "#client/features/events";
 import { NotFoundPage } from "#client/features/not-found/not-found";
 import { isOpenAt } from "#shared/contracts/business-hours";
 
@@ -153,6 +154,9 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
 
             {/* Announcements Section */}
             <ListingAnnouncementsSection businessId={listing.businessId} />
+
+            {/* Events Section */}
+            <ListingEventsSection businessId={listing.businessId} />
 
             {/* Description Section (Deliberately omitted when empty) */}
             {listing.description && (

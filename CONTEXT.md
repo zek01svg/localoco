@@ -117,6 +117,10 @@ _Avoid_: upvote, reaction, favorite, star, thumbs-up
 A public update published by a Business owner for a Business's audience.
 _Avoid_: notification, alert, message
 
+**Event**:
+A public, time-bounded activity associated with one published Business. Unlike an Announcement (which is a general public update with optional visibility dates), an Event's start and end timestamps define the substance of the activity itself.
+_Avoid_: activity, meetup, schedule, announcement
+
 **Opening hours**:
 A Business's schedule of open intervals, stored as one entry per day of the
 week (Monday through Sunday). A day is either 24 hours or a single open-close

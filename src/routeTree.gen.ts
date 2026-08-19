@@ -19,6 +19,7 @@ import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AnnouncementsIdRouteImport } from './routes/announcements.$id'
 import { Route as BusinessesIdRouteImport } from './routes/businesses.$id'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
+import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as ForumIndexRouteImport } from './routes/forum.index'
 import { Route as ForumPostIdRouteImport } from './routes/forum.$postId'
 import { Route as ListingsIndexRouteImport } from './routes/listings.index'
@@ -75,6 +76,11 @@ const BusinessesNewRoute = BusinessesNewRouteImport.update({
   path: '/businesses/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsIdRoute = EventsIdRouteImport.update({
+  id: '/events/$id',
+  path: '/events/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForumIndexRoute = ForumIndexRouteImport.update({
   id: '/forum/',
   path: '/forum/',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/events/$id': typeof EventsIdRoute
   '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/events/$id': typeof EventsIdRoute
   '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/events/$id': typeof EventsIdRoute
   '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/events/$id'
     | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/events/$id'
     | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/events/$id'
     | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
@@ -218,6 +230,7 @@ export interface RootRouteChildren {
   AnnouncementsIdRoute: typeof AnnouncementsIdRoute
   BusinessesIdRoute: typeof BusinessesIdRoute
   BusinessesNewRoute: typeof BusinessesNewRoute
+  EventsIdRoute: typeof EventsIdRoute
   ForumPostIdRoute: typeof ForumPostIdRoute
   ListingsIdRoute: typeof ListingsIdRoute
   UsersIdRoute: typeof UsersIdRoute
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/$id': {
+      id: '/events/$id'
+      path: '/events/$id'
+      fullPath: '/events/$id'
+      preLoaderRoute: typeof EventsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/forum/': {
       id: '/forum/'
       path: '/forum'
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnnouncementsIdRoute: AnnouncementsIdRoute,
   BusinessesIdRoute: BusinessesIdRoute,
   BusinessesNewRoute: BusinessesNewRoute,
+  EventsIdRoute: EventsIdRoute,
   ForumPostIdRoute: ForumPostIdRoute,
   ListingsIdRoute: ListingsIdRoute,
   UsersIdRoute: UsersIdRoute,

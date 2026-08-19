@@ -120,6 +120,13 @@
       "when": 1787159322894,
       "tag": "0016_worthless_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787163896694,
+      "tag": "0017_polite_alex_power",
+      "breakpoints": true
     }
   ]
 }

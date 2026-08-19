@@ -1,6 +1,7 @@
 export { announcementsRoutes } from "./announcements";
 export { bookmarksRoutes } from "./bookmarks";
 export { businessesRoutes } from "./businesses";
+export { eventsRoutes } from "./events";
 export { forumRoutes } from "./forum";
 export { listingsRoutes } from "./listings";
 export { mediaRoutes } from "./media";

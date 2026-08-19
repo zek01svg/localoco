@@ -4,6 +4,7 @@ export * from "./bookmark";
 export * from "./business";
 export * from "./business-hours";
 export * from "./email";
+export * from "./event";
 export * from "./forum";
 export * from "./likes";
 export * from "./listing";

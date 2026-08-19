@@ -1728,3 +1728,142 @@ Administrator endpoint returning the immutable moderation history for an announc
     ]
   }
   ```
+
+---
+
+## 16. Events
+
+Public, time-bounded activities published by owners of published Businesses.
+
+### List public Events (`GET /api/events`)
+
+Returns a cursor-paginated list of active upcoming/ongoing events across published listings, newest first. Expired events (`endsAt < now`) or those from non-published listings are excluded automatically.
+
+Query parameters:
+
+| Name     | Type     | Default | Description                      |
+| :------- | :------- | :------ | :------------------------------- |
+| `limit`  | `int`    | `20`    | Page size (1 to 100)             |
+| `cursor` | `string` | —       | Cursor string from previous page |
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "evt_123",
+        "businessId": "biz_456",
+        "userId": "usr_789",
+        "title": "Specialty Coffee Cupping Workshop",
+        "description": "Learn to taste and evaluate specialty single-origin coffees.",
+        "imageUrl": "https://images.example.com/coffee.jpg",
+        "linkUrl": "https://example.com/rsvp",
+        "startsAt": "2026-09-01T10:00:00.000Z",
+        "endsAt": "2026-09-01T12:00:00.000Z",
+        "status": "active",
+        "moderationReason": null,
+        "canonicalUrl": "/events/evt_123",
+        "business": {
+          "id": "biz_456",
+          "name": "Alice Bakery",
+          "category": "Cafe",
+          "uen": "T09LL0001A"
+        },
+        "author": {
+          "id": "usr_789",
+          "displayName": "Alice Tan",
+          "avatarUrl": null
+        },
+        "createdAt": "2026-08-20T00:00:00.000Z",
+        "updatedAt": "2026-08-20T00:00:00.000Z"
+      }
+    ],
+    "nextCursor": null
+  }
+  ```
+- **Response `400`**: invalid cursor or query parameters (`invalid_request`).
+
+### Get Event detail (`GET /api/events/:id`)
+
+Fetches event details with canonical URL and metadata. Public viewers can only see active, non-expired events on published listings; business owners and administrators can see any state.
+
+- **Response `200 OK`**: Event item payload.
+- **Response `404`**: event not found or not visible (`not_found`).
+
+### Create Business Event (`POST /api/businesses/:id/events`)
+
+Creates an event for an owned published business. Requires the listing to be in `published` state; returns 409 Conflict otherwise. Mandatory start and end timestamps are validated so end never precedes start. Produces zero email deliveries.
+
+- **Request Body**:
+  ```json
+  {
+    "title": "Specialty Coffee Cupping Workshop",
+    "description": "Learn to taste and evaluate specialty single-origin coffees.",
+    "imageUrl": "https://images.example.com/coffee.jpg",
+    "linkUrl": "https://example.com/rsvp",
+    "startsAt": "2026-09-01T10:00:00.000Z",
+    "endsAt": "2026-09-01T12:00:00.000Z"
+  }
+  ```
+- **Response `201 Created`**: Created Event payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: business not found or not owned (`not_found`).
+- **Response `409`**: business listing is not in published state (`conflict`).
+
+### List Business Events (`GET /api/businesses/:id/events`)
+
+Returns events for a specific business. Business owners and administrators receive all events (active, expired, moderated); public visitors only see active, non-expired events on published listings.
+
+- **Response `200 OK`**: Paginated events response.
+
+### Update Business Event (`PATCH /api/businesses/:id/events/:eventId`)
+
+Updates an owned event.
+
+- **Response `200 OK`**: Updated Event payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `404`**: business or event not found (`not_found`).
+
+### Delete Business Event (`DELETE /api/businesses/:id/events/:eventId`)
+
+Permanently deletes an event.
+
+- **Response `204 No Content`**: Event deleted.
+
+### Moderate Event (`POST /api/events/:id/moderate`)
+
+Administrator endpoint to moderate or restore an event with an immutable reason and audit record.
+
+- **Request Body**:
+  ```json
+  {
+    "action": "moderate",
+    "reason": "Violates safety and licensing requirements."
+  }
+  ```
+- **Response `200 OK`**: Moderated Event payload.
+- **Response `403`**: administrator role required (`forbidden`).
+- **Response `404`**: event not found (`not_found`).
+
+### List Event Moderation Audits (`GET /api/events/:id/audits`)
+
+Administrator endpoint returning the immutable moderation history for an event.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "aud_456",
+        "eventId": "evt_123",
+        "actorId": "usr_admin",
+        "previousStatus": "active",
+        "nextStatus": "moderated",
+        "reason": "Violates safety and licensing requirements.",
+        "createdAt": "2026-08-20T00:00:00.000Z"
+      }
+    ]
+  }
+  ```

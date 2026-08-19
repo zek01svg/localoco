@@ -17,6 +17,7 @@ import {
   announcementsRoutes,
   bookmarksRoutes,
   businessesRoutes,
+  eventsRoutes,
   forumRoutes,
   healthRoutes,
   listingsRoutes,
@@ -105,6 +106,7 @@ const apiRoutes = new Hono()
   .route("/", listingsRoutes)
   .route("/", businessesRoutes)
   .route("/", announcementsRoutes)
+  .route("/", eventsRoutes)
   .route("/", forumRoutes)
   .route("/", bookmarksRoutes)
   .route("/", mediaRoutes)
