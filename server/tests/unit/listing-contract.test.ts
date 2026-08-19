@@ -165,6 +165,18 @@ describe("listingsQuerySchema discovery filters", () => {
     expect(parsed.q).toBe("100% _natural_");
   });
 
+  it("parses openNow flag correctly", () => {
+    expect(listingsQuerySchema.parse({ openNow: "true" }).openNow).toBe(true);
+    expect(listingsQuerySchema.parse({ openNow: "false" }).openNow).toBe(false);
+    expect(listingsQuerySchema.parse({}).openNow).toBeUndefined();
+  });
+
+  it("rejects invalid openNow values", () => {
+    expect(listingsQuerySchema.safeParse({ openNow: "yes" }).success).toBe(false);
+    expect(listingsQuerySchema.safeParse({ openNow: "1" }).success).toBe(false);
+    expect(listingsQuerySchema.safeParse({ openNow: "TRUE" }).success).toBe(false);
+  });
+
   it("keeps limit and cursor validation unchanged", () => {
     expect(listingsQuerySchema.safeParse({ limit: "0" }).success).toBe(false);
     expect(listingsQuerySchema.safeParse({ limit: "101" }).success).toBe(false);

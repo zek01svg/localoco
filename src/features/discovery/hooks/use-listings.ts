@@ -14,10 +14,16 @@ async function fetchListingsJson(path: string, errorMessage: string): Promise<un
   return res.json();
 }
 
-async function fetchPage(q: string, category: string, cursor: string | undefined) {
+async function fetchPage(
+  q: string,
+  category: string,
+  openNow: boolean,
+  cursor: string | undefined
+) {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (category) params.set("category", category);
+  if (openNow) params.set("openNow", "true");
   if (cursor) params.set("cursor", cursor);
   const query = params.toString();
 
@@ -29,10 +35,10 @@ async function fetchPage(q: string, category: string, cursor: string | undefined
   );
 }
 
-export function useListingsInfiniteQuery(q: string, category: string) {
+export function useListingsInfiniteQuery(q: string, category: string, openNow = false) {
   return useInfiniteQuery({
-    queryKey: ["listings", q, category],
-    queryFn: ({ pageParam }) => fetchPage(q, category, pageParam),
+    queryKey: ["listings", q, category, openNow],
+    queryFn: ({ pageParam }) => fetchPage(q, category, openNow, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
     // A failure is a retryable error state, not something to hide behind

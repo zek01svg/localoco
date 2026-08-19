@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Open-now filter in Business discovery** (PRS-186): Visitors can filter
+  Business discovery down to businesses that are open right now in Singapore
+  wall-clock time (`GET /api/listings?openNow=true`). Evaluated server-side in
+  SQL before cursor pagination against stored `business_hours` (handling
+  24-hour schedules, daytime intervals, and overnight windows across midnight),
+  composing correctly with `q` search and `category` filtering while preserving
+  deterministic keyset pagination.
 - **Administrative ownership transfer** (PRS-183): Administrators can move a
   Business to another verified login User via
   `POST /api/businesses/:id/transfer-ownership`. Ownership is not an updatable

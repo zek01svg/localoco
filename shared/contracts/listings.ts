@@ -81,6 +81,11 @@ export const listingsQuerySchema = z.object({
   // Exact category match; the valid values are the distinct categories of
   // published Listings, served by GET /api/listings/categories.
   category: z.string().trim().min(1).max(100).optional(),
+  // Filter to Businesses open right now in Singapore time (UTC+8).
+  openNow: z
+    .enum(["true", "false"])
+    .transform(v => v === "true")
+    .optional(),
 });
 export type ListingsQuery = z.infer<typeof listingsQuerySchema>;
 

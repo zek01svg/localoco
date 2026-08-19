@@ -1,5 +1,10 @@
 import type { BusinessHoursEntry } from "#shared/contracts/business-hours";
+import type { SQL } from "drizzle-orm";
 
+import { sql } from "drizzle-orm";
+
+import { businessHours } from "#server/database/business-hours";
+import { listing } from "#server/database/listing";
 import { hourMinuteToMinutes, minutesToHourMinute } from "#shared/contracts/business-hours";
 
 // The single place a UTC instant becomes Singapore wall-clock time. Singapore
@@ -29,8 +34,8 @@ export function singaporeClock(at: Date): { day: number; minute: number } {
 export function isOpenAt(entries: BusinessHoursEntry[], at: Date): boolean {
   const { day, minute } = singaporeClock(at);
   const todays = entries.find(entry => entry.day === day);
-  if (todays !== undefined) {
-    return todayCovers(todays, minute);
+  if (todays !== undefined && todayCovers(todays, minute)) {
+    return true;
   }
   const previous = entries.find(entry => entry.day === (day + 6) % 7);
   if (previous === undefined || previous.is24h) {
@@ -40,6 +45,38 @@ export function isOpenAt(entries: BusinessHoursEntry[], at: Date): boolean {
   const close = hourMinuteToMinutes(previous.closeTime);
   // Overnight only: the spill covers [0, close) of this day.
   return close < open && minute < close;
+}
+
+// Server-side filter applied before pagination: matches Listings whose
+// Business has a business_hours entry covering the instant `at` in Singapore
+// wall-clock time. A 24-hour day covers all minutes [0, 1440); an ordinary
+// daytime interval covers [open, close); an overnight interval covers
+// [open, 1440) on its opening day and [0, close) on the next day.
+export function isOpenNowCondition(at: Date = new Date()): SQL {
+  const { day, minute } = singaporeClock(at);
+  const prevDay = (day + 6) % 7;
+
+  return sql`exists (
+    select 1 from ${businessHours}
+    where ${businessHours.businessId} = ${listing.businessId}
+      and (
+        (
+          ${businessHours.day} = ${day}
+          and (
+            ${businessHours.is24h}
+            or (${businessHours.closeMinute} > ${businessHours.openMinute} and ${businessHours.openMinute} <= ${minute} and ${minute} < ${businessHours.closeMinute})
+            or (${businessHours.closeMinute} < ${businessHours.openMinute} and ${minute} >= ${businessHours.openMinute})
+          )
+        )
+        or
+        (
+          ${businessHours.day} = ${prevDay}
+          and not ${businessHours.is24h}
+          and ${businessHours.closeMinute} < ${businessHours.openMinute}
+          and ${minute} < ${businessHours.closeMinute}
+        )
+      )
+  )`;
 }
 
 // Coverage of a timed or 24-hour entry on its OWN calendar day. An overnight

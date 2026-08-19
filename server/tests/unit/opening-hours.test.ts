@@ -93,6 +93,18 @@ describe("isOpenAt", () => {
     expect(isOpenAt(hours, new Date("2026-08-17T10:00:00Z"))).toBe(false); // Mon 18:00:00 SG
   });
 
+  it("is open on the next day's morning from an overnight spill even if today has a later entry", () => {
+    // Sunday (6) 18:00-02:00 spills into Monday (0) 00:00-02:00.
+    // Monday (0) also has 09:00-18:00.
+    const hours = [timed(6, "18:00", "02:00"), timed(0, "09:00", "18:00")];
+    // Monday 01:00 SG -> covered by Sunday's spill
+    expect(isOpenAt(hours, new Date("2026-08-23T17:00:00Z"))).toBe(true);
+    // Monday 05:00 SG -> closed (spill ended at 02:00, Monday hasn't opened)
+    expect(isOpenAt(hours, new Date("2026-08-23T21:00:00Z"))).toBe(false);
+    // Monday 10:00 SG -> covered by Monday's interval
+    expect(isOpenAt(hours, new Date("2026-08-24T02:00:00Z"))).toBe(true);
+  });
+
   it("evaluates in Singapore time regardless of the server's clock", () => {
     // 00:00 UTC is 08:00 SG: the UTC date is still Wednesday, the SG date is
     // the same day, so a Wednesday 08:00-16:00 interval is open.

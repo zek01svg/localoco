@@ -93,13 +93,17 @@ Query parameters:
 | `cursor`   | `string` | —       | Opaque `id` of the last listing on the previous page                                                                                       |
 | `q`        | `string` | —       | Text search matched against name, category, and address (see below)                                                                        |
 | `category` | `string` | —       | Exact match on the listing's category; `GET /api/listings/categories` lists the values that exist (any other value simply matches nothing) |
+| `openNow`  | `bool`   | —       | When `"true"`, filters to Businesses whose opening hours cover the current instant in Singapore time (UTC+8)                               |
 
-Search is a filter, never a ranking signal: `q` is trimmed, case-folded, and
+Search and open-now are filters, never ranking signals: `q` is trimmed, case-folded, and
 whitespace-collapsed, and the same normalization is applied to the stored
 name, category, and address before a substring match, so minor case or
 formatting differences never hide a Listing. LIKE wildcards in `q` are
-treated as literals. Ordering stays `id` ascending regardless of filters, so
-pages remain deterministic.
+treated as literals. `openNow` is evaluated server-side against stored
+`business_hours` in Singapore wall-clock time before pagination, correctly
+handling 24-hour schedules, daytime intervals, and overnight windows across
+midnight. Businesses with no recorded hours evaluate to closed. Ordering stays
+`id` ascending regardless of filters, so pages remain deterministic.
 
 > Known gap: listings have no description field yet, so "descriptive text"
 > search covers the listing's name, category, and address only.

@@ -198,4 +198,41 @@ describe("DiscoveryPage", () => {
       expect(screen.getByText("Sunrise Roastery")).toBeDefined();
     });
   });
+
+  it("filters listings when Open now is toggled", async () => {
+    mockApi(url => {
+      if (url.pathname === "/api/listings/categories") {
+        return jsonResponse({ items: ["Cafe"] }, 200);
+      }
+      if (url.searchParams.get("openNow") === "true") {
+        return jsonResponse(
+          { items: [listing("lst_2", "24/7 Supper Club")], nextCursor: null },
+          200
+        );
+      }
+      return jsonResponse(
+        {
+          items: [listing("lst_1", "Garden Cove Cafe"), listing("lst_2", "24/7 Supper Club")],
+          nextCursor: null,
+        },
+        200
+      );
+    });
+
+    renderDiscovery();
+
+    await waitFor(() => {
+      expect(screen.getByText("Garden Cove Cafe")).toBeDefined();
+    });
+    expect(screen.getByText("24/7 Supper Club")).toBeDefined();
+
+    const switchEl = screen.getByRole("switch");
+    expect(switchEl).toBeDefined();
+    fireEvent.click(switchEl);
+
+    await waitFor(() => {
+      expect(screen.getByText("24/7 Supper Club")).toBeDefined();
+      expect(screen.queryByText("Garden Cove Cafe")).toBeNull();
+    });
+  });
 });

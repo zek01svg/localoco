@@ -1,15 +1,17 @@
 import type { Listing } from "#shared/contracts/listings";
 
 import { LoaderCircleIcon, MapPinIcon, SearchIcon } from "lucide-react";
-import { useQueryState } from "nuqs";
+import { parseAsBoolean, useQueryState } from "nuqs";
 import { useEffect } from "react";
 
 import { Badge } from "#client/components/ui/badge";
 import { Button } from "#client/components/ui/button";
 import { Card } from "#client/components/ui/card";
 import { Input } from "#client/components/ui/input";
+import { Label } from "#client/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "#client/components/ui/native-select";
 import { Skeleton } from "#client/components/ui/skeleton";
+import { Switch } from "#client/components/ui/switch";
 import { EmptyState } from "#client/features/empty/empty-state";
 import { useDebounce } from "#client/hooks/use-debounce";
 
@@ -56,12 +58,13 @@ export function DiscoveryPage() {
     defaultValue: "",
     clearOnDefault: true,
   });
+  const [openNow, setOpenNow] = useQueryState("openNow", parseAsBoolean.withDefault(false));
   const debouncedQ = useDebounce(q, 350);
 
   const categoriesQuery = useListingsCategoriesQuery();
-  const listingsQuery = useListingsInfiniteQuery(debouncedQ, category);
+  const listingsQuery = useListingsInfiniteQuery(debouncedQ, category, openNow);
 
-  const hasFilters = Boolean(q || category);
+  const hasFilters = Boolean(q || category || openNow);
   const items = listingsQuery.data?.pages.flatMap(page => page.items) ?? [];
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export function DiscoveryPage() {
           </p>
         </header>
 
-        <search className="flex flex-col gap-3 sm:flex-row">
+        <search className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <label htmlFor="listing-search" className="relative flex-1">
             <span className="sr-only">Search businesses</span>
             <SearchIcon
@@ -121,6 +124,21 @@ export function DiscoveryPage() {
               ))}
             </NativeSelect>
           </label>
+          <div className="flex items-center gap-2 px-1 py-1.5 sm:py-0">
+            <Switch
+              id="listing-open-now"
+              checked={openNow}
+              onCheckedChange={checked => {
+                void setOpenNow(checked);
+              }}
+            />
+            <Label
+              htmlFor="listing-open-now"
+              className="cursor-pointer text-sm font-medium whitespace-nowrap"
+            >
+              Open now
+            </Label>
+          </div>
         </search>
 
         <section aria-live="polite" className="mt-8">
@@ -162,6 +180,7 @@ export function DiscoveryPage() {
                     onClick={() => {
                       void setQ("");
                       void setCategory("");
+                      void setOpenNow(false);
                     }}
                   >
                     Clear filters

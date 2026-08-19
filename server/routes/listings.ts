@@ -8,6 +8,7 @@ import { listing } from "#server/database/listing";
 import { getOrSetCache } from "#server/lib/cache";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
+import { isOpenNowCondition } from "#server/lib/opening-hours";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
 import {
   listingSchema,
@@ -92,11 +93,15 @@ export const listingsRoutes = new Hono()
       tags: ["listings"],
       summary: "List public business listings",
       description:
-        "Cursor-paginated list of published business listings, ordered by stable id. Draft and moderated Listings are never returned here. `q` filters by normalized text search across name, category, and address; `category` narrows to an exact category.",
+        "Cursor-paginated list of published business listings, ordered by stable id. Draft and moderated Listings are never returned here. `q` filters by normalized text search across name, category, and address; `category` narrows to an exact category; `openNow` filters to businesses open right now in Singapore time.",
       responses: {
         200: {
           description: "A page of listings",
           content: { "application/json": { schema: resolver(listingsResponseSchema) } },
+        },
+        400: {
+          description: "Request parameters failed validation",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
         },
         429: {
           description: "Too many requests",
@@ -109,7 +114,7 @@ export const listingsRoutes = new Hono()
       },
     }),
     async c => {
-      const { limit, cursor, q, category } = c.req.valid("query");
+      const { limit, cursor, q, category, openNow } = c.req.valid("query");
       // Only the unfiltered directory is cached: filtered pages are transient
       // (each keystroke or category change is a distinct query) and would
       // otherwise grow the cache unboundedly. The key carries no query text,
@@ -139,6 +144,7 @@ export const listingsRoutes = new Hono()
                 eq(listing.status, "published"),
                 cursor ? gt(listing.id, cursor) : undefined,
                 category ? eq(listing.category, category) : undefined,
+                openNow ? isOpenNowCondition() : undefined,
                 q
                   ? or(
                       containsNormalized(listing.name, q),
@@ -168,7 +174,8 @@ export const listingsRoutes = new Hono()
         return { items: page, nextCursor };
       };
 
-      const data = q || category ? await loadPage() : await getOrSetCache(cacheKey, 60, loadPage);
+      const hasFilters = Boolean(q || category || openNow);
+      const data = hasFilters ? await loadPage() : await getOrSetCache(cacheKey, 60, loadPage);
 
       return c.json(data);
     }
