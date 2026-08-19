@@ -142,10 +142,14 @@ The backend is built with **Hono**, a high-performance web framework designed fo
   - `/health`: System health monitoring.
   - `/api/runtime.js`: Dynamic client environment configuration.
   - `/api/auth/*`: Better Auth handlers for user management and authentication.
-  - `/api/openapi` & `/api/scalar`: Automatic OpenAPI 3.0 specification generation (`hono-openapi`) and interactive Scalar API explorer UI.
+  - `/api/openapi` & `/api/scalar`: Automatic OpenAPI 3.1 specification generation (`hono-openapi`) and interactive Scalar API explorer UI.
 - **Error Handling & Middleware**:
   - Global error handler (`app.onError`) formats validation failures (`400 Bad Request`) and uncaught exceptions (`500 Internal Server Error`).
-  - Structured request timing middleware logs HTTP completion metrics (`durationMs`, `status`, `method`, `path`).
+  - Correlation-id middleware (in `server/index.ts`) assigns every request a
+    server-owned `requestId` (UUID), echoes it on the `X-Request-Id` response
+    header, and the error handler (`createErrorHandler`) attaches it to error
+    envelopes and error log lines, so a failed request can be traced across
+    logs and responses.
 - **External providers** (`server/lib/geocoding/`, `server/lib/email/`): each
   provider is a narrow module with constructor-injected fetch, zod validation
   at the trust boundary, and typed classified failures (`not_found`,

@@ -630,11 +630,11 @@ Rate limiting and caching are backed by **Upstash Redis** (connectionless REST H
 
 ### Rate Limit Tiers
 
-| Surface              | Path Pattern    | Limit                       | Identification                          |
-| :------------------- | :-------------- | :-------------------------- | :-------------------------------------- |
-| Public API           | `/api/*`        | 100 requests per 60s window | `CF-Connecting-IP` or `X-Forwarded-For` |
-| Auth Endpoints       | `/api/auth/*`   | 30 requests per 60s window  | `CF-Connecting-IP` or `X-Forwarded-For` |
-| System Health/Probes | `/health`, etc. | Unlimited (Exempt)          | N/A                                     |
+| Surface              | Path Pattern    | Limit                            | Identification                          |
+| :------------------- | :-------------- | :------------------------------- | :-------------------------------------- |
+| Public API           | `/api/*`        | 100 requests per 60s window      | `CF-Connecting-IP` or `X-Forwarded-For` |
+| Auth Endpoints       | `/api/auth/*`   | 10 requests per 10-minute window | `CF-Connecting-IP` or `X-Forwarded-For` |
+| System Health/Probes | `/health`, etc. | Unlimited (Exempt)               | N/A                                     |
 
 ### Rate Limit Headers
 
@@ -728,8 +728,10 @@ structurally absent from it, not conditionally stripped. The route mounts no
 session middleware, so the response is byte-identical for anonymous visitors,
 signed-in Users, and the profile's owner.
 
-Public Review and Forum contribution streams are added to this endpoint by the
-Reviews and Forum slices; until then the profile is identity-only.
+Public Review and Forum contribution streams are exposed as separate
+user-scoped endpoints rather than embedded in this one: `GET
+/api/users/:id/reviews` (see §13). Forum posts are not yet surfaced on the
+profile.
 
 ### Get a public profile (`GET /api/users/:id`)
 
@@ -967,7 +969,7 @@ answer `503` so QStash retries.
 
 ---
 
-## 7. Bookmarks
+## 12. Bookmarks
 
 Bookmarks allow an authenticated User to save Businesses to return to later.
 Bookmarks are strictly private: they are structurally absent from public
@@ -999,36 +1001,34 @@ published Listings (ordered ascending by stable bookmark ID).
   {
     "items": [
       {
+        "id": "bmk_1",
+        "businessId": "biz_1",
+        "createdAt": "2026-08-19T00:00:00.000Z",
+        "business": {
+          "id": "biz_1",
+          "uen": "199012345A"
+        },
+        "listing": {
+          "id": "lst_1",
+          "name": "Maxwell Chicken Rice",
+          "category": "Food & Beverage",
+          "address": "123 Maxwell Road",
+          "postalCode": "069111",
+          "latitude": 1.2956,
+          "longitude": 103.7764,
+          "phone": "+6561234567",
+          "email": "contact@example.com",
+          "website": "https://example.com",
+          "paymentOptions": ["PayNow"],
+          "priceRange": "$$"
+        }
+      }
+    ],
+    "nextCursor": "bmk_1"
+  }
   ```
 
-<<<<<<< HEAD
-"id": "bmk_1",
-"businessId": "biz_1",
-"createdAt": "2026-08-19T00:00:00.000Z",
-"business": {
-"id": "biz_1",
-"uen": "199012345A"
-},
-"listing": {
-"id": "lst_1",
-"name": "Maxwell Chicken Rice",
-"category": "Food & Beverage",
-"address": "123 Maxwell Road",
-"postalCode": "069111",
-"latitude": 1.2956,
-"longitude": 103.7764,
-"phone": "+6561234567",
-"email": "contact@example.com",
-"website": "https://example.com",
-"paymentOptions": ["PayNow"],
-"priceRange": "$$"
-}
-}
-],
-"nextCursor": "bmk_1"
-}
-
-````
+  `listing` is `null` when the Business has no published Listing.
 
 - **Response `400`**: query parameters failed validation (`invalid_request`).
 - **Response `401`**: no active session (`unauthorized`).
@@ -1041,11 +1041,11 @@ return the bookmark without error.
 
 - **Request Body** — `application/json`:
 
-```json
-{
-  "businessId": "biz_1"
-}
-````
+  ```json
+  {
+    "businessId": "biz_1"
+  }
+  ```
 
 - **Response `200 OK`** — `application/json`:
 
@@ -1105,7 +1105,7 @@ Checks whether the session user has bookmarked the specified Business.
 
 ---
 
-## 8. Reviews & Derived Ratings Endpoints
+## 13. Reviews & Derived Ratings Endpoints
 
 Reviews allow verified Users to write one review with an integer Rating (1–5) and feedback for a Business. Aggregate ratings and review counts are derived in SQL from persisted reviews.
 
@@ -1240,7 +1240,7 @@ Public endpoint returning cursor-paginated reviews written by a user for public 
   ```
 - **Response `404`**: user not found (`not_found`).
 
-## 9. Forum posts and Replies Endpoints
+## 14. Forum posts and Replies Endpoints
 
 Forum posts are the parent discussions in the community forum, each required to reference a Business (the association is never nullable). Replies are responses to a Forum post. Public reads are cursor-paginated, replies render oldest-first, and author deletion is soft deletion: content stops being public while the row remains for administrators (`?includeDeleted=true`).
 

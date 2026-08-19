@@ -2,148 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.1.0] - 2026-08-19
 
-- **Forum posts and Replies** (PRS-191): Verified Users start Forum posts about
-  a Business and reply to each other; visitors read discussions without signing
-  in. The Business association is required and never nullable — a post must
-  reference a Business, and the database foreign key enforces it. Author
-  deletion is soft deletion (`deleted_at`), so moderation history remains
-  available to administrators while content stops being public; every public
-  read path (feed, detail, replies) filters through a single shared
-  visibility predicate. Public feeds are cursor-paginated (newest-first
-  posts, oldest-first replies) with batched reply counts embedded in a single
-  query per page — a thousand replies never produce a thousand queries
-  (asserted by a bounded query-count test). Administrators can read
-  soft-deleted content via `?includeDeleted=true`; non-administrators get 403. Accessible UI at `/forum` and `/forum/$postId` with canonical URLs,
-  author-only edit/delete controls, and a verified-only post/reply composer
-  gated by verification state.
-- **Reviews and derived Ratings** (PRS-190): Verified Users can author a single
-  Review per Business with an integer Rating (1–5) and feedback text. Ratings
-  and total review counts are derived strictly in SQL from persisted reviews
-  (`AVG`, `COUNT`), preventing cached count/aggregate drift. Enforces database
-  check constraints (`rating >= 1 AND rating <= 5`) and unique constraints
-  `(user_id, business_id)` that hold gracefully under high concurrency. Business
-  owners are forbidden from reviewing their own business. Includes author-only
-  PATCH editing and author/admin DELETE operations, keyset cursor pagination,
-  and user public profile review stream feeds. Accessible UI components include
-  star ratings, interactive star rating inputs, and review management dialogs.
-- **Private, database-enforced Bookmarks** (PRS-189): Authenticated users can save
-  Businesses to revisit later (`GET /api/bookmarks`, `POST /api/bookmarks`,
-  `DELETE /api/bookmarks/:businessId`, `GET /api/bookmarks/:businessId`).
-  Bookmarks are private to the owning user and structurally absent from all
-  public profile and discovery endpoints (`Cache-Control: private, no-store`).
-  Multi-column unique constraint on `(user_id, business_id)` prevents duplicate
-  bookmarks under concurrent creation; addition and removal operations are fully
-  idempotent. Bookmarks list is cursor-paginated and integrated into the personal
-  profile page (`/profile`).
-- **Listing detail page** (PRS-188): Public listing detail view at
-  `/listings/$id` serving canonical details for published businesses
-  (`GET /api/listings/:id`). Renders business name, UEN, category, description,
-  address, contact options (phone, email, website), weekly opening hours schedule
-  with live open-now indicator in Singapore time, accepted payment options, price
-  range, and active photo gallery with thumbnail and keyboard navigation. Renders
-  Schema.org JSON-LD (`LocalBusiness`) structured data, social and canonical meta tags,
-  and stored map coordinates without read-time geocoding. Unpublished (draft,
-  pending review, rejected, suspended) listings return 404. Controlled media URLs
-  (`GET /api/media/:id`) allow public access for active photos of published
-  listings while retaining private owner access for unpublished photos.
-- **Map viewport filter and browser map** (PRS-187): Public discovery page
-  enhancement layering an interactive Google Map on top of the directory via
-  `@vis.gl/react-google-maps`. Server-side bounding box filtering (`north`,
-  `south`, `east`, `west` on `GET /api/listings`) filters results before cursor
-  pagination against stored coordinates without read-time geocoding. The map is
-  loaded lazily so it never gates textual directory discovery; if Maps JavaScript
-  is unavailable or fails, an honest visible degraded state is shown while the
-  textual directory remains fully usable and interactive.
+### Added
 
-- **Open-now filter in Business discovery** (PRS-186): Visitors can filter
-  Business discovery down to businesses that are open right now in Singapore
-  wall-clock time (`GET /api/listings?openNow=true`). Evaluated server-side in
-  SQL before cursor pagination against stored `business_hours` (handling
-  24-hour schedules, daytime intervals, and overnight windows across midnight),
-  composing correctly with `q` search and `category` filtering while preserving
-  deterministic keyset pagination.
-- **Administrative ownership transfer** (PRS-183): Administrators can move a
-  Business to another verified login User via
-  `POST /api/businesses/:id/transfer-ownership`. Ownership is not an updatable
-  field on any Business or Listing edit path, so it can only change through
-  this explicit operation. The transfer is transactional, rejects absent,
-  unverified, and synthetic non-login targets, and writes an immutable record
-  (actor, previous owner, next owner, reason) to `business_ownership_audit`.
-- **Business discovery with text search, category filter, and cursor
-  pagination** (PRS-184): Public directory page at `/listings`. `GET
-/api/listings` accepts `q` (case- and whitespace-insensitive search across
-  name, category, and address — there is no description field on listings yet,
-  so "descriptive text" covers those three) and `category` (exact match),
-  composing with the existing deterministic keyset pagination; the new
-  `GET /api/listings/categories` serves the distinct published categories for
-  the filter. Dependency failures answer `503 dependency_unavailable` and
-  render a retryable error state, never an empty directory; an honest empty
-  state appears only when nothing matched.
-- **Listing moderation lifecycle and audit** (PRS-182): Full moderation lifecycle
-  for Listings (`draft`, `pending_review`, `published`, `rejected`, `suspended`).
-  Owners submit listings for review (`POST /api/businesses/:id/listing/submit`);
-  editing a published listing demotes it back to `pending_review` until re-approved.
-  Administrators moderate listings (`POST /api/businesses/:id/listing/moderate`) by
-  publishing, rejecting, or suspending them with a mandatory reason, writing an
-  immutable record to `listing_moderation_audit`. Rejected listings retain the
-  administrative reason so owners know what to update. Only published listings
-  appear in public discovery (`GET /api/listings`).
-- **Administrator role and database-backed authorization** (PRS-175): Dedicated
-  `administrator` table (`user_id` foreign key cascade), session middleware
-  resolving `isAdmin` directly from the database on every request, and
-  `requireAdmin` route guards.
-- **Private R2 media and Listing photos** (PRS-181): Business owners can add,
-  view, and delete photos on their Listing. Objects live in a private R2
-  bucket behind short-lived presigned grants with server-generated keys, the
-  per-Business count and per-photo bounds are enforced at the boundary, and
-  abandoned uploads are purged by a QStash-signed sweep webhook. Deleting a
-  photo is permanent.
-- **Server-side address validation and persisted coordinates** (PRS-179): Listing
-  addresses are resolved to street-level Singapore coordinates via the Google
-  Geocoding API at write time (ADR-0006). `POST /api/businesses` always
-  geocodes; `PATCH /api/businesses/:id/listing` re-geocodes only on
-  address/postalCode changes. Unresolvable or ambiguous addresses fail with
-  `400 invalid_request`; provider outages and quota exhaustion fail with
-  `503 dependency_unavailable` — writes never proceed without validated
-  coordinates, and reads never call the provider. Listings expose nullable
-  `latitude`/`longitude` in responses.
-- **Business opening hours** (PRS-180): Owners can set per-day opening hours on their
-  business Listing (24-hour days, overnight intervals, wholesale schedule
-  replacement). Stored timezone-free and evaluated in Singapore time by a
-  tested evaluator; invalid or overlapping schedules are rejected at the
-  client, the API boundary, and the database.
-- **Business and draft listing creation** (PRS-178): Authenticated and verified
-  users can register new businesses with unique Singapore UEN validation, and
-  manage draft listings with descriptions, tags, and category metadata.
-- **Personal and public profiles** (PRS-176, PRS-177): Authenticated personal
-  profile page for managing account details, requesting email address changes,
-  and viewing owned businesses; public profiles displaying user identity.
-- **Authentication & session management** (PRS-171, PRS-172, PRS-173, PRS-174):
-  Complete authentication lifecycle powered by better-auth — email & password
-  registration, email verification flow, secure password reset with signed tokens,
-  and session middleware.
-- **Asynchronous transactional email pipeline** (PRS-170): QStash-backed
-  resilient email delivery with compiled HTML/plaintext templates, email
-  classification, and Resend provider integration.
-- **Distributed rate limiting and caching** (PRS-169): Upstash Redis rate
-  limiting with memory fallback and bounded in-memory caching.
-- **API contract and OpenAPI specifications** (PRS-167): Standardized error
-  envelope, typed request schemas, and dev-only interactive Scalar reference.
-- **Postgres data schema & migration harness** (PRS-166): Drizzle migrations
-  0001 through 0007 covering auth, businesses, listings, opening hours,
-  coordinates, media objects, and administrator roles.
-- **Geocoding provider module**: `server/lib/geocoding/` follows the
-  external-provider pattern (ADR-0005) — zod validation at the trust
-  boundary, typed classified failures, contract tests against a local fake
-  HTTP server.
-- **Maps & R2 infrastructure**: Terraform-managed server/browser Google Maps API
-  keys (`infra/maps.tf`) with Cloud Monitoring alerts, and Cloudflare R2 bucket
-  configuration with Secret Manager integration (`infra/r2.tf`).
-- **Documentation**: ADRs 0005 (isolate external providers) and 0006 (geocode
-  at write time), Maps & R2 deployment steps, API coordinates, opening hours,
-  photos, and error documentation.
+- **Application baseline on the rewrite spine**: the full product ships on the
+  React 19 + Bun/Hono stack — auth, businesses, listings, media, reviews,
+  forum, and bookmarks.
+- **Authentication & sessions** (PRS-171–175): email/password registration
+  with email verification, password reset, session middleware, and the
+  administrator role with database-backed authorization.
+- **Businesses & listings** (PRS-178–181): UEN-validated business
+  registration, draft listings, server-side address validation with persisted
+  coordinates (ADR-0006), opening hours, and private R2 photo management.
+- **Moderation & ownership** (PRS-182–183): listing moderation lifecycle with
+  immutable audit records, and administrative business ownership transfer.
+- **Discovery** (PRS-184–188): public directory with text search, category
+  and open-now filters, map viewport filtering, and listing detail pages with
+  Schema.org structured data.
+- **Reviews and Forum** (PRS-190–191): verified-user reviews with SQL-derived
+  ratings, and forum posts/replies with soft deletion and cursor pagination.
+- **Bookmarks** (PRS-189): private, database-enforced bookmarks on the
+  personal profile page.
+- **Plumbing** (PRS-166–170): API contract with error envelope, distributed
+  rate limiting, bounded caching, and an asynchronous transactional email
+  pipeline.
 
 ### Changed
 

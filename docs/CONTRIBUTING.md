@@ -148,7 +148,7 @@ bunx lefthook run pre-commit
 
 Database operations use **Drizzle ORM** and **Drizzle Kit**. The schema in
 `server/database/` is the single canonical source; committed migrations in
-`drizzle/` are generated from it.
+`server/database/drizzle/` are generated from it.
 
 ### Run Migrations
 
@@ -203,8 +203,11 @@ All contributions must include appropriate unit or E2E tests.
 ### Running Tests
 
 ```bash
-# Run Unit & Integration Tests (Vitest)
+# Run Unit Tests (Vitest)
 bun run test:unit
+
+# Run Unit + Integration Tests (Vitest)
+bun run test
 
 # Run End-to-End Tests (Playwright)
 bun run test:e2e
@@ -212,8 +215,9 @@ bun run test:e2e
 
 ### Writing Tests
 
-- **Unit Tests (`tests/unit/`)**: Place test files with the `.test.ts` or `.test.tsx` extension. Tests are executed via Vitest with JSDOM environment support.
+- **Unit Tests (`server/tests/unit/` and `src/tests/unit/`)**: Place server-side test files in `server/tests/unit/` and client-side test files in `src/tests/unit/`, with the `.test.ts` or `.test.tsx` extension. Tests are executed via Vitest with JSDOM environment support.
 - **E2E Tests (`tests/e2e/`)**: Place E2E test specifications under `tests/e2e/` with the `.spec.ts` extension. Tests are executed via Playwright against running browser instances.
+- **Integration Tests (`tests/integration/`)**: HTTP seam tests against the server entry, run by `bun run test` (unit + integration).
 
 ---
 

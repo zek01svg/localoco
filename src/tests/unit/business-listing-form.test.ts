@@ -185,7 +185,7 @@ describe("LISTING_FIELD_DEFS", () => {
   it("requires the same fields the server requires", () => {
     const clientRequired = LISTING_FIELD_DEFS.filter(def => def.required).map(def => def.name);
     const serverRequired = Object.entries(listingFields)
-      .filter(([, schema]) => !schema.safeParse(null).success && !schema.safeParse().success)
+      .filter(([, schema]) => !schema.isNullable())
       .map(([name]) => name);
 
     expect(clientRequired).toEqual(serverRequired);

@@ -118,8 +118,10 @@ operator steps:
   (ADR-0006); without the key, listing writes fail explicitly with
   `503 dependency_unavailable`.
 - **Browser key** (`google_apikeys_key.browser`): restricted to the Maps
-  JavaScript API and the `localoco.ciav.dev` referrer. It is dormant — no
-  client code consumes it until a map UI ships.
+  JavaScript API and the `localoco.ciav.dev` referrer. The client map UI
+  (discovery map, listing detail map) consumes it via
+  `VITE_GOOGLE_MAPS_API_KEY`; the Maps JavaScript API service is enabled in
+  `infra/state-bucket.tf`.
 - **Alert**: `google_monitoring_alert_policy.geocoding_request_rate` fires
   when geocoding request volume exceeds 2000 requests per 5 minutes, well
   below the 3000 queries/minute provider rate limit.
@@ -139,10 +141,11 @@ Manual steps (need the Google Cloud console, once):
 3. Verify a geocode round-trip after the next apply:
    `curl -s "https://maps.googleapis.com/maps/api/geocode/json?address=1%20Boon%20Lay%20Drive%20649902&key=<server key>"` —
    expect `"status": "OK"` with a `ROOFTOP` result in Singapore.
-4. When a map UI ships: enable the Maps JavaScript API
-   (`maps-backend.googleapis.com`) in the console or `infra/state-bucket.tf` —
-   the browser key's restriction already points at it and starts working
-   immediately.
+4. Verify the client map renders in production: the map UI loads when
+   `VITE_GOOGLE_MAPS_API_KEY` is set on the Cloud Run service. The Maps
+   JavaScript API (`maps-backend.googleapis.com`) is enabled in
+   `infra/state-bucket.tf` and the browser key's restriction already points
+   at it.
 
 ### R2 Listing photos bootstrap (one-time)
 

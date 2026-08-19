@@ -1,7 +1,8 @@
 # Google Maps Platform credentials. The Geocoding API resolves listing
 # addresses to coordinates server-side at write time (ADR-0006). The browser
-# key stays dormant until a map UI ships; its referrer restriction keeps the
-# key useless off localoco.ciav.dev.
+# key powers the client map UI (discovery map and listing detail map), which
+# loads the Maps JavaScript API with VITE_GOOGLE_MAPS_API_KEY; its referrer
+# restriction keeps the key useless off localoco.ciav.dev.
 
 # Server key: restricted to the Geocoding API backend only, so it cannot be
 # replayed against any other Google API even if it leaks.
@@ -19,12 +20,13 @@ resource "google_apikeys_key" "server" {
   }
 }
 
-# Browser key: Maps JavaScript API only, locked to the app origin. No client
-# code consumes it yet; it exists so a future map feature has a bounded key
-# ready instead of a new operator step. The maps-backend.googleapis.com
-# service itself is NOT enabled until the map UI ships (only APIs actually
-# used are enabled); the key's restriction is declarative and starts working
-# the moment the service is turned on.
+# Browser key: Maps JavaScript API only, locked to the app origin. The client
+# map UI (src/features/discovery/components/discovery-map.tsx and
+# src/features/listings/components/listing-map-view.tsx) consumes it via
+# VITE_GOOGLE_MAPS_API_KEY through @vis.gl/react-google-maps. The
+# maps-backend.googleapis.com service is enabled in state-bucket.tf; the
+# key's restriction is declarative and starts working the moment the service
+# is turned on.
 resource "google_apikeys_key" "browser" {
   name         = "localoco-maps-browser"
   display_name = "LocaLoco browser - Maps JavaScript API"

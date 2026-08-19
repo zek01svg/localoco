@@ -26,15 +26,14 @@ test.describe("LocaLoco landing page", () => {
     expect(response.headers()["cache-control"]).toContain("immutable");
   });
 
-  test("keyboard navigation reaches the not-found recovery action", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("link", { name: "Let\u2019s go!" }).focus();
-    await page.keyboard.press("Enter");
+  test("serves a not-found page with a keyboard-reachable recovery link", async ({ page }) => {
+    const response = await page.goto("/nonexistent");
+    expect(response?.status()).toBe(200);
 
     await expect(page.getByRole("heading", { level: 1, name: /page not found/iu })).toBeVisible();
     const backHome = page.getByRole("link", { name: "Back to home" });
-    await expect(backHome).toBeVisible();
-    await backHome.click();
+    await backHome.focus();
+    await page.keyboard.press("Enter");
 
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Find local gems");
   });

@@ -354,7 +354,7 @@ describe("ForumPostPage component", () => {
   it("renders the discussion with author actions for the author", async () => {
     stubSession({ id: "usr_1" });
     fetchMock.mockImplementation(async input => {
-      const url = typeof input === "string" ? input : input.url;
+      const url = input instanceof Request ? input.url : String(input);
       if (url.endsWith("/forum/posts/post_1")) {
         return jsonResponse(mockPost, 200);
       }
@@ -370,7 +370,7 @@ describe("ForumPostPage component", () => {
 
   it("hides author actions from other viewers", async () => {
     fetchMock.mockImplementation(async input => {
-      const url = typeof input === "string" ? input : input.url;
+      const url = input instanceof Request ? input.url : String(input);
       if (url.endsWith("/forum/posts/post_1")) {
         return jsonResponse(mockPost, 200);
       }
@@ -387,7 +387,7 @@ describe("ForumPostPage component", () => {
   it("deletes the post and navigates back to the forum", async () => {
     stubSession({ id: "usr_1" });
     fetchMock.mockImplementation(async input => {
-      const url = typeof input === "string" ? input : input.url;
+      const url = input instanceof Request ? input.url : String(input);
       if (url.endsWith("/forum/posts/post_1")) {
         return jsonResponse(mockPost, 200);
       }
