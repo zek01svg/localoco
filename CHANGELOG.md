@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Forum posts and Replies** (PRS-191): Verified Users start Forum posts about
+  a Business and reply to each other; visitors read discussions without signing
+  in. The Business association is required and never nullable — a post must
+  reference a Business, and the database foreign key enforces it. Author
+  deletion is soft deletion (`deleted_at`), so moderation history remains
+  available to administrators while content stops being public; every public
+  read path (feed, detail, replies) filters through a single shared
+  visibility predicate. Public feeds are cursor-paginated (newest-first
+  posts, oldest-first replies) with batched reply counts embedded in a single
+  query per page — a thousand replies never produce a thousand queries
+  (asserted by a bounded query-count test). Administrators can read
+  soft-deleted content via `?includeDeleted=true`; non-administrators get 403. Accessible UI at `/forum` and `/forum/$postId` with canonical URLs,
+  author-only edit/delete controls, and a verified-only post/reply composer
+  gated by verification state.
 - **Reviews and derived Ratings** (PRS-190): Verified Users can author a single
   Review per Business with an integer Rating (1–5) and feedback text. Ratings
   and total review counts are derived strictly in SQL from persisted reviews
@@ -35,15 +49,13 @@ All notable changes to this project will be documented in this file.
   (`GET /api/media/:id`) allow public access for active photos of published
   listings while retaining private owner access for unpublished photos.
 - **Map viewport filter and browser map** (PRS-187): Public discovery page
-
-> > > > > > > eef38de (feat: reviews and derived ratings)
-> > > > > > > enhancement layering an interactive Google Map on top of the directory via
-> > > > > > > `@vis.gl/react-google-maps`. Server-side bounding box filtering (`north`,
-> > > > > > > `south`, `east`, `west` on `GET /api/listings`) filters results before cursor
-> > > > > > > pagination against stored coordinates without read-time geocoding. The map is
-> > > > > > > loaded lazily so it never gates textual directory discovery; if Maps JavaScript
-> > > > > > > is unavailable or fails, an honest visible degraded state is shown while the
-> > > > > > > textual directory remains fully usable and interactive.
+  enhancement layering an interactive Google Map on top of the directory via
+  `@vis.gl/react-google-maps`. Server-side bounding box filtering (`north`,
+  `south`, `east`, `west` on `GET /api/listings`) filters results before cursor
+  pagination against stored coordinates without read-time geocoding. The map is
+  loaded lazily so it never gates textual directory discovery; if Maps JavaScript
+  is unavailable or fails, an honest visible degraded state is shown while the
+  textual directory remains fully usable and interactive.
 
 - **Open-now filter in Business discovery** (PRS-186): Visitors can filter
   Business discovery down to businesses that are open right now in Singapore

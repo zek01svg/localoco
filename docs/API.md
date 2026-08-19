@@ -1239,3 +1239,170 @@ Public endpoint returning cursor-paginated reviews written by a user for public 
   }
   ```
 - **Response `404`**: user not found (`not_found`).
+
+## 9. Forum posts and Replies Endpoints
+
+Forum posts are the parent discussions in the community forum, each required to reference a Business (the association is never nullable). Replies are responses to a Forum post. Public reads are cursor-paginated, replies render oldest-first, and author deletion is soft deletion: content stops being public while the row remains for administrators (`?includeDeleted=true`).
+
+### Get the Forum feed (`GET /api/forum/posts`)
+
+Public endpoint returning cursor-paginated Forum posts newest-first with batched reply counts. Soft-deleted posts are excluded.
+
+- **Query Parameters**:
+  - `limit` (optional): number of posts per page (1–100, default `20`).
+  - `cursor` (optional): base64-encoded pagination cursor.
+  - `includeDeleted` (optional): `true` includes soft-deleted posts; requires the administrator role, otherwise `403`.
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "post_123",
+        "businessId": "biz_456",
+        "userId": "usr_789",
+        "title": "Weekend crowd?",
+        "body": "How busy is it on Saturdays?",
+        "author": {
+          "id": "usr_789",
+          "displayName": "Alice Tan",
+          "avatarUrl": null
+        },
+        "business": {
+          "id": "biz_456",
+          "name": "Kaya Toast Central",
+          "category": "Food & Beverage"
+        },
+        "replyCount": 3,
+        "deletedAt": null,
+        "createdAt": "2026-08-19T04:00:00.000Z",
+        "updatedAt": "2026-08-19T04:00:00.000Z"
+      }
+    ],
+    "nextCursor": "MjAyNi0wOC0xOVQwNDowMDowMC4wMDBaX3Bvc3RfMTIz"
+  }
+  ```
+- **Response `403`**: `includeDeleted` requested without the administrator role (`forbidden`).
+
+### Create a Forum post (`POST /api/forum/posts`)
+
+Publishes a Forum post referencing an existing Business. Requires an authenticated session with a verified email (`requireVerified`).
+
+- **Request Body**:
+  ```json
+  {
+    "businessId": "biz_456",
+    "title": "Weekend crowd?",
+    "body": "How busy is it on Saturdays?"
+  }
+  ```
+- **Response `201 Created`**: the created Forum post payload.
+- **Response `400`**: validation error (missing businessId, empty or overlength title/body) (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: business not found (`not_found`).
+
+### Get a Forum post (`GET /api/forum/posts/:id`)
+
+Public endpoint returning a single Forum post with its Business reference and batched reply count. Soft-deleted posts answer 404 unless an administrator passes `includeDeleted=true`.
+
+- **Query Parameters**: `includeDeleted` (optional, administrator-only) as above.
+- **Response `200 OK`**: the Forum post payload.
+- **Response `403`**: `includeDeleted` requested without the administrator role (`forbidden`).
+- **Response `404`**: post not found or soft-deleted (`not_found`).
+
+### Edit a Forum post (`PATCH /api/forum/posts/:id`)
+
+Updates a post's title and/or body. Requires a verified session and only the post's author can edit it.
+
+- **Request Body**:
+  ```json
+  {
+    "title": "Edited title",
+    "body": "Edited body."
+  }
+  ```
+- **Response `200 OK`**: the updated Forum post payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not the author (`forbidden`).
+- **Response `404`**: post not found or soft-deleted (`not_found`).
+
+### Soft-delete a Forum post (`DELETE /api/forum/posts/:id`)
+
+Marks a post as soft-deleted (`deleted_at`). Requires a verified session and only the post's author can delete it. The post stops appearing in public reads while the row remains available to administrators.
+
+- **Response `204 No Content`**: post soft-deleted.
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not the author (`forbidden`).
+- **Response `404`**: post not found or already soft-deleted (`not_found`).
+
+### Get Replies to a Forum post (`GET /api/forum/posts/:id/replies`)
+
+Public endpoint returning cursor-paginated Replies to a post in chronological (oldest-first) order. Soft-deleted replies are excluded. Soft-deleted posts answer 404 unless an administrator passes `includeDeleted=true`.
+
+- **Query Parameters**: `limit`, `cursor`, and `includeDeleted` (optional, administrator-only) as above.
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "reply_123",
+        "postId": "post_456",
+        "userId": "usr_789",
+        "body": "Usually packed after 11am.",
+        "author": {
+          "id": "usr_789",
+          "displayName": "Ben Lim",
+          "avatarUrl": null
+        },
+        "deletedAt": null,
+        "createdAt": "2026-08-19T05:00:00.000Z",
+        "updatedAt": "2026-08-19T05:00:00.000Z"
+      }
+    ],
+    "nextCursor": null
+  }
+  ```
+- **Response `403`**: `includeDeleted` requested without the administrator role (`forbidden`).
+- **Response `404`**: post not found or soft-deleted (`not_found`).
+
+### Reply to a Forum post (`POST /api/forum/posts/:id/replies`)
+
+Publishes a Reply to a post. Requires an authenticated session with a verified email. Soft-deleted posts answer 404.
+
+- **Request Body**:
+  ```json
+  {
+    "body": "Usually packed after 11am."
+  }
+  ```
+- **Response `201 Created`**: the created Reply payload.
+- **Response `400`**: validation error (empty or overlength body) (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: post not found or soft-deleted (`not_found`).
+
+### Edit a Reply (`PATCH /api/forum/replies/:id`)
+
+Updates a reply's body. Requires a verified session and only the reply's author can edit it.
+
+- **Request Body**:
+  ```json
+  {
+    "body": "Updated reply."
+  }
+  ```
+- **Response `200 OK`**: the updated Reply payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not the author (`forbidden`).
+- **Response `404`**: reply not found or soft-deleted (`not_found`).
+
+### Soft-delete a Reply (`DELETE /api/forum/replies/:id`)
+
+Marks a reply as soft-deleted. Requires a verified session and only the reply's author can delete it. The reply stops appearing in public reads while the row remains available to administrators.
+
+- **Response `204 No Content`**: reply soft-deleted.
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not the author (`forbidden`).
+- **Response `404`**: reply not found or already soft-deleted (`not_found`).

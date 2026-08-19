@@ -1,5 +1,6 @@
 export { bookmarksRoutes } from "./bookmarks";
 export { businessesRoutes } from "./businesses";
+export { forumRoutes } from "./forum";
 export { listingsRoutes } from "./listings";
 export { mediaRoutes } from "./media";
 export { healthRoutes, smokeRoutes } from "./system";

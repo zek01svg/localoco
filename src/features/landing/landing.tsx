@@ -14,6 +14,7 @@ const navLinks = [
   { label: "Why LocaLoco", href: "#why" },
   { label: "How it works", href: "#how" },
   { label: "Browse businesses", href: "/listings" },
+  { label: "Community forum", href: "/forum" },
 ];
 
 const features = [

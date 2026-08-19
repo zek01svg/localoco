@@ -18,6 +18,8 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as BusinessesIdRouteImport } from './routes/businesses.$id'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
+import { Route as ForumIndexRouteImport } from './routes/forum.index'
+import { Route as ForumPostIdRouteImport } from './routes/forum.$postId'
 import { Route as ListingsIndexRouteImport } from './routes/listings.index'
 import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
@@ -67,6 +69,16 @@ const BusinessesNewRoute = BusinessesNewRouteImport.update({
   path: '/businesses/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForumIndexRoute = ForumIndexRouteImport.update({
+  id: '/forum/',
+  path: '/forum/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForumPostIdRoute = ForumPostIdRouteImport.update({
+  id: '/forum/$postId',
+  path: '/forum/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ListingsIndexRoute = ListingsIndexRouteImport.update({
   id: '/listings/',
   path: '/listings/',
@@ -93,8 +105,10 @@ export interface FileRoutesByFullPath {
   '/verify-email': typeof VerifyEmailRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
+  '/forum/': typeof ForumIndexRoute
   '/listings/': typeof ListingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -107,8 +121,10 @@ export interface FileRoutesByTo {
   '/verify-email': typeof VerifyEmailRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
+  '/forum': typeof ForumIndexRoute
   '/listings': typeof ListingsIndexRoute
 }
 export interface FileRoutesById {
@@ -122,8 +138,10 @@ export interface FileRoutesById {
   '/verify-email': typeof VerifyEmailRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
+  '/forum/': typeof ForumIndexRoute
   '/listings/': typeof ListingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -138,8 +156,10 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
+    | '/forum/'
     | '/listings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -152,8 +172,10 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
+    | '/forum'
     | '/listings'
   id:
     | '__root__'
@@ -166,8 +188,10 @@ export interface FileRouteTypes {
     | '/verify-email'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
+    | '/forum/'
     | '/listings/'
   fileRoutesById: FileRoutesById
 }
@@ -181,8 +205,10 @@ export interface RootRouteChildren {
   VerifyEmailRoute: typeof VerifyEmailRoute
   BusinessesIdRoute: typeof BusinessesIdRoute
   BusinessesNewRoute: typeof BusinessesNewRoute
+  ForumPostIdRoute: typeof ForumPostIdRoute
   ListingsIdRoute: typeof ListingsIdRoute
   UsersIdRoute: typeof UsersIdRoute
+  ForumIndexRoute: typeof ForumIndexRoute
   ListingsIndexRoute: typeof ListingsIndexRoute
 }
 
@@ -251,6 +277,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forum/': {
+      id: '/forum/'
+      path: '/forum'
+      fullPath: '/forum/'
+      preLoaderRoute: typeof ForumIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forum/$postId': {
+      id: '/forum/$postId'
+      path: '/forum/$postId'
+      fullPath: '/forum/$postId'
+      preLoaderRoute: typeof ForumPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/listings/': {
       id: '/listings/'
       path: '/listings'
@@ -285,8 +325,10 @@ const rootRouteChildren: RootRouteChildren = {
   VerifyEmailRoute: VerifyEmailRoute,
   BusinessesIdRoute: BusinessesIdRoute,
   BusinessesNewRoute: BusinessesNewRoute,
+  ForumPostIdRoute: ForumPostIdRoute,
   ListingsIdRoute: ListingsIdRoute,
   UsersIdRoute: UsersIdRoute,
+  ForumIndexRoute: ForumIndexRoute,
   ListingsIndexRoute: ListingsIndexRoute,
 }
 export const routeTree = rootRouteImport

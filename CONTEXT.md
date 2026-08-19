@@ -91,6 +91,11 @@ _Avoid_: thread, topic
 A response to a Forum post.
 _Avoid_: comment, response post
 
+**Soft deletion**:
+Removing content from public view by setting a `deleted_at` timestamp rather
+than deleting the row, preserving the record for administrators.
+_Avoid_: delete, hide
+
 **Bookmark**:
 A User’s saved reference to a Business for later access.
 _Avoid_: favorite, saved listing
