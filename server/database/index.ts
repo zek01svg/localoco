@@ -5,3 +5,4 @@ export * from "./business-hours";
 export * from "./email";
 export * from "./listing";
 export * from "./media";
+export * from "./reviews";

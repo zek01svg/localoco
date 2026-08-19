@@ -20,6 +20,7 @@ import {
   listingsRoutes,
   mediaRoutes,
   profileRoutes,
+  reviewsRoutes,
   smokeRoutes,
   usersRoutes,
   webhooksRoutes,
@@ -104,6 +105,7 @@ const apiRoutes = new Hono()
   .route("/", bookmarksRoutes)
   .route("/", mediaRoutes)
   .route("/", profileRoutes)
+  .route("/", reviewsRoutes)
   .route("/", usersRoutes);
 
 // Chained from the first call so `typeof app` infers every route: hono/client

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Reviews and derived Ratings** (PRS-190): Verified Users can author a single
+  Review per Business with an integer Rating (1–5) and feedback text. Ratings
+  and total review counts are derived strictly in SQL from persisted reviews
+  (`AVG`, `COUNT`), preventing cached count/aggregate drift. Enforces database
+  check constraints (`rating >= 1 AND rating <= 5`) and unique constraints
+  `(user_id, business_id)` that hold gracefully under high concurrency. Business
+  owners are forbidden from reviewing their own business. Includes author-only
+  PATCH editing and author/admin DELETE operations, keyset cursor pagination,
+  and user public profile review stream feeds. Accessible UI components include
+  star ratings, interactive star rating inputs, and review management dialogs.
 - **Private, database-enforced Bookmarks** (PRS-189): Authenticated users can save
   Businesses to revisit later (`GET /api/bookmarks`, `POST /api/bookmarks`,
   `DELETE /api/bookmarks/:businessId`, `GET /api/bookmarks/:businessId`).
@@ -26,13 +36,14 @@ All notable changes to this project will be documented in this file.
   listings while retaining private owner access for unpublished photos.
 - **Map viewport filter and browser map** (PRS-187): Public discovery page
 
-  enhancement layering an interactive Google Map on top of the directory via
-  `@vis.gl/react-google-maps`. Server-side bounding box filtering (`north`,
-  `south`, `east`, `west` on `GET /api/listings`) filters results before cursor
-  pagination against stored coordinates without read-time geocoding. The map is
-  loaded lazily so it never gates textual directory discovery; if Maps JavaScript
-  is unavailable or fails, an honest visible degraded state is shown while the
-  textual directory remains fully usable and interactive.
+> > > > > > > eef38de (feat: reviews and derived ratings)
+> > > > > > > enhancement layering an interactive Google Map on top of the directory via
+> > > > > > > `@vis.gl/react-google-maps`. Server-side bounding box filtering (`north`,
+> > > > > > > `south`, `east`, `west` on `GET /api/listings`) filters results before cursor
+> > > > > > > pagination against stored coordinates without read-time geocoding. The map is
+> > > > > > > loaded lazily so it never gates textual directory discovery; if Maps JavaScript
+> > > > > > > is unavailable or fails, an honest visible degraded state is shown while the
+> > > > > > > textual directory remains fully usable and interactive.
 
 - **Open-now filter in Business discovery** (PRS-186): Visitors can filter
   Business discovery down to businesses that are open right now in Singapore

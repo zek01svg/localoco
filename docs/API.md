@@ -999,32 +999,36 @@ published Listings (ordered ascending by stable bookmark ID).
   {
     "items": [
       {
-        "id": "bmk_1",
-        "businessId": "biz_1",
-        "createdAt": "2026-08-19T00:00:00.000Z",
-        "business": {
-          "id": "biz_1",
-          "uen": "199012345A"
-        },
-        "listing": {
-          "id": "lst_1",
-          "name": "Maxwell Chicken Rice",
-          "category": "Food & Beverage",
-          "address": "123 Maxwell Road",
-          "postalCode": "069111",
-          "latitude": 1.2956,
-          "longitude": 103.7764,
-          "phone": "+6561234567",
-          "email": "contact@example.com",
-          "website": "https://example.com",
-          "paymentOptions": ["PayNow"],
-          "priceRange": "$$"
-        }
-      }
-    ],
-    "nextCursor": "bmk_1"
-  }
   ```
+
+<<<<<<< HEAD
+"id": "bmk_1",
+"businessId": "biz_1",
+"createdAt": "2026-08-19T00:00:00.000Z",
+"business": {
+"id": "biz_1",
+"uen": "199012345A"
+},
+"listing": {
+"id": "lst_1",
+"name": "Maxwell Chicken Rice",
+"category": "Food & Beverage",
+"address": "123 Maxwell Road",
+"postalCode": "069111",
+"latitude": 1.2956,
+"longitude": 103.7764,
+"phone": "+6561234567",
+"email": "contact@example.com",
+"website": "https://example.com",
+"paymentOptions": ["PayNow"],
+"priceRange": "$$"
+}
+}
+],
+"nextCursor": "bmk_1"
+}
+
+````
 
 - **Response `400`**: query parameters failed validation (`invalid_request`).
 - **Response `401`**: no active session (`unauthorized`).
@@ -1037,11 +1041,11 @@ return the bookmark without error.
 
 - **Request Body** — `application/json`:
 
-  ```json
-  {
-    "businessId": "biz_1"
-  }
-  ```
+```json
+{
+  "businessId": "biz_1"
+}
+````
 
 - **Response `200 OK`** — `application/json`:
 
@@ -1100,3 +1104,138 @@ Checks whether the session user has bookmarked the specified Business.
 - **Response `503`**: database unavailable (`dependency_unavailable`).
 
 ---
+
+## 8. Reviews & Derived Ratings Endpoints
+
+Reviews allow verified Users to write one review with an integer Rating (1–5) and feedback for a Business. Aggregate ratings and review counts are derived in SQL from persisted reviews.
+
+### Create a Review (`POST /api/businesses/:id/reviews`)
+
+Publishes a Review for a Business. Requires an authenticated session with a verified email (`requireVerified`). Business owners cannot review their own business. Enforces one review per user and business via a database uniqueness constraint.
+
+- **Request Body**:
+  ```json
+  {
+    "rating": 5,
+    "content": "Outstanding food and great atmosphere!"
+  }
+  ```
+- **Response `201 Created`**:
+  ```json
+  {
+    "id": "rev_123",
+    "businessId": "biz_456",
+    "userId": "usr_789",
+    "rating": 5,
+    "content": "Outstanding food and great atmosphere!",
+    "author": {
+      "id": "usr_789",
+      "displayName": "Alice Tan",
+      "avatarUrl": "https://cdn.example.com/avatar.png"
+    },
+    "createdAt": "2026-08-19T04:00:00.000Z",
+    "updatedAt": "2026-08-19T04:00:00.000Z"
+  }
+  ```
+- **Response `400`**: validation error (rating not integer 1–5 or empty/overlength content) (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified or business owner reviewing own business (`forbidden`).
+- **Response `404`**: business not found (`not_found`).
+- **Response `409`**: user already reviewed this business (`conflict`).
+
+### List Reviews for a Business (`GET /api/businesses/:id/reviews`)
+
+Public endpoint returning cursor-paginated reviews for a Business along with derived aggregate Rating and total count.
+
+- **Query Parameters**:
+  - `limit` (optional): number of reviews per page (1–100, default `20`).
+  - `cursor` (optional): base64-encoded pagination cursor.
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "rev_123",
+        "businessId": "biz_456",
+        "userId": "usr_789",
+        "rating": 5,
+        "content": "Outstanding food and great atmosphere!",
+        "author": {
+          "id": "usr_789",
+          "displayName": "Alice Tan",
+          "avatarUrl": null
+        },
+        "createdAt": "2026-08-19T04:00:00.000Z",
+        "updatedAt": "2026-08-19T04:00:00.000Z"
+      }
+    ],
+    "nextCursor": "MjAyNi0wOC0xOVQwNDowMDowMC4wMDBaX3Jldl8xMjM",
+    "aggregate": {
+      "averageRating": 4.5,
+      "totalCount": 12
+    }
+  }
+  ```
+- **Response `404`**: business not found (`not_found`).
+
+### Edit a Review (`PATCH /api/reviews/:id`)
+
+Updates a review's rating or content. Requires a verified session and only the review's author can edit it.
+
+- **Request Body**:
+  ```json
+  {
+    "rating": 4,
+    "content": "Updated review feedback."
+  }
+  ```
+- **Response `200 OK`**: the updated review payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not the author of this review (`forbidden`).
+- **Response `404`**: review not found (`not_found`).
+
+### Delete a Review (`DELETE /api/reviews/:id`)
+
+Deletes a review. Requires a verified session and can only be performed by the review's author or a platform administrator.
+
+- **Response `204 No Content`**: review deleted.
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is neither the author nor an administrator (`forbidden`).
+- **Response `404`**: review not found (`not_found`).
+
+### List Reviews by User (`GET /api/users/:id/reviews`)
+
+Public endpoint returning cursor-paginated reviews written by a user for public profile contribution feeds.
+
+- **Query Parameters**:
+  - `limit` (optional): number of reviews per page (1–100, default `20`).
+  - `cursor` (optional): base64-encoded pagination cursor.
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "rev_123",
+        "businessId": "biz_456",
+        "userId": "usr_789",
+        "rating": 5,
+        "content": "Crispy prata!",
+        "author": {
+          "id": "usr_789",
+          "displayName": "Alice Tan",
+          "avatarUrl": null
+        },
+        "business": {
+          "id": "biz_456",
+          "name": "Prata Palace",
+          "category": "Food & Beverage"
+        },
+        "createdAt": "2026-08-19T04:00:00.000Z",
+        "updatedAt": "2026-08-19T04:00:00.000Z"
+      }
+    ],
+    "nextCursor": null
+  }
+  ```
+- **Response `404`**: user not found (`not_found`).

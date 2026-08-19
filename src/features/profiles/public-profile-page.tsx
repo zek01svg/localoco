@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "#client/components/ui/avatar";
 import { Skeleton } from "#client/components/ui/skeleton";
 import { NotFoundPage } from "#client/features/not-found/not-found";
+import { UserReviewsList } from "#client/features/reviews";
 
 import { ProfileNotFoundError, usePublicProfileQuery } from "./hooks/use-public-profile-query";
 import { initialsOf } from "./initials";
@@ -40,13 +41,17 @@ export function PublicProfilePage({ userId }: { userId: string }) {
 
   return (
     <main className="bg-background flex min-h-screen items-start justify-center p-6">
-      <section className="flex flex-col items-center gap-4 pt-16 text-center">
-        <Avatar size="lg">
-          {data.avatarUrl ? <AvatarImage src={data.avatarUrl} alt={data.displayName} /> : null}
-          <AvatarFallback>{initialsOf(data.displayName)}</AvatarFallback>
-        </Avatar>
-        <h1 className="text-2xl font-semibold tracking-tight">{data.displayName}</h1>
-      </section>
+      <div className="flex w-full max-w-2xl flex-col items-center gap-6 pt-16">
+        <section className="flex flex-col items-center gap-4 text-center">
+          <Avatar size="lg">
+            {data.avatarUrl ? <AvatarImage src={data.avatarUrl} alt={data.displayName} /> : null}
+            <AvatarFallback>{initialsOf(data.displayName)}</AvatarFallback>
+          </Avatar>
+          <h1 className="text-2xl font-semibold tracking-tight">{data.displayName}</h1>
+        </section>
+
+        <UserReviewsList userId={userId} userName={data.displayName} />
+      </div>
     </main>
   );
 }

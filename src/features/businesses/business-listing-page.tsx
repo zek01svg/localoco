@@ -14,6 +14,7 @@ import {
 } from "#client/components/ui/card";
 import { useSession } from "#client/features/auth";
 import { NotFoundPage } from "#client/features/not-found/not-found";
+import { BusinessReviewsSection } from "#client/features/reviews";
 
 import {
   HoursSection,
@@ -191,6 +192,7 @@ function ListingStatusBanner({
 }
 
 function ListingEditForm({ businessId, listing }: { businessId: string; listing: OwnerListing }) {
+  const { user } = useSession();
   const updateListingMutation = useUpdateListingMutation(businessId);
   const pendingMutation = updateListingMutation.isPending;
 
@@ -293,6 +295,11 @@ function ListingEditForm({ businessId, listing }: { businessId: string; listing:
           </CardContent>
         </Card>
         <ListingPhotosSection businessId={businessId} />
+        <Card>
+          <CardContent className="pt-6">
+            <BusinessReviewsSection businessId={businessId} ownerId={user?.id} />
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
