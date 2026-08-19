@@ -3,7 +3,9 @@ import type { ForumPostItem } from "#shared/contracts/forum";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { Edit2, MessageSquare, MoreVertical, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
+import { LikeButton } from "#client/components/like-button";
 import { Avatar, AvatarFallback, AvatarImage } from "#client/components/ui/avatar";
 import { Badge } from "#client/components/ui/badge";
 import { Button } from "#client/components/ui/button";
@@ -13,6 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "#client/components/ui/dropdown-menu";
+import { useSession } from "#client/features/auth";
+import { useToggleForumPostLikeMutation } from "#client/features/likes";
 import { initialsOf } from "#client/features/profiles/initials";
 
 interface ForumPostCardProps {
@@ -23,8 +27,27 @@ interface ForumPostCardProps {
 }
 
 export function ForumPostCard({ post, currentUserId, onEdit, onDelete }: ForumPostCardProps) {
+  const { isAuthenticated, isVerified } = useSession();
+  const likeMutation = useToggleForumPostLikeMutation(post.id);
+
   const isAuthor = currentUserId === post.userId;
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+
+  const handleLikeToggle = async () => {
+    if (!isAuthenticated) {
+      toast.error("Sign in to like discussions");
+      return;
+    }
+    if (!isVerified) {
+      toast.error("Verify your email to like discussions");
+      return;
+    }
+    try {
+      await likeMutation.mutateAsync({ isLiked: post.isLiked });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update like");
+    }
+  };
 
   return (
     <article className="bg-card text-card-foreground flex flex-col gap-3 rounded-lg border p-4 shadow-xs">
@@ -103,16 +126,32 @@ export function ForumPostCard({ post, currentUserId, onEdit, onDelete }: ForumPo
         {post.body}
       </p>
 
-      <Link
-        to="/forum/$postId"
-        params={{ postId: post.id }}
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs"
-      >
-        <MessageSquare className="size-3.5" />
-        {post.replyCount === 1 ? "1 reply" : `${post.replyCount} replies`}
-        <span aria-hidden="true">·</span>
-        View discussion
-      </Link>
+      <div className="flex items-center justify-between border-t pt-2">
+        <div className="flex items-center gap-3">
+          <LikeButton
+            isLiked={post.isLiked}
+            likeCount={post.likeCount}
+            onToggle={() => {
+              void handleLikeToggle();
+            }}
+            isPending={likeMutation.isPending}
+            disabled={!isAuthenticated || !isVerified}
+            ariaLabel={post.isLiked ? "Unlike post" : "Like post"}
+          />
+          <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
+            <MessageSquare className="size-3.5" />
+            {post.replyCount === 1 ? "1 reply" : `${post.replyCount} replies`}
+          </span>
+        </div>
+
+        <Link
+          to="/forum/$postId"
+          params={{ postId: post.id }}
+          className="text-muted-foreground hover:text-foreground inline-flex items-center text-xs font-medium"
+        >
+          View discussion
+        </Link>
+      </div>
     </article>
   );
 }

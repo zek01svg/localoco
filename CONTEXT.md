@@ -100,6 +100,12 @@ _Avoid_: delete, hide
 A User’s saved reference to a Business for later access.
 _Avoid_: favorite, saved listing
 
+**Like**:
+A User’s unique, idempotent positive endorsement of a Review, Forum post, or
+Reply. A Like is a unique relation between a User and a resource, not an
+incrementable counter; like counts are derived from persisted relations.
+_Avoid_: upvote, reaction, favorite, star, thumbs-up
+
 **Announcement**:
 A public update published by a Business owner for a Business's audience.
 _Avoid_: notification, alert, message

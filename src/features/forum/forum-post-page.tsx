@@ -6,12 +6,17 @@ import { ArrowLeftIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { LikeButton } from "#client/components/like-button";
 import { Avatar, AvatarFallback, AvatarImage } from "#client/components/ui/avatar";
 import { Badge } from "#client/components/ui/badge";
 import { Button } from "#client/components/ui/button";
 import { Skeleton } from "#client/components/ui/skeleton";
 import { Textarea } from "#client/components/ui/textarea";
 import { useSession } from "#client/features/auth";
+import {
+  useToggleForumPostLikeMutation,
+  useToggleForumReplyLikeMutation,
+} from "#client/features/likes";
 import { NotFoundPage } from "#client/features/not-found/not-found";
 import { initialsOf } from "#client/features/profiles/initials";
 
@@ -33,7 +38,7 @@ interface ForumPostPageProps {
 }
 
 export function ForumPostPage({ postId }: ForumPostPageProps) {
-  const { user } = useSession();
+  const { user, isAuthenticated, isVerified } = useSession();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
@@ -47,6 +52,8 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
   const deleteReplyMutation = useDeleteReplyMutation(postId);
   const updatePostMutation = useUpdateForumPostMutation(postId);
   const deletePostMutation = useDeleteForumPostMutation();
+  const likePostMutation = useToggleForumPostLikeMutation(postId);
+  const likeReplyMutation = useToggleForumReplyLikeMutation(postId);
 
   const post = postQuery.data;
 
@@ -139,6 +146,38 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
     }
   };
 
+  const handleTogglePostLike = async () => {
+    if (!isAuthenticated) {
+      toast.error("Sign in to like discussions");
+      return;
+    }
+    if (!isVerified) {
+      toast.error("Verify your email to like discussions");
+      return;
+    }
+    try {
+      await likePostMutation.mutateAsync({ isLiked: post.isLiked });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update like");
+    }
+  };
+
+  const handleToggleReplyLike = async (reply: ForumReplyItem) => {
+    if (!isAuthenticated) {
+      toast.error("Sign in to like replies");
+      return;
+    }
+    if (!isVerified) {
+      toast.error("Verify your email to like replies");
+      return;
+    }
+    try {
+      await likeReplyMutation.mutateAsync({ replyId: reply.id, isLiked: reply.isLiked });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update like");
+    }
+  };
+
   const isPostAuthor = user?.id === post.userId;
 
   return (
@@ -214,6 +253,19 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
           <p className="text-foreground text-sm leading-relaxed break-words whitespace-pre-wrap">
             {post.body}
           </p>
+
+          <div className="flex items-center justify-start border-t pt-3">
+            <LikeButton
+              isLiked={post.isLiked}
+              likeCount={post.likeCount}
+              onToggle={() => {
+                void handleTogglePostLike();
+              }}
+              isPending={likePostMutation.isPending}
+              disabled={!isAuthenticated || !isVerified}
+              ariaLabel={post.isLiked ? "Unlike post" : "Like post"}
+            />
+          </div>
         </article>
 
         <section aria-labelledby="replies-heading" className="flex flex-col gap-4">
@@ -323,6 +375,17 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
                       {reply.body}
                     </p>
                   )}
+
+                  <div className="mt-1 flex items-center justify-start border-t pt-2">
+                    <LikeButton
+                      isLiked={reply.isLiked}
+                      likeCount={reply.likeCount}
+                      onToggle={() => void handleToggleReplyLike(reply)}
+                      isPending={likeReplyMutation.isPending}
+                      disabled={!isAuthenticated || !isVerified}
+                      ariaLabel={reply.isLiked ? "Unlike reply" : "Like reply"}
+                    />
+                  </div>
                 </article>
               ))}
 

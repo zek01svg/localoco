@@ -1,3 +1,4 @@
+import type { AuthContext } from "#server/lib/auth-middleware";
 import type {
   CreateForumPost,
   CreateForumReply,
@@ -23,6 +24,7 @@ import {
   publiclyVisiblePost,
   publiclyVisibleReply,
 } from "#server/database/forum";
+import { forumPostLike, forumReplyLike } from "#server/database/likes";
 import { listing } from "#server/database/listing";
 import { requireVerified, resolveAuth } from "#server/lib/auth-middleware";
 import { db } from "#server/lib/db";
@@ -39,6 +41,7 @@ import {
   updateForumPostSchema,
   updateForumReplySchema,
 } from "#shared/contracts/forum";
+import { likeActionResponseSchema } from "#shared/contracts/likes";
 
 const publicErrorResponses = {
   400: {
@@ -107,12 +110,9 @@ function replyCursorCondition(decoded: { createdAt: Date; id: string }) {
   );
 }
 
-// Batched reply count embedded in every post read via a correlated subquery,
-// so feed and detail stay single-query while counts reuse the public-visibility
-// predicate — they never advertise replies a visitor could not actually see.
-// Administrators reading deleted content get the true count instead, so the
-// count agrees with the deleted replies their response also lists.
-function buildPostRowSelect(includeDeleted: boolean) {
+// Batched reply count and like count embedded in every post read via correlated subqueries,
+// so feed and detail stay single-query while counts reuse the public-visibility predicate.
+function buildPostRowSelect(includeDeleted: boolean, actorUserId?: string) {
   return {
     id: forumPost.id,
     businessId: forumPost.businessId,
@@ -125,6 +125,10 @@ function buildPostRowSelect(includeDeleted: boolean) {
     replyCount: sql<number>`(select count(*)::int from ${forumReply} where ${forumReply.postId} = ${forumPost.id} and ${
       includeDeleted ? sql`true` : publiclyVisibleReply()
     })`,
+    likeCount: sql<number>`(select count(*)::int from ${forumPostLike} where ${forumPostLike.postId} = ${forumPost.id})`,
+    isLiked: actorUserId
+      ? sql<boolean>`exists(select 1 from ${forumPostLike} where ${forumPostLike.postId} = ${forumPost.id} and ${forumPostLike.userId} = ${actorUserId})`
+      : sql<boolean>`false`,
     authorId: user.id,
     authorDisplayName: user.name,
     authorAvatarUrl: user.image,
@@ -143,6 +147,8 @@ interface PostRow {
   createdAt: Date;
   updatedAt: Date;
   replyCount: number;
+  likeCount: number;
+  isLiked: boolean;
   authorId: string;
   authorDisplayName: string;
   authorAvatarUrl: string | null;
@@ -168,15 +174,21 @@ function mapPostRow(row: PostRow): ForumPostItem {
       category: row.businessCategory ?? undefined,
     },
     replyCount: row.replyCount,
+    likeCount: row.likeCount,
+    isLiked: row.isLiked,
     deletedAt: row.deletedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
 }
 
-async function fetchPostRow(conditions: SQL[], includeDeleted = false): Promise<PostRow | null> {
+async function fetchPostRow(
+  conditions: SQL[],
+  includeDeleted = false,
+  actorUserId?: string
+): Promise<PostRow | null> {
   const rows = await db
-    .select(buildPostRowSelect(includeDeleted))
+    .select(buildPostRowSelect(includeDeleted, actorUserId))
     .from(forumPost)
     .innerJoin(user, eq(forumPost.userId, user.id))
     .leftJoin(listing, eq(forumPost.businessId, listing.businessId))
@@ -185,7 +197,7 @@ async function fetchPostRow(conditions: SQL[], includeDeleted = false): Promise<
   return rows.length > 0 ? rows[0] : null;
 }
 
-async function fetchFeed(query: ForumQuery, includeDeleted: boolean) {
+async function fetchFeed(query: ForumQuery, includeDeleted: boolean, actorUserId?: string) {
   const conditions: SQL[] = [];
   if (!includeDeleted) conditions.push(publiclyVisiblePost());
   if (query.cursor) {
@@ -194,7 +206,7 @@ async function fetchFeed(query: ForumQuery, includeDeleted: boolean) {
   }
 
   const rows = await db
-    .select(buildPostRowSelect(includeDeleted))
+    .select(buildPostRowSelect(includeDeleted, actorUserId))
     .from(forumPost)
     .innerJoin(user, eq(forumPost.userId, user.id))
     .leftJoin(listing, eq(forumPost.businessId, listing.businessId))
@@ -211,10 +223,14 @@ async function fetchFeed(query: ForumQuery, includeDeleted: boolean) {
   return { items, nextCursor };
 }
 
-async function fetchPostDetail(id: string, includeDeleted: boolean): Promise<ForumPostItem> {
+async function fetchPostDetail(
+  id: string,
+  includeDeleted: boolean,
+  actorUserId?: string
+): Promise<ForumPostItem> {
   const conditions: SQL[] = [eq(forumPost.id, id)];
   if (!includeDeleted) conditions.push(publiclyVisiblePost());
-  const row = await fetchPostRow(conditions, includeDeleted);
+  const row = await fetchPostRow(conditions, includeDeleted, actorUserId);
   if (!row) {
     throw new HttpError(404, "not_found", "Forum post not found");
   }
@@ -224,7 +240,8 @@ async function fetchPostDetail(id: string, includeDeleted: boolean): Promise<For
 async function fetchReplies(
   postId: string,
   query: ForumQuery,
-  includeDeleted: boolean
+  includeDeleted: boolean,
+  actorUserId?: string
 ): Promise<ForumRepliesResponse> {
   const postConditions: SQL[] = [eq(forumPost.id, postId)];
   if (!includeDeleted) postConditions.push(publiclyVisiblePost());
@@ -256,6 +273,10 @@ async function fetchReplies(
       authorId: user.id,
       authorDisplayName: user.name,
       authorAvatarUrl: user.image,
+      likeCount: sql<number>`(select count(*)::int from ${forumReplyLike} where ${forumReplyLike.replyId} = ${forumReply.id})`,
+      isLiked: actorUserId
+        ? sql<boolean>`exists(select 1 from ${forumReplyLike} where ${forumReplyLike.replyId} = ${forumReply.id} and ${forumReplyLike.userId} = ${actorUserId})`
+        : sql<boolean>`false`,
     })
     .from(forumReply)
     .innerJoin(user, eq(forumReply.userId, user.id))
@@ -274,6 +295,8 @@ async function fetchReplies(
       displayName: r.authorDisplayName,
       avatarUrl: r.authorAvatarUrl,
     },
+    likeCount: r.likeCount,
+    isLiked: r.isLiked,
     deletedAt: r.deletedAt,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
@@ -307,7 +330,7 @@ async function insertPost(body: CreateForumPost, userId: string): Promise<ForumP
     updatedAt: now,
   });
 
-  const row = await fetchPostRow([eq(forumPost.id, postId)]);
+  const row = await fetchPostRow([eq(forumPost.id, postId)], false, userId);
   if (!row) {
     throw new HttpError(404, "not_found", "Forum post not found");
   }
@@ -336,7 +359,7 @@ async function updatePost(
     .set({ ...body, updatedAt: new Date() })
     .where(eq(forumPost.id, id));
 
-  const row = await fetchPostRow([eq(forumPost.id, id)]);
+  const row = await fetchPostRow([eq(forumPost.id, id)], false, userId);
   if (!row) {
     throw new HttpError(404, "not_found", "Forum post not found");
   }
@@ -359,7 +382,7 @@ async function softDeletePost(id: string, userId: string): Promise<void> {
   await db.update(forumPost).set({ deletedAt: new Date() }).where(eq(forumPost.id, id));
 }
 
-async function fetchReplyRow(replyId: string) {
+async function fetchReplyRow(replyId: string, actorUserId?: string) {
   const rows = await db
     .select({
       id: forumReply.id,
@@ -372,6 +395,10 @@ async function fetchReplyRow(replyId: string) {
       authorId: user.id,
       authorDisplayName: user.name,
       authorAvatarUrl: user.image,
+      likeCount: sql<number>`(select count(*)::int from ${forumReplyLike} where ${forumReplyLike.replyId} = ${forumReply.id})`,
+      isLiked: actorUserId
+        ? sql<boolean>`exists(select 1 from ${forumReplyLike} where ${forumReplyLike.replyId} = ${forumReply.id} and ${forumReplyLike.userId} = ${actorUserId})`
+        : sql<boolean>`false`,
     })
     .from(forumReply)
     .innerJoin(user, eq(forumReply.userId, user.id))
@@ -385,6 +412,8 @@ function mapReplyRow(row: {
   postId: string;
   userId: string;
   body: string;
+  likeCount: number;
+  isLiked: boolean;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -402,6 +431,8 @@ function mapReplyRow(row: {
       displayName: row.authorDisplayName,
       avatarUrl: row.authorAvatarUrl,
     },
+    likeCount: row.likeCount,
+    isLiked: row.isLiked,
     deletedAt: row.deletedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -433,7 +464,7 @@ async function insertReply(
     updatedAt: now,
   });
 
-  const row = await fetchReplyRow(replyId);
+  const row = await fetchReplyRow(replyId, userId);
   if (!row) {
     throw new HttpError(404, "not_found", "Reply not found");
   }
@@ -462,7 +493,7 @@ async function updateReply(
     .set({ body: body.body, updatedAt: new Date() })
     .where(eq(forumReply.id, id));
 
-  const row = await fetchReplyRow(id);
+  const row = await fetchReplyRow(id, userId);
   if (!row) {
     throw new HttpError(404, "not_found", "Reply not found");
   }
@@ -483,6 +514,122 @@ async function softDeleteReply(id: string, userId: string): Promise<void> {
   }
 
   await db.update(forumReply).set({ deletedAt: new Date() }).where(eq(forumReply.id, id));
+}
+
+async function likePost(postId: string, actor: AuthContext) {
+  const postRows = await db
+    .select({ id: forumPost.id, deletedAt: forumPost.deletedAt })
+    .from(forumPost)
+    .where(eq(forumPost.id, postId))
+    .limit(1);
+
+  if (postRows.length === 0 || (!actor.isAdmin && postRows[0].deletedAt !== null)) {
+    throw new HttpError(404, "not_found", "Forum post not found");
+  }
+
+  await db
+    .insert(forumPostLike)
+    .values({
+      userId: actor.userId,
+      postId,
+    })
+    .onConflictDoNothing();
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(forumPostLike)
+    .where(eq(forumPostLike.postId, postId));
+
+  return {
+    status: "liked" as const,
+    liked: true,
+    likeCount: countRow.count,
+  };
+}
+
+async function unlikePost(postId: string, actor: AuthContext) {
+  const postRows = await db
+    .select({ id: forumPost.id, deletedAt: forumPost.deletedAt })
+    .from(forumPost)
+    .where(eq(forumPost.id, postId))
+    .limit(1);
+
+  if (postRows.length === 0 || (!actor.isAdmin && postRows[0].deletedAt !== null)) {
+    throw new HttpError(404, "not_found", "Forum post not found");
+  }
+
+  await db
+    .delete(forumPostLike)
+    .where(and(eq(forumPostLike.userId, actor.userId), eq(forumPostLike.postId, postId)));
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(forumPostLike)
+    .where(eq(forumPostLike.postId, postId));
+
+  return {
+    status: "unliked" as const,
+    liked: false,
+    likeCount: countRow.count,
+  };
+}
+
+async function likeReply(replyId: string, actor: AuthContext) {
+  const replyRows = await db
+    .select({ id: forumReply.id, deletedAt: forumReply.deletedAt })
+    .from(forumReply)
+    .where(eq(forumReply.id, replyId))
+    .limit(1);
+
+  if (replyRows.length === 0 || (!actor.isAdmin && replyRows[0].deletedAt !== null)) {
+    throw new HttpError(404, "not_found", "Reply not found");
+  }
+
+  await db
+    .insert(forumReplyLike)
+    .values({
+      userId: actor.userId,
+      replyId,
+    })
+    .onConflictDoNothing();
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(forumReplyLike)
+    .where(eq(forumReplyLike.replyId, replyId));
+
+  return {
+    status: "liked" as const,
+    liked: true,
+    likeCount: countRow.count,
+  };
+}
+
+async function unlikeReply(replyId: string, actor: AuthContext) {
+  const replyRows = await db
+    .select({ id: forumReply.id, deletedAt: forumReply.deletedAt })
+    .from(forumReply)
+    .where(eq(forumReply.id, replyId))
+    .limit(1);
+
+  if (replyRows.length === 0 || (!actor.isAdmin && replyRows[0].deletedAt !== null)) {
+    throw new HttpError(404, "not_found", "Reply not found");
+  }
+
+  await db
+    .delete(forumReplyLike)
+    .where(and(eq(forumReplyLike.userId, actor.userId), eq(forumReplyLike.replyId, replyId)));
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(forumReplyLike)
+    .where(eq(forumReplyLike.replyId, replyId));
+
+  return {
+    status: "unliked" as const,
+    liked: false,
+    likeCount: countRow.count,
+  };
 }
 
 // includeDeleted is the administrator read path into soft-deleted content.
@@ -528,7 +675,8 @@ export const forumRoutes = new Hono()
     async c => {
       const query = c.req.valid("query");
       const includeDeleted = requireAdminForIncludeDeleted(c, query);
-      const result = await fetchFeed(query, includeDeleted);
+      const actor = c.get("auth");
+      const result = await fetchFeed(query, includeDeleted, actor?.userId);
       return c.json(result);
     }
   )
@@ -582,7 +730,8 @@ export const forumRoutes = new Hono()
       const { id } = c.req.param();
       const query = c.req.valid("query");
       const includeDeleted = requireAdminForIncludeDeleted(c, query);
-      const result = await fetchPostDetail(id, includeDeleted);
+      const actor = c.get("auth");
+      const result = await fetchPostDetail(id, includeDeleted, actor?.userId);
       return c.json(result);
     }
   )
@@ -640,6 +789,58 @@ export const forumRoutes = new Hono()
       return c.body(null, 204);
     }
   )
+  .post(
+    "/forum/posts/:id/like",
+    requireVerified,
+    describeRoute({
+      operationId: "likeForumPost",
+      tags: ["forum"],
+      summary: "Like a Forum post",
+      description: "Idempotently endorses a Forum post. Requires a verified User.",
+      responses: {
+        200: {
+          description: "Forum post liked successfully",
+          content: { "application/json": { schema: resolver(likeActionResponseSchema) } },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+      const result = await likePost(id, actor);
+      return c.json(result);
+    }
+  )
+  .delete(
+    "/forum/posts/:id/like",
+    requireVerified,
+    describeRoute({
+      operationId: "unlikeForumPost",
+      tags: ["forum"],
+      summary: "Unlike a Forum post",
+      description: "Idempotently removes endorsement for a Forum post. Requires a verified User.",
+      responses: {
+        200: {
+          description: "Forum post unliked successfully",
+          content: { "application/json": { schema: resolver(likeActionResponseSchema) } },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+      const result = await unlikePost(id, actor);
+      return c.json(result);
+    }
+  )
   .get(
     "/forum/posts/:id/replies",
     resolveAuth,
@@ -662,7 +863,8 @@ export const forumRoutes = new Hono()
       const { id } = c.req.param();
       const query = c.req.valid("query");
       const includeDeleted = requireAdminForIncludeDeleted(c, query);
-      const result = await fetchReplies(id, query, includeDeleted);
+      const actor = c.get("auth");
+      const result = await fetchReplies(id, query, includeDeleted, actor?.userId);
       return c.json(result);
     }
   )
@@ -747,5 +949,57 @@ export const forumRoutes = new Hono()
       }
       await softDeleteReply(id, actor.userId);
       return c.body(null, 204);
+    }
+  )
+  .post(
+    "/forum/replies/:id/like",
+    requireVerified,
+    describeRoute({
+      operationId: "likeForumReply",
+      tags: ["forum"],
+      summary: "Like a Forum reply",
+      description: "Idempotently endorses a Forum reply. Requires a verified User.",
+      responses: {
+        200: {
+          description: "Forum reply liked successfully",
+          content: { "application/json": { schema: resolver(likeActionResponseSchema) } },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+      const result = await likeReply(id, actor);
+      return c.json(result);
+    }
+  )
+  .delete(
+    "/forum/replies/:id/like",
+    requireVerified,
+    describeRoute({
+      operationId: "unlikeForumReply",
+      tags: ["forum"],
+      summary: "Unlike a Forum reply",
+      description: "Idempotently removes endorsement for a Forum reply. Requires a verified User.",
+      responses: {
+        200: {
+          description: "Forum reply unliked successfully",
+          content: { "application/json": { schema: resolver(likeActionResponseSchema) } },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+      const result = await unlikeReply(id, actor);
+      return c.json(result);
     }
   );

@@ -1204,6 +1204,38 @@ Deletes a review. Requires a verified session and can only be performed by the r
 - **Response `403`**: actor is neither the author nor an administrator (`forbidden`).
 - **Response `404`**: review not found (`not_found`).
 
+### Like a Review (`POST /api/reviews/:id/like`)
+
+Idempotently endorses a review. Requires an authenticated session with a verified email (`requireVerified`).
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "liked",
+    "liked": true,
+    "likeCount": 5
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: review not found (`not_found`).
+
+### Unlike a Review (`DELETE /api/reviews/:id/like`)
+
+Idempotently removes an endorsement for a review. Requires an authenticated session with a verified email (`requireVerified`).
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "unliked",
+    "liked": false,
+    "likeCount": 4
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: review not found (`not_found`).
+
 ### List Reviews by User (`GET /api/users/:id/reviews`)
 
 Public endpoint returning cursor-paginated reviews written by a user for public profile contribution feeds.
@@ -1336,6 +1368,38 @@ Marks a post as soft-deleted (`deleted_at`). Requires a verified session and onl
 - **Response `403`**: actor is not the author (`forbidden`).
 - **Response `404`**: post not found or already soft-deleted (`not_found`).
 
+### Like a Forum post (`POST /api/forum/posts/:id/like`)
+
+Idempotently endorses a Forum post. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators liking a soft-deleted post receive 404.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "liked",
+    "liked": true,
+    "likeCount": 1
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: post not found or soft-deleted (`not_found`).
+
+### Unlike a Forum post (`DELETE /api/forum/posts/:id/like`)
+
+Idempotently removes an endorsement for a Forum post. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators unliking a soft-deleted post receive 404.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "unliked",
+    "liked": false,
+    "likeCount": 0
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: post not found or soft-deleted (`not_found`).
+
 ### Get Replies to a Forum post (`GET /api/forum/posts/:id/replies`)
 
 Public endpoint returning cursor-paginated Replies to a post in chronological (oldest-first) order. Soft-deleted replies are excluded. Soft-deleted posts answer 404 unless an administrator passes `includeDeleted=true`.
@@ -1406,3 +1470,35 @@ Marks a reply as soft-deleted. Requires a verified session and only the reply's 
 - **Response `401`**: authentication required (`unauthorized`).
 - **Response `403`**: actor is not the author (`forbidden`).
 - **Response `404`**: reply not found or already soft-deleted (`not_found`).
+
+### Like a Forum reply (`POST /api/forum/replies/:id/like`)
+
+Idempotently endorses a Forum reply. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators liking a soft-deleted reply receive 404.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "liked",
+    "liked": true,
+    "likeCount": 1
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: reply not found or soft-deleted (`not_found`).
+
+### Unlike a Forum reply (`DELETE /api/forum/replies/:id/like`)
+
+Idempotently removes an endorsement for a Forum reply. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators unliking a soft-deleted reply receive 404.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "unliked",
+    "liked": false,
+    "likeCount": 0
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: reply not found or soft-deleted (`not_found`).

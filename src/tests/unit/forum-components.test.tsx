@@ -83,16 +83,21 @@ const mockPost: ForumPostItem = {
   author: { id: "usr_1", displayName: "Alice Tan", avatarUrl: null },
   business: { id: "biz_1", name: "Kaya Toast Central", category: "Cafe" },
   replyCount: 3,
+  likeCount: 0,
+  isLiked: false,
   deletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
 describe("ForumPostCard component", () => {
+  beforeEach(() => {
+    stubSession();
+  });
   afterEach(cleanup);
 
   it("renders title, author, business, and reply count", () => {
-    render(<ForumPostCard post={mockPost} />);
+    renderWithQueryClient(<ForumPostCard post={mockPost} />);
     expect(screen.getByText("Weekend crowd?")).toBeDefined();
     expect(screen.getByText("Alice Tan")).toBeDefined();
     expect(screen.getByText("Kaya Toast Central")).toBeDefined();
@@ -100,7 +105,7 @@ describe("ForumPostCard component", () => {
   });
 
   it("renders options button only when viewer is the author", () => {
-    render(
+    renderWithQueryClient(
       <ForumPostCard
         post={mockPost}
         currentUserId="usr_1"
@@ -112,7 +117,7 @@ describe("ForumPostCard component", () => {
   });
 
   it("hides options for other viewers", () => {
-    render(<ForumPostCard post={mockPost} currentUserId="usr_2" />);
+    renderWithQueryClient(<ForumPostCard post={mockPost} currentUserId="usr_2" />);
     expect(screen.queryByRole("button", { name: /Post options/iu })).toBeNull();
   });
 });

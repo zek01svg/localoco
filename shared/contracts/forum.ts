@@ -63,6 +63,8 @@ export const forumPostItemSchema = z.object({
   author: forumAuthorSchema,
   business: forumBusinessReferenceSchema,
   replyCount: z.number().int().min(0),
+  likeCount: z.number().int().min(0).default(0),
+  isLiked: z.boolean().default(false),
   // Null on every public read; administrators reading with includeDeleted see
   // the soft-deletion timestamp.
   deletedAt: z.coerce.date().nullable(),
@@ -77,6 +79,8 @@ export const forumReplyItemSchema = z.object({
   userId: z.string().min(1),
   body: z.string(),
   author: forumAuthorSchema,
+  likeCount: z.number().int().min(0).default(0),
+  isLiked: z.boolean().default(false),
   // Null on every public read; administrators reading with includeDeleted see
   // the soft-deletion timestamp.
   deletedAt: z.coerce.date().nullable(),
