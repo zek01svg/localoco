@@ -83,11 +83,14 @@
   },
   "overrides": [
     {
-      "files": ["tests/**", "server/**", "scripts/**"],
+      "files": ["tests/**", "server/**", "scripts/**", "src/tests/**"],
       "rules": {
-        "no-console": "off"
+        "no-console": "off",
+        "max-lines": "off",
+        "max-lines-per-function": "off"
       }
     },
+
     {
       "files": [
         "src/env.ts",

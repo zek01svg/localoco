@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-08-19
+
+### Added
+
+- **Application baseline on the rewrite spine**: the full product ships on the
+  React 19 + Bun/Hono stack — auth, businesses, listings, media, reviews,
+  forum, and bookmarks.
+- **Authentication & sessions** (PRS-171–175): email/password registration
+  with email verification, password reset, session middleware, and the
+  administrator role with database-backed authorization.
+- **Businesses & listings** (PRS-178–181): UEN-validated business
+  registration, draft listings, server-side address validation with persisted
+  coordinates (ADR-0006), opening hours, and private R2 photo management.
+- **Moderation & ownership** (PRS-182–183): listing moderation lifecycle with
+  immutable audit records, and administrative business ownership transfer.
+- **Discovery** (PRS-184–188): public directory with text search, category
+  and open-now filters, map viewport filtering, and listing detail pages with
+  Schema.org structured data.
+- **Reviews and Forum** (PRS-190–191): verified-user reviews with SQL-derived
+  ratings, and forum posts/replies with soft deletion and cursor pagination.
+- **Bookmarks** (PRS-189): private, database-enforced bookmarks on the
+  personal profile page.
+- **Plumbing** (PRS-166–170): API contract with error envelope, distributed
+  rate limiting, bounded caching, and an asynchronous transactional email
+  pipeline.
+
+### Changed
+
+- `listing` table gains nullable `latitude`/`longitude` columns (migration
+  `0006_listing_coordinates`). Existing rows render without a Listing
+  location until their address is next edited.
+
 ## [2.0.0] - 2026-08-14
 
 ### Added

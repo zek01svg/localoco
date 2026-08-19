@@ -142,10 +142,21 @@ The backend is built with **Hono**, a high-performance web framework designed fo
   - `/health`: System health monitoring.
   - `/api/runtime.js`: Dynamic client environment configuration.
   - `/api/auth/*`: Better Auth handlers for user management and authentication.
-  - `/api/openapi` & `/api/scalar`: Automatic OpenAPI 3.0 specification generation (`hono-openapi`) and interactive Scalar API explorer UI.
+  - `/api/openapi` & `/api/scalar`: Automatic OpenAPI 3.1 specification generation (`hono-openapi`) and interactive Scalar API explorer UI.
 - **Error Handling & Middleware**:
   - Global error handler (`app.onError`) formats validation failures (`400 Bad Request`) and uncaught exceptions (`500 Internal Server Error`).
-  - Structured request timing middleware logs HTTP completion metrics (`durationMs`, `status`, `method`, `path`).
+  - Correlation-id middleware (in `server/index.ts`) assigns every request a
+    server-owned `requestId` (UUID), echoes it on the `X-Request-Id` response
+    header, and the error handler (`createErrorHandler`) attaches it to error
+    envelopes and error log lines, so a failed request can be traced across
+    logs and responses.
+- **External providers** (`server/lib/geocoding/`, `server/lib/email/`): each
+  provider is a narrow module with constructor-injected fetch, zod validation
+  at the trust boundary, and typed classified failures (`not_found`,
+  `ambiguous`, `quota_exhausted`, `provider_unavailable`,
+  `invalid_response`) — see ADR-0005. Listing writes geocode the address
+  before persisting `latitude`/`longitude` (ADR-0006); reads never call the
+  provider.
 
 ---
 
@@ -155,20 +166,72 @@ The backend is built with **Hono**, a high-performance web framework designed fo
 
 - **PostgreSQL 17**: Primary relational database storage.
 - **Drizzle ORM**: Type-safe ORM located under `server/database/`. Schema definitions and migrations are configured via `drizzle.config.ts`.
-- **Database Connection Pool**: Managed via `postgres` driver in `server/lib/db.ts`.
+- **Database Connection Pool**: Bounded per-instance postgres-js pool (`max: 15`) in `server/lib/db.ts` — three Cloud Run instances x 15 stays under Supabase Free's 60-connection limit. Production migrations run from CI only, against the direct connection, never at container startup.
 
 ### Authentication Layer
 
 - **Better Auth (`server/lib/auth.ts`)**: Production-ready authentication engine configured with Drizzle ORM PostgreSQL adapter.
 - **Features**:
   - Email and Password authentication enabled by default.
-  - Email verification and password reset hooks integrated with Nodemailer SMTP.
+  - Email verification and password reset hooks decoupled via an asynchronous transactional email queue.
   - Interactive OpenAPI authentication documentation plugin attached at `/api/auth/docs`.
   - Client schema generation via `@better-auth/cli` (`server/database/auth.ts`).
 
 ---
 
-## 7. Observability & Telemetry
+## 7. Asynchronous Transactional Email Pipeline
+
+The transactional email pipeline decouples latency-sensitive client operations (user registration, password resets) from third-party email delivery providers and network latency.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Client / Browser
+    participant Auth as Better Auth / API
+    participant DB as PostgreSQL (email_delivery)
+    participant QStash as Upstash QStash (Queue)
+    participant Webhook as Webhook Consumer (/api/webhooks/qstash/*)
+    participant Provider as Email Provider (Resend / SMTP)
+
+    User->>Auth: Request password reset / sign up
+    Auth->>DB: INSERT email_delivery (status: 'pending')
+    Auth->>QStash: Publish message { jobId }
+    Auth-->>User: Immediate 200 OK (no delivery wait)
+
+    Note over QStash,Webhook: Asynchronous Dispatch & Retry Loop
+    QStash->>Webhook: POST /api/webhooks/qstash/email-delivery (with HMAC signature)
+    Webhook->>Webhook: Verify upstash-signature
+    Webhook->>DB: Atomic claim (status: 'pending' -> 'processing', attempt_count + 1)
+    alt Successfully Claimed
+        Webhook->>Provider: Send email payload
+        alt Delivery Succeeded
+            Webhook->>DB: UPDATE status: 'delivered', provider_message_id
+            Webhook-->>QStash: 200 OK (done)
+        else Transient Failure (429, 5xx, Network Timeout)
+            Webhook->>DB: UPDATE status: 'retryable', last_error
+            Webhook-->>QStash: 503 Service Unavailable (QStash retries)
+        else Terminal Failure (400, 401, Invalid Recipient)
+            Webhook->>DB: UPDATE status: 'failed', last_error
+            Webhook-->>QStash: 200 OK (stops retries)
+        end
+    else Skipped (Already Processing or Max Attempts)
+        Webhook-->>QStash: 200 OK (skip duplicate)
+    end
+```
+
+### Key Architectural Properties
+
+1. **Opaque Queue Payloads**: Only `{ jobId: string }` is enqueued into QStash. Sensitive email content, recipients, and verification tokens remain securely stored inside PostgreSQL with zero third-party queue leakage.
+2. **Atomic Job Claiming**: Database status transitions (`pending`/`retryable` -> `processing`) execute with atomic row locks, ensuring exactly-once delivery guarantees even under duplicate webhook delivery.
+3. **Robust Sanitization & Defense**:
+   - CRLF injection detection on all email headers (`to`, `subject`, `from`).
+   - HTML entity escaping on dynamic template parameters (`escapeHtml`).
+   - Sensitive credential and token scrubbing in logged error traces (`sanitizeErrorMessage`).
+4. **Resilient Provider Seam**: Direct **Resend** integration for production and staging, and a lightweight in-memory **FakeEmailProvider** for local development and hermetic unit/integration testing.
+
+---
+
+## 8. Observability & Telemetry
 
 Observability is built-in across both client and server tiers:
 
@@ -198,7 +261,7 @@ Observability is built-in across both client and server tiers:
 
 ---
 
-## 8. Build & Distribution Pipeline
+## 9. Build & Distribution Pipeline
 
 Production builds combine backend JavaScript bundling with static asset production:
 
@@ -218,7 +281,7 @@ During production execution (`bun start`):
 2. Hono serves API routes at `/api/*`.
 3. Hono serves static assets from `dist/static/` via `serveStatic`.
 4. Fallback wildcard route `*` returns `dist/static/index.html` for client SPA
-   routing. While the rewrite is in progress, every non-API, non-health,
-   non-asset page route instead returns the SPA shell with `503 Service
-Unavailable` and a `Retry-After` header — see
-   [DEPLOYMENT.md §5](./DEPLOYMENT.md#5-health-checks--monitoring).
+   routing with `Cache-Control: no-store`; the client renders the landing page
+   and any route-level pending, error, and not-found states. Fingerprinted
+   assets under `/assets/*` are served `public, max-age=31536000, immutable` —
+   see [DEPLOYMENT.md §5](./DEPLOYMENT.md#5-health-checks--monitoring).

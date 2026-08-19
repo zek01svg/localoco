@@ -36,6 +36,18 @@ resource "google_cloud_run_v2_service" "origin" {
           }
         }
       }
+      # Geocoding key is provisioned by Terraform (maps.tf), so it is injected
+      # directly instead of going through Secret Manager.
+      env {
+        name  = "GOOGLE_MAPS_API_KEY"
+        value = google_apikeys_key.server.key_string
+      }
+      # Browser Maps JavaScript key is provisioned by Terraform (maps.tf)
+      # and served to the client via /api/runtime.js.
+      env {
+        name  = "VITE_GOOGLE_MAPS_API_KEY"
+        value = google_apikeys_key.browser.key_string
+      }
     }
   }
 

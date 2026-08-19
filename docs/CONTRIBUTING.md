@@ -146,15 +146,29 @@ bunx lefthook run pre-commit
 
 ## 5. Database Management Workflow
 
-Database operations use **Drizzle ORM** and **Drizzle Kit**.
+Database operations use **Drizzle ORM** and **Drizzle Kit**. The schema in
+`server/database/` is the single canonical source; committed migrations in
+`server/database/drizzle/` are generated from it.
 
-### Push Schema Changes
+### Run Migrations
 
-When you modify database schemas in `server/database/`:
+Apply the committed migrations to your local database (start the
+infrastructure containers first, see section 2.4):
 
 ```bash
-bun db:push
+bun db:migrate
 ```
+
+Schema changes must land as a new committed migration, generated from the
+schema:
+
+```bash
+bunx drizzle-kit generate
+```
+
+Production migrations run from CI only (`cd.yml` migrate job) — never at
+container startup. Schema push (`drizzle-kit push`) is not used; CI fails on
+drift between the schema and the migration history.
 
 ### Inspect Database (Drizzle Studio)
 
@@ -162,14 +176,6 @@ Launch interactive database browser UI:
 
 ```bash
 bun db:studio
-```
-
-### Seed Development Data
-
-To populate your database with initial development seeds:
-
-```bash
-bun scripts/db-seed.ts
 ```
 
 ---
@@ -197,8 +203,11 @@ All contributions must include appropriate unit or E2E tests.
 ### Running Tests
 
 ```bash
-# Run Unit & Integration Tests (Vitest)
+# Run Unit Tests (Vitest)
 bun run test:unit
+
+# Run Unit + Integration Tests (Vitest)
+bun run test
 
 # Run End-to-End Tests (Playwright)
 bun run test:e2e
@@ -206,8 +215,9 @@ bun run test:e2e
 
 ### Writing Tests
 
-- **Unit Tests (`tests/unit/`)**: Place test files with the `.test.ts` or `.test.tsx` extension. Tests are executed via Vitest with JSDOM environment support.
+- **Unit Tests (`server/tests/unit/` and `src/tests/unit/`)**: Place server-side test files in `server/tests/unit/` and client-side test files in `src/tests/unit/`, with the `.test.ts` or `.test.tsx` extension. Tests are executed via Vitest with JSDOM environment support.
 - **E2E Tests (`tests/e2e/`)**: Place E2E test specifications under `tests/e2e/` with the `.spec.ts` extension. Tests are executed via Playwright against running browser instances.
+- **Integration Tests (`tests/integration/`)**: HTTP seam tests against the server entry, run by `bun run test` (unit + integration).
 
 ---
 

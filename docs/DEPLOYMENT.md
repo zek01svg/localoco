@@ -85,17 +85,21 @@ Secret values never touch Terraform variables, plan output, or state.
 Terraform owns the containers and their IAM; operators add versions through
 protected channels (Secret Manager).
 
-| Secret container     | Purpose                                     |
-| :------------------- | :------------------------------------------ |
-| `DATABASE_URL`       | PostgreSQL connection string                |
-| `BETTER_AUTH_SECRET` | Better Auth encryption secret (>= 32 chars) |
-| `SMOKE_TOKEN`        | Bearer token for the release smoke check    |
-| `SMTP_HOST`          | SMTP host                                   |
-| `SMTP_PORT`          | SMTP port (e.g. `587`)                      |
-| `SMTP_SECURE`        | TLS for SMTP (`true`/`false`)               |
-| `SMTP_USER`          | SMTP username                               |
-| `SMTP_PASS`          | SMTP password                               |
-| `SMTP_FROM`          | Default sender address                      |
+| Secret container             | Purpose                                                           |
+| :--------------------------- | :---------------------------------------------------------------- |
+| `DATABASE_URL`               | PostgreSQL connection string                                      |
+| `BETTER_AUTH_SECRET`         | Better Auth encryption secret (>= 32 chars)                       |
+| `SMOKE_TOKEN`                | Bearer token for the release smoke check                          |
+| `UPSTASH_REDIS_REST_URL`     | Upstash Redis REST URL for caching and rate limiting              |
+| `UPSTASH_REDIS_REST_TOKEN`   | Upstash Redis REST Token                                          |
+| `QSTASH_TOKEN`               | Upstash QStash REST Token for email queue publishing              |
+| `QSTASH_CURRENT_SIGNING_KEY` | Upstash QStash current signing key for HMAC validation            |
+| `QSTASH_NEXT_SIGNING_KEY`    | Upstash QStash next signing key for key rotation                  |
+| `RESEND_API_KEY`             | Resend API Key for transactional email sending                    |
+| `AWS_ACCESS_KEY_ID`          | R2 API token Access Key ID (Listing photo storage)                |
+| `AWS_SECRET_ACCESS_KEY`      | R2 API token secret (Listing photo storage)                       |
+| `AWS_S3_BUCKET`              | R2 bucket name: `localoco-listing-photos`                         |
+| `AWS_S3_ENDPOINT`            | R2 S3 endpoint, e.g. `https://<account>.r2.cloudflarestorage.com` |
 
 Add a version after apply:
 
@@ -103,8 +107,72 @@ Add a version after apply:
 gcloud secrets versions add DATABASE_URL --project localoco-505304 --data-file=-
 ```
 
-Deferred credentials (R2, Maps, Upstash) are attached to the slices that
-first need them, not provisioned ahead of time.
+### Google Maps Platform
+
+Geocoding credentials are provisioned by Terraform (`infra/maps.tf`), not by
+operator steps:
+
+- **Server key** (`google_apikeys_key.server`): restricted to the Geocoding
+  API backend only, injected directly into the Cloud Run environment as
+  `GOOGLE_MAPS_API_KEY`. The app geocodes listing addresses at write time
+  (ADR-0006); without the key, listing writes fail explicitly with
+  `503 dependency_unavailable`.
+- **Browser key** (`google_apikeys_key.browser`): restricted to the Maps
+  JavaScript API and the `localoco.ciav.dev` referrer. The client map UI
+  (discovery map, listing detail map) consumes it via
+  `VITE_GOOGLE_MAPS_API_KEY`; the Maps JavaScript API service is enabled in
+  `infra/state-bucket.tf`.
+- **Alert**: `google_monitoring_alert_policy.geocoding_request_rate` fires
+  when geocoding request volume exceeds 2000 requests per 5 minutes, well
+  below the 3000 queries/minute provider rate limit.
+
+Manual steps (need the Google Cloud console, once):
+
+1. Enable billing on the project (`localoco-505304`) — Maps Platform APIs
+   require a billing account.
+2. Set a daily usage cap: Google Maps Platform console → **Quotas** →
+   **Geocoding API** → cap daily usage at 40,000 requests. This stays inside
+   the $200/month free credit at Geocoding's $5 per 1,000 requests; the
+   Cloud Monitoring alert (2000 requests per 5 minutes) fires long before a
+   runaway loop reaches it. Geocoding is billed per request with no default
+   daily quota, and the cap is a console setting — it cannot be managed
+   through Terraform (Geocoding no longer exposes a Service Usage quota
+   limit).
+3. Verify a geocode round-trip after the next apply:
+   `curl -s "https://maps.googleapis.com/maps/api/geocode/json?address=1%20Boon%20Lay%20Drive%20649902&key=<server key>"` —
+   expect `"status": "OK"` with a `ROOFTOP` result in Singapore.
+4. Verify the client map renders in production: the map UI loads when
+   `VITE_GOOGLE_MAPS_API_KEY` is set on the Cloud Run service. The Maps
+   JavaScript API (`maps-backend.googleapis.com`) is enabled in
+   `infra/state-bucket.tf` and the browser key's restriction already points
+   at it.
+
+### R2 Listing photos bootstrap (one-time)
+
+Terraform creates the bucket (`infra/r2.tf`) and the secret containers, but
+two steps need the Cloudflare dashboard or S3 API:
+
+1. **R2 API token**: create a token scoped to the `localoco-listing-photos`
+   bucket with Object Read & Write, then store its Access Key ID / Secret as
+   `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` secret versions.
+2. **CORS**: the presigned uploads are browser `PUT`s from the client origin,
+   so allow it via the S3 CORS API (the Terraform provider has no R2 CORS
+   resource):
+
+   ```bash
+   aws s3api put-bucket-cors --endpoint-url "$AWS_S3_ENDPOINT" \
+     --cors-configuration '{"CORSRules":[{"AllowedOrigins":["https://localoco.ciav.dev"],"AllowedMethods":["PUT","GET","DELETE"],"AllowedHeaders":["content-type"],"MaxAgeSeconds":3600}]}'
+   ```
+
+3. **Sweep schedule**: the media sweep endpoint must be called periodically.
+   Create a QStash schedule (or equivalent cron) that POSTs
+   `{"job":"media-sweep"}` to
+   `https://localoco.ciav.dev/api/webhooks/qstash/media-sweep` with QStash
+   signing enabled (the endpoint verifies the `upstash-signature` header);
+   hourly is a reasonable default.
+
+Local development can leave all four `AWS_*` variables unset: photo endpoints
+answer `503 dependency_unavailable` and the rest of the app is unaffected.
 
 ---
 
@@ -141,12 +209,11 @@ so moving traffic is instant and reversible.
 ## 5. Health Checks & Monitoring
 
 - **Health endpoint**: `GET /health` returns `200 OK` with `{"status": "ok"}`
-- **Maintenance landing (PRS-168)**: while the rewrite is in progress, every
-  page route answers `503 Service Unavailable` with a `Retry-After` header and
-  serves the SPA shell, whose `LandingPage` feature renders the branded
-  maintenance copy. Crawlers and monitors see the "not ready" status; `/health`
-  still reports success so Cloud Run keeps the instance alive. Swap the page
-  route for the SPA fallback once the app is ready to serve.
+- **Page routes**: every non-API, non-health page route answers `200 OK` with
+  the SPA shell (`Cache-Control: no-store`); the client-rendered React app
+  draws the landing page and any route-level pending, error, and not-found
+  states. Fingerprinted build assets under `/assets/*` are served with
+  `Cache-Control: public, max-age=31536000, immutable`.
 - **Docker healthcheck**: the image ships `HEALTHCHECK` probing `/health` on
   the injected `PORT` (default `4001`)
 - Cloud Run restarts unhealthy instances automatically; the Cloudflare edge
