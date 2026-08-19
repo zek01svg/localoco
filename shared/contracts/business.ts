@@ -60,3 +60,14 @@ export const businessCreationResponseSchema = z.object({
   listing: ownerListingSchema,
 });
 export type BusinessCreationResponse = z.infer<typeof businessCreationResponseSchema>;
+
+// Ownership changes only through the administrative transfer operation:
+// `ownerId` is absent from Business and Listing update contracts, so no other
+// edit path can move a Business between Users. The target is an existing
+// verified login User and the reason is a mandatory, immutable part of the
+// audit record.
+export const ownershipTransferSchema = z.object({
+  ownerId: z.string().min(1).max(256),
+  reason: z.string().trim().min(1).max(1000),
+});
+export type OwnershipTransfer = z.infer<typeof ownershipTransferSchema>;

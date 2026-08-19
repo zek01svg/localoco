@@ -443,6 +443,40 @@ authorization read and the write is not updated.
 - **Response `400`**: body failed validation (`invalid_request`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 
+### Transfer ownership (`POST /api/businesses/:id/transfer-ownership`)
+
+Administrative operation that moves a Business to another owner. Requires an
+Administrator session. Ownership is deliberately not an updatable field on any
+Business or Listing edit path — it can only change through this operation,
+which is transactional and writes an immutable audit record to
+`business_ownership_audit` with the actor, previous owner, next owner, and
+reason.
+
+The target `ownerId` must name an existing User with a verified email that can
+actually sign in; synthetic non-login Users and absent targets are rejected.
+
+- **Request Body**:
+
+  ```json
+  {
+    "ownerId": "usr_2",
+    "reason": "Business changed hands; owner requested the transfer."
+  }
+  ```
+
+- **Response `200 OK`**:
+
+  ```json
+  { "id": "biz_1", "uen": "202400123A" }
+  ```
+
+- **Response `400`**: the target is absent, unverified, or synthetic
+  (`invalid_request`).
+- **Response `401`**: no session (`unauthorized`).
+- **Response `403`**: actor is not an administrator (`forbidden`).
+- **Response `404`**: business does not exist (`not_found`).
+- **Response `409`**: the target already owns the Business (`conflict`).
+
 ---
 
 ## 5. Authentication Endpoints (`/api/auth/*`)

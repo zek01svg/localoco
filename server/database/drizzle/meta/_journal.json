@@ -64,6 +64,13 @@
       "when": 1787069636396,
       "tag": "0008_listing_moderation",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787104664830,
+      "tag": "0009_ownership_transfer",
+      "breakpoints": true
     }
   ]
 }

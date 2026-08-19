@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Administrative ownership transfer** (PRS-183): Administrators can move a
+  Business to another verified login User via
+  `POST /api/businesses/:id/transfer-ownership`. Ownership is not an updatable
+  field on any Business or Listing edit path, so it can only change through
+  this explicit operation. The transfer is transactional, rejects absent,
+  unverified, and synthetic non-login targets, and writes an immutable record
+  (actor, previous owner, next owner, reason) to `business_ownership_audit`.
 - **Listing moderation lifecycle and audit** (PRS-182): Full moderation lifecycle
   for Listings (`draft`, `pending_review`, `published`, `rejected`, `suspended`).
   Owners submit listings for review (`POST /api/businesses/:id/listing/submit`);

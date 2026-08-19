@@ -42,6 +42,12 @@ _Avoid_: picture, image, attachment
 A User who owns a Business and may manage its Listing and public Announcements.
 _Avoid_: vendor account, administrator
 
+**Ownership transfer**:
+The administrative operation that moves a Business to a different Business
+owner. Ownership is not an updatable field on any Business or Listing edit
+path; it changes only through this audited operation.
+_Avoid_: owner change, reassignment, handover
+
 **Administrator**:
 A User granted platform-wide administrative privileges directly in the database. An Administrator can moderate Listings, transfer ownership, and manage platform resources across all Businesses.
 _Avoid_: admin, superuser, staff, root

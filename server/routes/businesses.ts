@@ -1,12 +1,13 @@
 import type { Coordinates, GeocodeFailureKind } from "#server/lib/geocoding";
 import type { ListingStatus } from "#shared/contracts/listings";
 
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, exists } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 import postgres from "postgres";
 
-import { business, ownedBy } from "#server/database/business";
+import { account, user } from "#server/database/auth";
+import { business, businessOwnershipAudit, ownedBy } from "#server/database/business";
 import { businessHours } from "#server/database/business-hours";
 import { listing, listingModerationAudit } from "#server/database/listing";
 import { requireAdmin, requireBusinessOwner, requireVerified } from "#server/lib/auth-middleware";
@@ -21,6 +22,7 @@ import {
   businessesQuerySchema,
   businessesResponseSchema,
   businessUpdateSchema,
+  ownershipTransferSchema,
 } from "#shared/contracts/business";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
 import {
@@ -745,6 +747,107 @@ export const businessesRoutes = new Hono()
       if (!parsed.success) {
         throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
           cause: new Error("data seam returned an audit row that violates the contract"),
+        });
+      }
+      return c.json(parsed.data);
+    }
+  )
+  .post(
+    "/businesses/:id/transfer-ownership",
+    requireAdmin,
+    validator("json", ownershipTransferSchema, onValidationError),
+    describeRoute({
+      operationId: "transferBusinessOwnership",
+      tags: ["businesses", "admin"],
+      summary: "Transfer a Business to another owner",
+      description:
+        "Administrative operation that moves a Business to another verified login User. Ownership is not an updatable field on any Business or Listing edit path: it can only change through this audited operation, which records the actor, previous owner, next owner, and reason.",
+      responses: {
+        200: {
+          description: "The transferred Business",
+          content: { "application/json": { schema: resolver(businessSchema) } },
+        },
+        ...privateErrorResponses,
+      },
+    }),
+    async c => {
+      const auth = c.get("auth");
+      if (!auth) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+
+      const { id } = c.req.param();
+      const { ownerId, reason } = c.req.valid("json");
+
+      const rows = await db.transaction(async tx => {
+        // The Business row is locked for the whole transfer: concurrent
+        // ownership changes or edits serialize on it.
+        const locked = await tx
+          .select({ id: business.id, uen: business.uen, ownerId: business.ownerId })
+          .from(business)
+          .where(eq(business.id, id))
+          .for("update")
+          .limit(1);
+        if (locked.length === 0) {
+          return [];
+        }
+
+        const current = locked[0];
+        if (current.ownerId === ownerId) {
+          throw new HttpError(409, "conflict", "Business is already owned by that User");
+        }
+
+        // The target must be a real login User with a verified email. A user
+        // row without any account (synthetic, cannot sign in) or without
+        // verification is not a valid owner, and an absent id matches nothing.
+        const target = await tx
+          .select({ id: user.id })
+          .from(user)
+          .where(
+            and(
+              eq(user.id, ownerId),
+              eq(user.emailVerified, true),
+              exists(
+                tx
+                  .select({ userId: account.userId })
+                  .from(account)
+                  .where(eq(account.userId, user.id))
+              )
+            )
+          )
+          .limit(1);
+        if (target.length === 0) {
+          throw new HttpError(
+            400,
+            "invalid_request",
+            "The target owner must be an existing verified User"
+          );
+        }
+
+        await tx
+          .update(business)
+          .set({ ownerId, updatedAt: new Date() })
+          .where(eq(business.id, id));
+
+        await tx.insert(businessOwnershipAudit).values({
+          businessId: id,
+          actorId: auth.userId,
+          previousOwnerId: current.ownerId,
+          nextOwnerId: ownerId,
+          reason,
+        });
+
+        return [{ id: current.id, uen: current.uen }];
+      });
+
+      if (rows.length === 0) {
+        throw new HttpError(404, "not_found", "Business not found");
+      }
+
+      const parsed = businessSchema.safeParse(rows[0]);
+      if (!parsed.success) {
+        throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
+          cause: new Error("data seam returned a row that violates the business contract"),
         });
       }
       return c.json(parsed.data);

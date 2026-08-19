@@ -32,6 +32,28 @@ export const administrator = pgTable("administrator", {
     .notNull(),
 });
 
+export const businessOwnershipAudit = pgTable("business_ownership_audit", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  businessId: text("business_id")
+    .notNull()
+    .references(() => business.id, { onDelete: "cascade" }),
+  actorId: text("actor_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  previousOwnerId: text("previous_owner_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  nextOwnerId: text("next_owner_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at")
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
 /**
  * The ownership predicate for Business resources: the actor owns the Business
  * or is an administrator. Evaluated by the database at the mutation boundary,

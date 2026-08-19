@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   businessCreateSchema,
   businessCreationResponseSchema,
+  ownershipTransferSchema,
   uenField,
 } from "#shared/contracts/business";
 import {
@@ -134,6 +135,34 @@ describe("ownerListingSchema (server -> client)", () => {
     expect(parsed.website).toBeNull();
     expect(parsed.priceRange).toBeNull();
     expect(parsed.paymentOptions).toBeNull();
+  });
+});
+
+describe("ownershipTransferSchema", () => {
+  it("accepts a target owner with a non-empty reason and trims the reason", () => {
+    const parsed = ownershipTransferSchema.parse({
+      ownerId: "usr_target",
+      reason: "  Owner requested the transfer.  ",
+    });
+    expect(parsed.ownerId).toBe("usr_target");
+    expect(parsed.reason).toBe("Owner requested the transfer.");
+  });
+
+  it("rejects missing, empty, or over-bounds ownerId", () => {
+    expect(ownershipTransferSchema.safeParse({ reason: "x" }).success).toBe(false);
+    expect(ownershipTransferSchema.safeParse({ ownerId: "", reason: "x" }).success).toBe(false);
+    expect(
+      ownershipTransferSchema.safeParse({ ownerId: "x".repeat(257), reason: "x" }).success
+    ).toBe(false);
+  });
+
+  it("rejects empty or over-long reasons", () => {
+    for (const reason of ["", "   ", "\t\n"]) {
+      expect(ownershipTransferSchema.safeParse({ ownerId: "u", reason }).success).toBe(false);
+    }
+    expect(
+      ownershipTransferSchema.safeParse({ ownerId: "u", reason: "a".repeat(1001) }).success
+    ).toBe(false);
   });
 });
 
