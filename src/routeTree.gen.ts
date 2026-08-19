@@ -16,6 +16,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as AnnouncementsIdRouteImport } from './routes/announcements.$id'
 import { Route as BusinessesIdRouteImport } from './routes/businesses.$id'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
 import { Route as ForumIndexRouteImport } from './routes/forum.index'
@@ -57,6 +58,11 @@ const SignupRoute = SignupRouteImport.update({
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnnouncementsIdRoute = AnnouncementsIdRouteImport.update({
+  id: '/announcements/$id',
+  path: '/announcements/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BusinessesIdRoute = BusinessesIdRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/forum/$postId': typeof ForumPostIdRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/forum/$postId': typeof ForumPostIdRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
   '/forum/$postId': typeof ForumPostIdRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
     | '/forum/$postId'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
     | '/forum/$postId'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
     | '/forum/$postId'
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  AnnouncementsIdRoute: typeof AnnouncementsIdRoute
   BusinessesIdRoute: typeof BusinessesIdRoute
   BusinessesNewRoute: typeof BusinessesNewRoute
   ForumPostIdRoute: typeof ForumPostIdRoute
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/verify-email'
       fullPath: '/verify-email'
       preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/announcements/$id': {
+      id: '/announcements/$id'
+      path: '/announcements/$id'
+      fullPath: '/announcements/$id'
+      preLoaderRoute: typeof AnnouncementsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/businesses/$id': {
@@ -323,6 +343,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  AnnouncementsIdRoute: AnnouncementsIdRoute,
   BusinessesIdRoute: BusinessesIdRoute,
   BusinessesNewRoute: BusinessesNewRoute,
   ForumPostIdRoute: ForumPostIdRoute,

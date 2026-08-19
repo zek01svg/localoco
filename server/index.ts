@@ -14,6 +14,7 @@ import {
   publicRateLimit,
 } from "#server/lib";
 import {
+  announcementsRoutes,
   bookmarksRoutes,
   businessesRoutes,
   forumRoutes,
@@ -103,6 +104,7 @@ const apiRoutes = new Hono()
   .use("*", publicRateLimit)
   .route("/", listingsRoutes)
   .route("/", businessesRoutes)
+  .route("/", announcementsRoutes)
   .route("/", forumRoutes)
   .route("/", bookmarksRoutes)
   .route("/", mediaRoutes)

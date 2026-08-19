@@ -1,3 +1,4 @@
+export { announcementsRoutes } from "./announcements";
 export { bookmarksRoutes } from "./bookmarks";
 export { businessesRoutes } from "./businesses";
 export { forumRoutes } from "./forum";

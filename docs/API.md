@@ -1474,6 +1474,22 @@ Marks a reply as soft-deleted. Requires a verified session and only the reply's 
 ### Like a Forum reply (`POST /api/forum/replies/:id/like`)
 
 Idempotently endorses a Forum reply. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators liking a soft-deleted reply receive 404.
+---
+
+## 11. Announcements
+
+Public updates and notices posted by owners of published Businesses.
+
+### List public Announcements (`GET /api/announcements`)
+
+Returns a cursor-paginated list of active announcements across published listings, newest first. Expired announcements or those from non-published listings are excluded automatically.
+
+Query parameters:
+
+| Name     | Type     | Default | Description                      |
+| :------- | :------- | :------ | :------------------------------- |
+| `limit`  | `int`    | `20`    | Page size (1 to 100)             |
+| `cursor` | `string` | —       | Cursor string from previous page |
 
 - **Response `200 OK`**:
   ```json
@@ -1490,6 +1506,108 @@ Idempotently endorses a Forum reply. Requires an authenticated session with a ve
 ### Unlike a Forum reply (`DELETE /api/forum/replies/:id/like`)
 
 Idempotently removes an endorsement for a Forum reply. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators unliking a soft-deleted reply receive 404.
+"items": [
+{
+"id": "ann_123",
+"businessId": "biz_456",
+"userId": "usr_789",
+"title": "Weekend Flash Sale",
+"content": "Get 30% off all items this weekend!",
+"imageUrl": "https://example.com/banner.jpg",
+"linkUrl": "https://example.com/order",
+"startsAt": "2026-08-01T00:00:00.000Z",
+"endsAt": "2026-08-31T23:59:59.000Z",
+"status": "active",
+"moderationReason": null,
+"canonicalUrl": "/announcements/ann_123",
+"business": {
+"id": "biz_456",
+"name": "Alice Bakery",
+"category": "Cafe",
+"uen": "T09LL0001A"
+},
+"author": {
+"id": "usr_789",
+"displayName": "Alice Tan",
+"avatarUrl": null
+},
+"createdAt": "2026-08-01T00:00:00.000Z",
+"updatedAt": "2026-08-01T00:00:00.000Z"
+}
+],
+"nextCursor": null
+}
+
+````
+- **Response `400`**: invalid cursor or query parameters (`invalid_request`).
+
+### Get Announcement detail (`GET /api/announcements/:id`)
+
+Fetches announcement details with canonical URL and metadata. Public viewers can only see active announcements on published listings; business owners and administrators can see any state.
+
+- **Response `200 OK`**: Announcement item payload.
+- **Response `404`**: announcement not found or not visible (`not_found`).
+
+### Create Business Announcement (`POST /api/businesses/:id/announcements`)
+
+Creates an announcement for an owned published business. Requires the listing to be in `published` state; returns 409 Conflict otherwise. Produces zero email deliveries.
+
+- **Request Body**:
+```json
+{
+  "title": "Weekend Flash Sale",
+  "content": "Get 30% off all items this weekend!",
+  "imageUrl": "https://example.com/banner.jpg",
+  "linkUrl": "https://example.com/order",
+  "startsAt": "2026-08-01T00:00:00.000Z",
+  "endsAt": "2026-08-31T23:59:59.000Z"
+}
+````
+
+- **Response `201 Created`**: Created Announcement payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: business not found or not owned (`not_found`).
+- **Response `409`**: business listing is not in published state (`conflict`).
+
+### List Business Announcements (`GET /api/businesses/:id/announcements`)
+
+Returns announcements for a specific business. Business owners and administrators receive all announcements (active, scheduled, expired, moderated); public visitors only see active, unexpired announcements on published listings.
+
+- **Response `200 OK`**: Paginated announcements response.
+
+### Update Business Announcement (`PATCH /api/businesses/:id/announcements/:announcementId`)
+
+Updates an owned announcement.
+
+- **Response `200 OK`**: Updated Announcement payload.
+- **Response `404`**: business or announcement not found (`not_found`).
+
+### Delete Business Announcement (`DELETE /api/businesses/:id/announcements/:announcementId`)
+
+Permanently deletes an announcement.
+
+- **Response `204 No Content`**: Announcement deleted.
+
+### Moderate Announcement (`POST /api/announcements/:id/moderate`)
+
+Administrator endpoint to moderate or restore an announcement with an immutable reason and audit record.
+
+- **Request Body**:
+  ```json
+  {
+    "action": "moderate",
+    "reason": "Violates community guidelines."
+  }
+  ```
+- **Response `200 OK`**: Moderated Announcement payload.
+- **Response `403`**: administrator role required (`forbidden`).
+- **Response `404`**: announcement not found (`not_found`).
+
+### List Announcement Moderation Audits (`GET /api/announcements/:id/audits`)
+
+Administrator endpoint returning the immutable moderation history for an announcement.
 
 - **Response `200 OK`**:
   ```json
@@ -1502,3 +1620,18 @@ Idempotently removes an endorsement for a Forum reply. Requires an authenticated
 - **Response `401`**: authentication required (`unauthorized`).
 - **Response `403`**: email unverified (`forbidden`).
 - **Response `404`**: reply not found or soft-deleted (`not_found`).
+  "items": [
+  {
+  "id": "aud_123",
+  "announcementId": "ann_123",
+  "actorId": "usr_admin",
+  "previousStatus": "active",
+  "nextStatus": "moderated",
+  "reason": "Violates community guidelines.",
+  "createdAt": "2026-08-19T00:00:00.000Z"
+  }
+  ]
+  }
+  ```
+
+  ```

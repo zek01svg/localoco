@@ -22,6 +22,10 @@ All notable changes to this project will be documented in this file.
   Schema.org structured data.
 - **Reviews and Forum** (PRS-190–191): verified-user reviews with SQL-derived
   ratings, and forum posts/replies with soft deletion and cursor pagination.
+- **Announcements** (PRS-185): public business announcements with publication
+  precondition, bounded visibility dates, automatic expiry filtering,
+  lifecycle cascade, HTTPS media/link validation, administrator moderation
+  with immutable audit log, and canonical URL metadata.
 - **Bookmarks** (PRS-189): private, database-enforced bookmarks on the
   personal profile page.
 - **Plumbing** (PRS-166–170): API contract with error envelope, distributed

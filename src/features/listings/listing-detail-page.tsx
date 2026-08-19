@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { Badge } from "#client/components/ui/badge";
 import { Button } from "#client/components/ui/button";
 import { Card, CardContent } from "#client/components/ui/card";
+import { ListingAnnouncementsSection } from "#client/features/announcements";
 import { NotFoundPage } from "#client/features/not-found/not-found";
 import { isOpenAt } from "#shared/contracts/business-hours";
 
@@ -149,6 +150,9 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
           <div className="flex flex-col gap-8 lg:col-span-7">
             {/* Photo Gallery */}
             <ListingPhotoGallery photos={listing.photos} listingName={listing.name} />
+
+            {/* Announcements Section */}
+            <ListingAnnouncementsSection businessId={listing.businessId} />
 
             {/* Description Section (Deliberately omitted when empty) */}
             {listing.description && (
