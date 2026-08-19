@@ -14,6 +14,7 @@ import {
   publicRateLimit,
 } from "#server/lib";
 import {
+  bookmarksRoutes,
   businessesRoutes,
   healthRoutes,
   listingsRoutes,
@@ -100,6 +101,7 @@ const apiRoutes = new Hono()
   .use("*", publicRateLimit)
   .route("/", listingsRoutes)
   .route("/", businessesRoutes)
+  .route("/", bookmarksRoutes)
   .route("/", mediaRoutes)
   .route("/", profileRoutes)
   .route("/", usersRoutes);

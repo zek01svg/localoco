@@ -966,3 +966,137 @@ answer `503` so QStash retries.
 - **Response `503`**: a storage delete failed; retry (`dependency_unavailable`).
 
 ---
+
+## 7. Bookmarks
+
+Bookmarks allow an authenticated User to save Businesses to return to later.
+Bookmarks are strictly private: they are structurally absent from public
+profiles (`GET /api/users/:id`), public listing discovery (`GET /api/listings`),
+and cannot be inferred from any public response.
+
+Correctness properties are enforced at the database level:
+
+- One bookmark per User and Business is enforced via a PostgreSQL unique
+  constraint (`bookmark_user_business_unique`), preventing duplicate rows under
+  concurrent creation.
+- Adding an existing bookmark is idempotent rather than an error.
+- Removing a bookmark is idempotent (repeated deletions answer `200` rather than erroring).
+- Reading bookmarks requires an active session; mutating bookmarks requires a verified email.
+- All bookmark responses carry `Cache-Control: private, no-store`.
+
+### List bookmarks (`GET /api/bookmarks`)
+
+Cursor-paginated list of the session user's bookmarked Businesses and their
+published Listings (ordered ascending by stable bookmark ID).
+
+- **Query Parameters**:
+  - `limit` (optional): integer between 1 and 100 (default: `20`).
+  - `cursor` (optional): bookmark ID to paginate after.
+
+- **Response `200 OK`** — `application/json`:
+
+  ```json
+  {
+    "items": [
+      {
+        "id": "bmk_1",
+        "businessId": "biz_1",
+        "createdAt": "2026-08-19T00:00:00.000Z",
+        "business": {
+          "id": "biz_1",
+          "uen": "199012345A"
+        },
+        "listing": {
+          "id": "lst_1",
+          "name": "Maxwell Chicken Rice",
+          "category": "Food & Beverage",
+          "address": "123 Maxwell Road",
+          "postalCode": "069111",
+          "latitude": 1.2956,
+          "longitude": 103.7764,
+          "phone": "+6561234567",
+          "email": "contact@example.com",
+          "website": "https://example.com",
+          "paymentOptions": ["PayNow"],
+          "priceRange": "$$"
+        }
+      }
+    ],
+    "nextCursor": "bmk_1"
+  }
+  ```
+
+- **Response `400`**: query parameters failed validation (`invalid_request`).
+- **Response `401`**: no active session (`unauthorized`).
+- **Response `503`**: database unavailable (`dependency_unavailable`).
+
+### Add a bookmark (`POST /api/bookmarks`)
+
+Saves a reference to a Business for the session user. Idempotent: repeated taps
+return the bookmark without error.
+
+- **Request Body** — `application/json`:
+
+  ```json
+  {
+    "businessId": "biz_1"
+  }
+  ```
+
+- **Response `200 OK`** — `application/json`:
+
+  ```json
+  {
+    "status": "bookmarked",
+    "bookmark": {
+      "id": "bmk_1",
+      "businessId": "biz_1",
+      "createdAt": "2026-08-19T00:00:00.000Z"
+    }
+  }
+  ```
+
+- **Response `400`**: body failed validation (`invalid_request`).
+- **Response `401`**: no active session (`unauthorized`).
+- **Response `403`**: unverified email (`forbidden`).
+- **Response `404`**: Business does not exist (`not_found`).
+- **Response `503`**: database unavailable (`dependency_unavailable`).
+
+### Remove a bookmark (`DELETE /api/bookmarks/:businessId`)
+
+Removes a bookmark for the session user. Idempotent: removing a bookmark that was
+already removed or never existed succeeds with `200`.
+
+- **Response `200 OK`** — `application/json`:
+
+  ```json
+  {
+    "status": "removed"
+  }
+  ```
+
+- **Response `401`**: no active session (`unauthorized`).
+- **Response `403`**: unverified email (`forbidden`).
+- **Response `503`**: database unavailable (`dependency_unavailable`).
+
+### Get bookmark status (`GET /api/bookmarks/:businessId`)
+
+Checks whether the session user has bookmarked the specified Business.
+
+- **Response `200 OK`** — `application/json`:
+
+  ```json
+  {
+    "bookmarked": true,
+    "bookmark": {
+      "id": "bmk_1",
+      "businessId": "biz_1",
+      "createdAt": "2026-08-19T00:00:00.000Z"
+    }
+  }
+  ```
+
+- **Response `401`**: no active session (`unauthorized`).
+- **Response `503`**: database unavailable (`dependency_unavailable`).
+
+---

@@ -91,7 +91,7 @@ describe("PersonalProfilePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     stubSession();
-    fetchMock.mockImplementation(async input => {
+    fetchMock.mockImplementation(async (input, init) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (url.endsWith("/api/profile/email-change")) {
         return jsonResponse({ status: "confirmation_sent" }, 200);
@@ -99,9 +99,16 @@ describe("PersonalProfilePage", () => {
       if (url.endsWith("/api/profile")) {
         return jsonResponse(PROFILE, 200);
       }
+      if (url.includes("/api/bookmarks")) {
+        if (init?.method === "DELETE") {
+          return jsonResponse({ status: "removed" }, 200);
+        }
+        return jsonResponse({ items: [], nextCursor: null }, 200);
+      }
       if (url.endsWith("/api/businesses")) {
         return jsonResponse({ items: [{ id: "biz_1", uen: "202512345A" }], selectedId: null }, 200);
       }
+
       return jsonResponse(
         {
           error: { code: "not_found", message: "Not found", requestId: "req" },

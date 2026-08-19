@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Private, database-enforced Bookmarks** (PRS-189): Authenticated users can save
+  Businesses to revisit later (`GET /api/bookmarks`, `POST /api/bookmarks`,
+  `DELETE /api/bookmarks/:businessId`, `GET /api/bookmarks/:businessId`).
+  Bookmarks are private to the owning user and structurally absent from all
+  public profile and discovery endpoints (`Cache-Control: private, no-store`).
+  Multi-column unique constraint on `(user_id, business_id)` prevents duplicate
+  bookmarks under concurrent creation; addition and removal operations are fully
+  idempotent. Bookmarks list is cursor-paginated and integrated into the personal
+  profile page (`/profile`).
 - **Listing detail page** (PRS-188): Public listing detail view at
   `/listings/$id` serving canonical details for published businesses
   (`GET /api/listings/:id`). Renders business name, UEN, category, description,
@@ -15,8 +24,8 @@ All notable changes to this project will be documented in this file.
   pending review, rejected, suspended) listings return 404. Controlled media URLs
   (`GET /api/media/:id`) allow public access for active photos of published
   listings while retaining private owner access for unpublished photos.
-
 - **Map viewport filter and browser map** (PRS-187): Public discovery page
+
   enhancement layering an interactive Google Map on top of the directory via
   `@vis.gl/react-google-maps`. Server-side bounding box filtering (`north`,
   `south`, `east`, `west` on `GET /api/listings`) filters results before cursor
@@ -24,6 +33,7 @@ All notable changes to this project will be documented in this file.
   loaded lazily so it never gates textual directory discovery; if Maps JavaScript
   is unavailable or fails, an honest visible degraded state is shown while the
   textual directory remains fully usable and interactive.
+
 - **Open-now filter in Business discovery** (PRS-186): Visitors can filter
   Business discovery down to businesses that are open right now in Singapore
   wall-clock time (`GET /api/listings?openNow=true`). Evaluated server-side in
