@@ -2,7 +2,7 @@ import type { ForumPostItem } from "#shared/contracts/forum";
 
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { Edit2, MessageSquare, MoreVertical, Trash2 } from "lucide-react";
+import { Edit2, MessageSquare, MoreVertical, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { LikeButton } from "#client/components/like-button";
@@ -22,16 +22,27 @@ import { initialsOf } from "#client/features/profiles/initials";
 interface ForumPostCardProps {
   post: ForumPostItem;
   currentUserId?: string;
+  isAdmin?: boolean;
   onEdit?: (post: ForumPostItem) => void;
   onDelete?: (post: ForumPostItem) => void;
+  onModerate?: (post: ForumPostItem) => void;
 }
 
-export function ForumPostCard({ post, currentUserId, onEdit, onDelete }: ForumPostCardProps) {
+export function ForumPostCard({
+  post,
+  currentUserId,
+  isAdmin,
+  onEdit,
+  onDelete,
+  onModerate,
+}: ForumPostCardProps) {
   const { isAuthenticated, isVerified } = useSession();
   const likeMutation = useToggleForumPostLikeMutation(post.id);
-
   const isAuthor = currentUserId === post.userId;
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
+  const hasOptions =
+    Boolean(isAuthor && (onEdit ?? onDelete)) ||
+    Boolean(isAdmin && onModerate && !post.moderatedAt);
 
   const handleLikeToggle = async () => {
     if (!isAuthenticated) {
@@ -68,11 +79,20 @@ export function ForumPostCard({ post, currentUserId, onEdit, onDelete }: ForumPo
               >
                 {timeAgo}
               </time>
+              {post.moderatedAt ? (
+                <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+                  Moderated
+                </Badge>
+              ) : post.deletedAt ? (
+                <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                  Deleted
+                </Badge>
+              ) : null}
             </div>
           </div>
         </div>
 
-        {isAuthor && (onEdit || onDelete) ? (
+        {hasOptions ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="size-8" aria-label="Post options">
@@ -80,7 +100,7 @@ export function ForumPostCard({ post, currentUserId, onEdit, onDelete }: ForumPo
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {onEdit ? (
+              {isAuthor && onEdit ? (
                 <DropdownMenuItem
                   onClick={() => {
                     onEdit(post);
@@ -90,7 +110,7 @@ export function ForumPostCard({ post, currentUserId, onEdit, onDelete }: ForumPo
                   Edit post
                 </DropdownMenuItem>
               ) : null}
-              {onDelete ? (
+              {isAuthor && onDelete ? (
                 <DropdownMenuItem
                   onClick={() => {
                     onDelete(post);
@@ -99,6 +119,17 @@ export function ForumPostCard({ post, currentUserId, onEdit, onDelete }: ForumPo
                 >
                   <Trash2 className="mr-2 size-4" />
                   Delete post
+                </DropdownMenuItem>
+              ) : null}
+              {isAdmin && onModerate && !post.moderatedAt ? (
+                <DropdownMenuItem
+                  onClick={() => {
+                    onModerate(post);
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <ShieldAlert className="mr-2 size-4" />
+                  Moderate post
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>

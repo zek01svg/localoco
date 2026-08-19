@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
-import { getOrSetCache } from "#server/lib/cache";
+import { deleteCacheKeys, getOrSetCache } from "#server/lib/cache";
 import { createRateLimiter } from "#server/lib/rate-limit";
 
 // Mock redis module as null (representing unconfigured Redis in local dev / test)
@@ -43,6 +43,12 @@ describe("Unconfigured Redis behavior", () => {
 
       expect(result).toEqual(freshData);
       expect(fetcher).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("deleteCacheKeys with null redis", () => {
+    it("resolves cleanly without error when redis is null", async () => {
+      await expect(deleteCacheKeys("test:key")).resolves.toBeUndefined();
     });
   });
 });

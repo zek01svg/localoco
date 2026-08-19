@@ -20,6 +20,7 @@ import {
 import { NotFoundPage } from "#client/features/not-found/not-found";
 import { initialsOf } from "#client/features/profiles/initials";
 
+import { ForumModerationDialog } from "./components/forum-moderation-dialog";
 import { ForumPostDialog } from "./components/forum-post-dialog";
 import { ReplyComposer } from "./components/reply-composer";
 import {
@@ -28,6 +29,8 @@ import {
   useDeleteForumPostMutation,
   useDeleteReplyMutation,
   useForumPostQuery,
+  useModerateForumPostMutation,
+  useModerateReplyMutation,
   usePostRepliesQuery,
   useUpdateForumPostMutation,
   useUpdateReplyMutation,
@@ -41,6 +44,8 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
   const { user, isAuthenticated, isVerified } = useSession();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [modPostDialogOpen, setModPostDialogOpen] = useState(false);
+  const [modReplyTargetId, setModReplyTargetId] = useState<string | null>(null);
   const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
 
@@ -54,6 +59,8 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
   const deletePostMutation = useDeleteForumPostMutation();
   const likePostMutation = useToggleForumPostLikeMutation(postId);
   const likeReplyMutation = useToggleForumReplyLikeMutation(postId);
+  const moderatePostMutation = useModerateForumPostMutation(postId);
+  const moderateReplyMutation = useModerateReplyMutation(postId);
 
   const post = postQuery.data;
 
@@ -178,7 +185,32 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
     }
   };
 
+  const handleModeratePost = async (reason: string) => {
+    try {
+      await moderatePostMutation.mutateAsync({ reason });
+      toast.success("Post moderated successfully");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to moderate post");
+    }
+  };
+
+  const handleModerateReply = async (reason: string) => {
+    if (!modReplyTargetId) return;
+    try {
+      await moderateReplyMutation.mutateAsync({
+        replyId: modReplyTargetId,
+        data: { reason },
+      });
+      setModReplyTargetId(null);
+      toast.success("Reply moderated successfully");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to moderate reply");
+    }
+  };
+
   const isPostAuthor = user?.id === post.userId;
+  const isAdmin =
+    typeof user === "object" && user !== null && "role" in user && user.role === "admin";
 
   return (
     <main className="bg-background min-h-screen pb-16">
@@ -207,38 +239,64 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
                 <span className="text-foreground text-sm font-semibold">
                   {post.author.displayName}
                 </span>
-                <time
-                  dateTime={new Date(post.createdAt).toISOString()}
-                  className="text-muted-foreground block text-xs"
-                >
-                  {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                </time>
+                <div className="flex items-center gap-2">
+                  <time
+                    dateTime={new Date(post.createdAt).toISOString()}
+                    className="text-muted-foreground block text-xs"
+                  >
+                    {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                  </time>
+                  {post.moderatedAt ? (
+                    <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+                      Moderated
+                    </Badge>
+                  ) : post.deletedAt ? (
+                    <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                      Deleted
+                    </Badge>
+                  ) : null}
+                </div>
               </div>
             </div>
 
-            {isPostAuthor ? (
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1">
+              {isPostAuthor && !post.deletedAt && !post.moderatedAt ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setDialogOpen(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => {
+                      void handleDeletePost();
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </>
+              ) : null}
+
+              {isAdmin && !post.moderatedAt ? (
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setDialogOpen(true);
-                  }}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   className="text-destructive hover:text-destructive"
                   onClick={() => {
-                    void handleDeletePost();
+                    setModPostDialogOpen(true);
                   }}
                 >
-                  Delete
+                  Moderate
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
 
           <h1 className="text-foreground text-2xl font-bold tracking-tight">{post.title}</h1>
@@ -303,39 +361,65 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
                         <span className="text-foreground text-sm font-semibold">
                           {reply.author.displayName}
                         </span>
-                        <time
-                          dateTime={new Date(reply.createdAt).toISOString()}
-                          className="text-muted-foreground block text-xs"
-                        >
-                          {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
-                        </time>
+                        <div className="flex items-center gap-2">
+                          <time
+                            dateTime={new Date(reply.createdAt).toISOString()}
+                            className="text-muted-foreground block text-xs"
+                          >
+                            {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                          </time>
+                          {reply.moderatedAt ? (
+                            <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+                              Moderated
+                            </Badge>
+                          ) : reply.deletedAt ? (
+                            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                              Deleted
+                            </Badge>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
 
-                    {user?.id === reply.userId ? (
-                      <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1">
+                      {user?.id === reply.userId && !reply.deletedAt && !reply.moderatedAt ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingReplyId(reply.id);
+                              setEditBody(reply.body);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => {
+                              void handleDeleteReply(reply);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      ) : null}
+
+                      {isAdmin && !reply.moderatedAt ? (
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="text-destructive hover:text-destructive text-xs"
                           onClick={() => {
-                            setEditingReplyId(reply.id);
-                            setEditBody(reply.body);
+                            setModReplyTargetId(reply.id);
                           }}
                         >
-                          Edit
+                          Moderate
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => {
-                            void handleDeleteReply(reply);
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </div>
                   </div>
 
                   {editingReplyId === reply.id ? (
@@ -416,6 +500,26 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
         postToEdit={post}
         onSubmit={handleSubmitPostEdit}
         isPending={updatePostMutation.isPending}
+      />
+
+      <ForumModerationDialog
+        open={modPostDialogOpen}
+        onOpenChange={setModPostDialogOpen}
+        title="Moderate Forum Post"
+        description="Provide a reason for moderating this forum post. It will be hidden from public view."
+        onSubmit={handleModeratePost}
+        isPending={moderatePostMutation.isPending}
+      />
+
+      <ForumModerationDialog
+        open={Boolean(modReplyTargetId)}
+        onOpenChange={open => {
+          if (!open) setModReplyTargetId(null);
+        }}
+        title="Moderate Reply"
+        description="Provide a reason for moderating this reply. It will be hidden from public view."
+        onSubmit={handleModerateReply}
+        isPending={moderateReplyMutation.isPending}
       />
     </main>
   );

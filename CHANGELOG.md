@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
 - **Authentication & sessions** (PRS-171–175): email/password registration
   with email verification, password reset, session middleware, and the
   administrator role with database-backed authorization.
+- **Forum moderation** (PRS-194): administrative moderation for Forum posts and
+  replies with required reasons, immutable audit logging (`forum_moderation_audit`),
+  `moderated_at` lifecycle tracking, public read filtering, and cache purge.
 - **Businesses & listings** (PRS-178–181): UEN-validated business
   registration, draft listings, server-side address validation with persisted
   coordinates (ADR-0006), opening hours, and private R2 photo management.

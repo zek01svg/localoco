@@ -7,7 +7,7 @@ export {
   requireVerified,
   resolveAuth,
 } from "./auth-middleware";
-export { getOrSetCache } from "./cache";
+export { deleteCacheKeys, getOrSetCache } from "./cache";
 export { db } from "./db";
 export * from "./email";
 export { createErrorHandler, HttpError, onValidationError } from "./errors";

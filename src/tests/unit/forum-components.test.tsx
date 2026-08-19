@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import * as React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ForumModerationDialog } from "#client/features/forum/components/forum-moderation-dialog";
 import { ForumPostCard } from "#client/features/forum/components/forum-post-card";
 import { ForumPostDialog } from "#client/features/forum/components/forum-post-dialog";
 import { ReplyComposer } from "#client/features/forum/components/reply-composer";
@@ -40,7 +41,9 @@ function jsonResponse(body: unknown, status: number) {
   });
 }
 
-function stubSession(userOverride?: { id?: string; emailVerified?: boolean } | null) {
+function stubSession(
+  userOverride?: { id?: string; emailVerified?: boolean; role?: string; isAdmin?: boolean } | null
+) {
   const user =
     userOverride === null
       ? null
@@ -49,6 +52,8 @@ function stubSession(userOverride?: { id?: string; emailVerified?: boolean } | n
           name: "Alice Tan",
           email: "alice@example.com",
           emailVerified: userOverride?.emailVerified ?? true,
+          role: userOverride?.role,
+          isAdmin: userOverride?.isAdmin,
         };
   const session = user ? { id: "sess_1" } : null;
   mockUseSession.mockReturnValue({
@@ -59,8 +64,8 @@ function stubSession(userOverride?: { id?: string; emailVerified?: boolean } | n
     error: null,
     isAuthenticated: Boolean(session && user),
     isVerified: Boolean(user?.emailVerified),
-    signOut: vi.fn<() => Promise<unknown>>(),
-    refetch: vi.fn<() => Promise<unknown>>(),
+    signOut: vi.fn<() => Promise<void>>(),
+    refetch: vi.fn<() => void>(),
   });
 }
 
@@ -86,6 +91,7 @@ const mockPost: ForumPostItem = {
   likeCount: 0,
   isLiked: false,
   deletedAt: null,
+  moderatedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -119,6 +125,53 @@ describe("ForumPostCard component", () => {
   it("hides options for other viewers", () => {
     renderWithQueryClient(<ForumPostCard post={mockPost} currentUserId="usr_2" />);
     expect(screen.queryByRole("button", { name: /Post options/iu })).toBeNull();
+  });
+
+  it("renders Moderated badge when post is moderated", () => {
+    renderWithQueryClient(<ForumPostCard post={{ ...mockPost, moderatedAt: new Date() }} />);
+    expect(screen.getByText("Moderated")).toBeDefined();
+  });
+
+  it("shows moderation option for administrator", () => {
+    const handleModerate = vi.fn<(_post: ForumPostItem) => void>();
+    renderWithQueryClient(
+      <ForumPostCard
+        post={mockPost}
+        currentUserId="usr_admin"
+        isAdmin={true}
+        onModerate={handleModerate}
+      />
+    );
+    expect(screen.getByRole("button", { name: /Post options/iu })).toBeDefined();
+  });
+});
+
+describe("ForumModerationDialog component", () => {
+  afterEach(cleanup);
+
+  it("validates and submits moderation reason", async () => {
+    const handleSubmit = vi.fn<(_reason: string) => Promise<void>>().mockResolvedValue();
+    render(
+      <ForumModerationDialog
+        open={true}
+        onOpenChange={() => {}}
+        onSubmit={handleSubmit}
+        isPending={false}
+      />
+    );
+
+    const submitBtn = screen.getByRole("button", { name: /Confirm Moderation/iu });
+    expect(submitBtn.hasAttribute("disabled")).toBe(true);
+
+    const textarea = screen.getByPlaceholderText(/Violates community guidelines/iu);
+    fireEvent.change(textarea, { target: { value: "Spam advertisement" } });
+
+    expect(submitBtn.hasAttribute("disabled")).toBe(false);
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(handleSubmit).toHaveBeenCalledWith("Spam advertisement");
+    });
   });
 });
 
@@ -407,5 +460,20 @@ describe("ForumPostPage component", () => {
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith({ to: "/forum" });
     });
+  });
+
+  it("renders Moderate action for administrators", async () => {
+    stubSession({ id: "usr_admin", role: "admin", isAdmin: true });
+    fetchMock.mockImplementation(async input => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.endsWith("/forum/posts/post_1")) {
+        return jsonResponse(mockPost, 200);
+      }
+      return jsonResponse({ items: [], nextCursor: null }, 200);
+    });
+
+    renderWithQueryClient(<ForumPostPage postId="post_1" />);
+    expect(await screen.findByText("Weekend crowd?")).toBeDefined();
+    expect(screen.getByRole("button", { name: /Moderate/iu })).toBeDefined();
   });
 });

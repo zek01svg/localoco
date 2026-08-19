@@ -2,10 +2,12 @@ import type { AuthContext } from "#server/lib/auth-middleware";
 import type {
   CreateForumPost,
   CreateForumReply,
+  ForumModerationAuditsResponse,
   ForumPostItem,
   ForumQuery,
   ForumRepliesResponse,
   ForumReplyItem,
+  ModerateForumContent,
   UpdateForumPost,
   UpdateForumReply,
 } from "#shared/contracts/forum";
@@ -19,6 +21,7 @@ import { describeRoute, resolver, validator } from "hono-openapi";
 import { user } from "#server/database/auth";
 import { business } from "#server/database/business";
 import {
+  forumModerationAudit,
   forumPost,
   forumReply,
   publiclyVisiblePost,
@@ -26,7 +29,8 @@ import {
 } from "#server/database/forum";
 import { forumPostLike, forumReplyLike } from "#server/database/likes";
 import { listing } from "#server/database/listing";
-import { requireVerified, resolveAuth } from "#server/lib/auth-middleware";
+import { requireAdmin, requireVerified, resolveAuth } from "#server/lib/auth-middleware";
+import { deleteCacheKeys } from "#server/lib/cache";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
@@ -34,10 +38,12 @@ import {
   createForumPostSchema,
   createForumReplySchema,
   forumFeedResponseSchema,
+  forumModerationAuditsResponseSchema,
   forumPostItemSchema,
   forumQuerySchema,
   forumRepliesResponseSchema,
   forumReplyItemSchema,
+  moderateForumContentSchema,
   updateForumPostSchema,
   updateForumReplySchema,
 } from "#shared/contracts/forum";
@@ -120,6 +126,7 @@ function buildPostRowSelect(includeDeleted: boolean, actorUserId?: string) {
     title: forumPost.title,
     body: forumPost.body,
     deletedAt: forumPost.deletedAt,
+    moderatedAt: forumPost.moderatedAt,
     createdAt: forumPost.createdAt,
     updatedAt: forumPost.updatedAt,
     replyCount: sql<number>`(select count(*)::int from ${forumReply} where ${forumReply.postId} = ${forumPost.id} and ${
@@ -144,6 +151,7 @@ interface PostRow {
   title: string;
   body: string;
   deletedAt: Date | null;
+  moderatedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   replyCount: number;
@@ -177,6 +185,7 @@ function mapPostRow(row: PostRow): ForumPostItem {
     likeCount: row.likeCount,
     isLiked: row.isLiked,
     deletedAt: row.deletedAt,
+    moderatedAt: row.moderatedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -268,6 +277,7 @@ async function fetchReplies(
       userId: forumReply.userId,
       body: forumReply.body,
       deletedAt: forumReply.deletedAt,
+      moderatedAt: forumReply.moderatedAt,
       createdAt: forumReply.createdAt,
       updatedAt: forumReply.updatedAt,
       authorId: user.id,
@@ -298,6 +308,7 @@ async function fetchReplies(
     likeCount: r.likeCount,
     isLiked: r.isLiked,
     deletedAt: r.deletedAt,
+    moderatedAt: r.moderatedAt,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   }));
@@ -343,11 +354,16 @@ async function updatePost(
   userId: string
 ): Promise<ForumPostItem> {
   const rows = await db
-    .select({ id: forumPost.id, userId: forumPost.userId, deletedAt: forumPost.deletedAt })
+    .select({
+      id: forumPost.id,
+      userId: forumPost.userId,
+      deletedAt: forumPost.deletedAt,
+      moderatedAt: forumPost.moderatedAt,
+    })
     .from(forumPost)
     .where(eq(forumPost.id, id))
     .limit(1);
-  if (rows.length === 0 || rows[0].deletedAt !== null) {
+  if (rows.length === 0 || rows[0].deletedAt !== null || rows[0].moderatedAt !== null) {
     throw new HttpError(404, "not_found", "Forum post not found");
   }
   if (rows[0].userId !== userId) {
@@ -368,11 +384,16 @@ async function updatePost(
 
 async function softDeletePost(id: string, userId: string): Promise<void> {
   const rows = await db
-    .select({ id: forumPost.id, userId: forumPost.userId, deletedAt: forumPost.deletedAt })
+    .select({
+      id: forumPost.id,
+      userId: forumPost.userId,
+      deletedAt: forumPost.deletedAt,
+      moderatedAt: forumPost.moderatedAt,
+    })
     .from(forumPost)
     .where(eq(forumPost.id, id))
     .limit(1);
-  if (rows.length === 0 || rows[0].deletedAt !== null) {
+  if (rows.length === 0 || rows[0].deletedAt !== null || rows[0].moderatedAt !== null) {
     throw new HttpError(404, "not_found", "Forum post not found");
   }
   if (rows[0].userId !== userId) {
@@ -380,6 +401,60 @@ async function softDeletePost(id: string, userId: string): Promise<void> {
   }
 
   await db.update(forumPost).set({ deletedAt: new Date() }).where(eq(forumPost.id, id));
+}
+
+async function moderatePost(
+  postId: string,
+  body: ModerateForumContent,
+  actorId: string
+): Promise<ForumPostItem> {
+  await db.transaction(async tx => {
+    const rows = await tx
+      .select({
+        id: forumPost.id,
+        userId: forumPost.userId,
+        title: forumPost.title,
+        body: forumPost.body,
+        businessId: forumPost.businessId,
+        deletedAt: forumPost.deletedAt,
+        moderatedAt: forumPost.moderatedAt,
+      })
+      .from(forumPost)
+      .where(eq(forumPost.id, postId))
+      .for("update")
+      .limit(1);
+
+    if (rows.length === 0) {
+      throw new HttpError(404, "not_found", "Forum post not found");
+    }
+
+    const postRow = rows[0];
+    if (postRow.moderatedAt !== null) {
+      throw new HttpError(409, "conflict", "Forum post is already moderated");
+    }
+
+    const now = new Date();
+    await tx.insert(forumModerationAudit).values({
+      id: crypto.randomUUID(),
+      targetType: "post",
+      targetId: postId,
+      actorId,
+      reason: body.reason,
+      originalTitle: postRow.title,
+      originalBody: postRow.body,
+      originalAuthorId: postRow.userId,
+      createdAt: now,
+    });
+
+    await tx
+      .update(forumPost)
+      .set({ moderatedAt: now, updatedAt: now })
+      .where(eq(forumPost.id, postId));
+  });
+
+  await deleteCacheKeys("forum:posts", "forum:feed", `forum:post:${postId}`);
+
+  return fetchPostDetail(postId, true);
 }
 
 async function fetchReplyRow(replyId: string, actorUserId?: string) {
@@ -390,6 +465,7 @@ async function fetchReplyRow(replyId: string, actorUserId?: string) {
       userId: forumReply.userId,
       body: forumReply.body,
       deletedAt: forumReply.deletedAt,
+      moderatedAt: forumReply.moderatedAt,
       createdAt: forumReply.createdAt,
       updatedAt: forumReply.updatedAt,
       authorId: user.id,
@@ -415,6 +491,7 @@ function mapReplyRow(row: {
   likeCount: number;
   isLiked: boolean;
   deletedAt: Date | null;
+  moderatedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   authorId: string;
@@ -434,6 +511,7 @@ function mapReplyRow(row: {
     likeCount: row.likeCount,
     isLiked: row.isLiked,
     deletedAt: row.deletedAt,
+    moderatedAt: row.moderatedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -477,11 +555,16 @@ async function updateReply(
   userId: string
 ): Promise<ForumReplyItem> {
   const rows = await db
-    .select({ id: forumReply.id, userId: forumReply.userId, deletedAt: forumReply.deletedAt })
+    .select({
+      id: forumReply.id,
+      userId: forumReply.userId,
+      deletedAt: forumReply.deletedAt,
+      moderatedAt: forumReply.moderatedAt,
+    })
     .from(forumReply)
     .where(eq(forumReply.id, id))
     .limit(1);
-  if (rows.length === 0 || rows[0].deletedAt !== null) {
+  if (rows.length === 0 || rows[0].deletedAt !== null || rows[0].moderatedAt !== null) {
     throw new HttpError(404, "not_found", "Reply not found");
   }
   if (rows[0].userId !== userId) {
@@ -502,11 +585,16 @@ async function updateReply(
 
 async function softDeleteReply(id: string, userId: string): Promise<void> {
   const rows = await db
-    .select({ id: forumReply.id, userId: forumReply.userId, deletedAt: forumReply.deletedAt })
+    .select({
+      id: forumReply.id,
+      userId: forumReply.userId,
+      deletedAt: forumReply.deletedAt,
+      moderatedAt: forumReply.moderatedAt,
+    })
     .from(forumReply)
     .where(eq(forumReply.id, id))
     .limit(1);
-  if (rows.length === 0 || rows[0].deletedAt !== null) {
+  if (rows.length === 0 || rows[0].deletedAt !== null || rows[0].moderatedAt !== null) {
     throw new HttpError(404, "not_found", "Reply not found");
   }
   if (rows[0].userId !== userId) {
@@ -518,12 +606,19 @@ async function softDeleteReply(id: string, userId: string): Promise<void> {
 
 async function likePost(postId: string, actor: AuthContext) {
   const postRows = await db
-    .select({ id: forumPost.id, deletedAt: forumPost.deletedAt })
+    .select({
+      id: forumPost.id,
+      deletedAt: forumPost.deletedAt,
+      moderatedAt: forumPost.moderatedAt,
+    })
     .from(forumPost)
     .where(eq(forumPost.id, postId))
     .limit(1);
 
-  if (postRows.length === 0 || (!actor.isAdmin && postRows[0].deletedAt !== null)) {
+  if (
+    postRows.length === 0 ||
+    (!actor.isAdmin && (postRows[0].deletedAt !== null || postRows[0].moderatedAt !== null))
+  ) {
     throw new HttpError(404, "not_found", "Forum post not found");
   }
 
@@ -549,12 +644,19 @@ async function likePost(postId: string, actor: AuthContext) {
 
 async function unlikePost(postId: string, actor: AuthContext) {
   const postRows = await db
-    .select({ id: forumPost.id, deletedAt: forumPost.deletedAt })
+    .select({
+      id: forumPost.id,
+      deletedAt: forumPost.deletedAt,
+      moderatedAt: forumPost.moderatedAt,
+    })
     .from(forumPost)
     .where(eq(forumPost.id, postId))
     .limit(1);
 
-  if (postRows.length === 0 || (!actor.isAdmin && postRows[0].deletedAt !== null)) {
+  if (
+    postRows.length === 0 ||
+    (!actor.isAdmin && (postRows[0].deletedAt !== null || postRows[0].moderatedAt !== null))
+  ) {
     throw new HttpError(404, "not_found", "Forum post not found");
   }
 
@@ -576,12 +678,19 @@ async function unlikePost(postId: string, actor: AuthContext) {
 
 async function likeReply(replyId: string, actor: AuthContext) {
   const replyRows = await db
-    .select({ id: forumReply.id, deletedAt: forumReply.deletedAt })
+    .select({
+      id: forumReply.id,
+      deletedAt: forumReply.deletedAt,
+      moderatedAt: forumReply.moderatedAt,
+    })
     .from(forumReply)
     .where(eq(forumReply.id, replyId))
     .limit(1);
 
-  if (replyRows.length === 0 || (!actor.isAdmin && replyRows[0].deletedAt !== null)) {
+  if (
+    replyRows.length === 0 ||
+    (!actor.isAdmin && (replyRows[0].deletedAt !== null || replyRows[0].moderatedAt !== null))
+  ) {
     throw new HttpError(404, "not_found", "Reply not found");
   }
 
@@ -607,12 +716,19 @@ async function likeReply(replyId: string, actor: AuthContext) {
 
 async function unlikeReply(replyId: string, actor: AuthContext) {
   const replyRows = await db
-    .select({ id: forumReply.id, deletedAt: forumReply.deletedAt })
+    .select({
+      id: forumReply.id,
+      deletedAt: forumReply.deletedAt,
+      moderatedAt: forumReply.moderatedAt,
+    })
     .from(forumReply)
     .where(eq(forumReply.id, replyId))
     .limit(1);
 
-  if (replyRows.length === 0 || (!actor.isAdmin && replyRows[0].deletedAt !== null)) {
+  if (
+    replyRows.length === 0 ||
+    (!actor.isAdmin && (replyRows[0].deletedAt !== null || replyRows[0].moderatedAt !== null))
+  ) {
     throw new HttpError(404, "not_found", "Reply not found");
   }
 
@@ -629,6 +745,162 @@ async function unlikeReply(replyId: string, actor: AuthContext) {
     status: "unliked" as const,
     liked: false,
     likeCount: countRow.count,
+  };
+}
+
+async function moderateReply(
+  replyId: string,
+  body: ModerateForumContent,
+  actorId: string
+): Promise<ForumReplyItem> {
+  const result = await db.transaction(async tx => {
+    const rows = await tx
+      .select({
+        id: forumReply.id,
+        postId: forumReply.postId,
+        userId: forumReply.userId,
+        body: forumReply.body,
+        deletedAt: forumReply.deletedAt,
+        moderatedAt: forumReply.moderatedAt,
+      })
+      .from(forumReply)
+      .where(eq(forumReply.id, replyId))
+      .for("update")
+      .limit(1);
+
+    if (rows.length === 0) {
+      throw new HttpError(404, "not_found", "Reply not found");
+    }
+
+    const replyRow = rows[0];
+    if (replyRow.moderatedAt !== null) {
+      throw new HttpError(409, "conflict", "Reply is already moderated");
+    }
+
+    const now = new Date();
+    await tx.insert(forumModerationAudit).values({
+      id: crypto.randomUUID(),
+      targetType: "reply",
+      targetId: replyId,
+      actorId,
+      reason: body.reason,
+      originalTitle: null,
+      originalBody: replyRow.body,
+      originalAuthorId: replyRow.userId,
+      createdAt: now,
+    });
+
+    await tx
+      .update(forumReply)
+      .set({ moderatedAt: now, updatedAt: now })
+      .where(eq(forumReply.id, replyId));
+
+    return replyRow;
+  });
+
+  await deleteCacheKeys(
+    "forum:posts",
+    "forum:feed",
+    `forum:post:${result.postId}`,
+    `forum:replies:${result.postId}`
+  );
+
+  const row = await fetchReplyRow(replyId, actorId);
+  if (!row) {
+    throw new HttpError(404, "not_found", "Reply not found");
+  }
+  return mapReplyRow(row);
+}
+
+async function fetchPostAudits(postId: string): Promise<ForumModerationAuditsResponse> {
+  const postRows = await db
+    .select({ id: forumPost.id })
+    .from(forumPost)
+    .where(eq(forumPost.id, postId))
+    .limit(1);
+  if (postRows.length === 0) {
+    throw new HttpError(404, "not_found", "Forum post not found");
+  }
+
+  const rows = await db
+    .select({
+      id: forumModerationAudit.id,
+      targetType: forumModerationAudit.targetType,
+      targetId: forumModerationAudit.targetId,
+      actorId: forumModerationAudit.actorId,
+      actorDisplayName: user.name,
+      reason: forumModerationAudit.reason,
+      originalTitle: forumModerationAudit.originalTitle,
+      originalBody: forumModerationAudit.originalBody,
+      originalAuthorId: forumModerationAudit.originalAuthorId,
+      createdAt: forumModerationAudit.createdAt,
+    })
+    .from(forumModerationAudit)
+    .innerJoin(user, eq(forumModerationAudit.actorId, user.id))
+    .where(
+      and(eq(forumModerationAudit.targetType, "post"), eq(forumModerationAudit.targetId, postId))
+    )
+    .orderBy(asc(forumModerationAudit.createdAt));
+
+  return {
+    items: rows.map(r => ({
+      id: r.id,
+      targetType: r.targetType,
+      targetId: r.targetId,
+      actorId: r.actorId,
+      actorDisplayName: r.actorDisplayName,
+      reason: r.reason,
+      originalTitle: r.originalTitle,
+      originalBody: r.originalBody,
+      originalAuthorId: r.originalAuthorId,
+      createdAt: r.createdAt,
+    })),
+  };
+}
+
+async function fetchReplyAudits(replyId: string): Promise<ForumModerationAuditsResponse> {
+  const replyRows = await db
+    .select({ id: forumReply.id })
+    .from(forumReply)
+    .where(eq(forumReply.id, replyId))
+    .limit(1);
+  if (replyRows.length === 0) {
+    throw new HttpError(404, "not_found", "Reply not found");
+  }
+
+  const rows = await db
+    .select({
+      id: forumModerationAudit.id,
+      targetType: forumModerationAudit.targetType,
+      targetId: forumModerationAudit.targetId,
+      actorId: forumModerationAudit.actorId,
+      actorDisplayName: user.name,
+      reason: forumModerationAudit.reason,
+      originalTitle: forumModerationAudit.originalTitle,
+      originalBody: forumModerationAudit.originalBody,
+      originalAuthorId: forumModerationAudit.originalAuthorId,
+      createdAt: forumModerationAudit.createdAt,
+    })
+    .from(forumModerationAudit)
+    .innerJoin(user, eq(forumModerationAudit.actorId, user.id))
+    .where(
+      and(eq(forumModerationAudit.targetType, "reply"), eq(forumModerationAudit.targetId, replyId))
+    )
+    .orderBy(asc(forumModerationAudit.createdAt));
+
+  return {
+    items: rows.map(r => ({
+      id: r.id,
+      targetType: r.targetType,
+      targetId: r.targetId,
+      actorId: r.actorId,
+      actorDisplayName: r.actorDisplayName,
+      reason: r.reason,
+      originalTitle: r.originalTitle,
+      originalBody: r.originalBody,
+      originalAuthorId: r.originalAuthorId,
+      createdAt: r.createdAt,
+    })),
   };
 }
 
@@ -662,7 +934,7 @@ export const forumRoutes = new Hono()
       tags: ["forum"],
       summary: "Get the public Forum feed",
       description:
-        "Public endpoint returning cursor-paginated Forum posts newest-first with batched reply counts. Soft-deleted posts are excluded. Administrators may pass includeDeleted=true to read soft-deleted content.",
+        "Public endpoint returning cursor-paginated Forum posts newest-first with batched reply counts. Soft-deleted and moderated posts are excluded. Administrators may pass includeDeleted=true to read soft-deleted or moderated content.",
       responses: {
         200: {
           description: "List of forum posts",
@@ -716,7 +988,7 @@ export const forumRoutes = new Hono()
       tags: ["forum"],
       summary: "Get a Forum post by ID",
       description:
-        "Public endpoint returning a single Forum post with its Business reference and batched reply count. Soft-deleted posts answer 404 unless an administrator passes includeDeleted=true.",
+        "Public endpoint returning a single Forum post with its Business reference and batched reply count. Soft-deleted or moderated posts answer 404 unless an administrator passes includeDeleted=true.",
       responses: {
         200: {
           description: "The Forum post",
@@ -841,6 +1113,64 @@ export const forumRoutes = new Hono()
       return c.json(result);
     }
   )
+  .post(
+    "/forum/posts/:id/moderate",
+    requireAdmin,
+    describeRoute({
+      operationId: "moderateForumPost",
+      tags: ["forum", "admin"],
+      summary: "Moderate a Forum post",
+      description:
+        "Administrative endpoint to moderate a Forum post with a required reason. Writes an immutable audit record and hides the post and its discussion from all public read paths.",
+      responses: {
+        200: {
+          description: "The moderated Forum post",
+          content: { "application/json": { schema: resolver(forumPostItemSchema) } },
+        },
+        409: {
+          description: "Target forum post is already moderated",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    validator("json", moderateForumContentSchema, onValidationError),
+    async c => {
+      const { id } = c.req.param();
+      const body = c.req.valid("json");
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+      const result = await moderatePost(id, body, actor.userId);
+      return c.json(result);
+    }
+  )
+  .get(
+    "/forum/posts/:id/audit",
+    requireAdmin,
+    describeRoute({
+      operationId: "getForumPostAuditHistory",
+      tags: ["forum", "admin"],
+      summary: "Get moderation audit history for a Forum post",
+      description:
+        "Administrative endpoint returning the chronological moderation audit trail for a Forum post.",
+      responses: {
+        200: {
+          description: "List of moderation audit records",
+          content: {
+            "application/json": { schema: resolver(forumModerationAuditsResponseSchema) },
+          },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const result = await fetchPostAudits(id);
+      return c.json(result);
+    }
+  )
   .get(
     "/forum/posts/:id/replies",
     resolveAuth,
@@ -849,7 +1179,7 @@ export const forumRoutes = new Hono()
       tags: ["forum"],
       summary: "Get Replies to a Forum post",
       description:
-        "Public endpoint returning cursor-paginated Replies to a Forum post in chronological order. Soft-deleted replies are excluded. Soft-deleted posts answer 404 unless an administrator passes includeDeleted=true.",
+        "Public endpoint returning cursor-paginated Replies to a Forum post in chronological order. Soft-deleted and moderated replies are excluded. Moderated and soft-deleted posts answer 404 unless an administrator passes includeDeleted=true.",
       responses: {
         200: {
           description: "List of replies",
@@ -876,7 +1206,7 @@ export const forumRoutes = new Hono()
       tags: ["forum"],
       summary: "Reply to a Forum post",
       description:
-        "Publishes a Reply to a Forum post. Requires a verified User. Soft-deleted posts answer 404.",
+        "Publishes a Reply to a Forum post. Requires a verified User. Soft-deleted and moderated posts answer 404.",
       responses: {
         201: {
           description: "The created Reply",
@@ -1000,6 +1330,64 @@ export const forumRoutes = new Hono()
         throw new HttpError(401, "unauthorized", "Authentication required");
       }
       const result = await unlikeReply(id, actor);
+      return c.json(result);
+    }
+  )
+  .post(
+    "/forum/replies/:id/moderate",
+    requireAdmin,
+    describeRoute({
+      operationId: "moderateForumReply",
+      tags: ["forum", "admin"],
+      summary: "Moderate a Reply",
+      description:
+        "Administrative endpoint to moderate a Forum reply with a required reason. Writes an immutable audit record and hides the reply from all public read paths.",
+      responses: {
+        200: {
+          description: "The moderated Reply",
+          content: { "application/json": { schema: resolver(forumReplyItemSchema) } },
+        },
+        409: {
+          description: "Target reply is already moderated",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    validator("json", moderateForumContentSchema, onValidationError),
+    async c => {
+      const { id } = c.req.param();
+      const body = c.req.valid("json");
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+      const result = await moderateReply(id, body, actor.userId);
+      return c.json(result);
+    }
+  )
+  .get(
+    "/forum/replies/:id/audit",
+    requireAdmin,
+    describeRoute({
+      operationId: "getForumReplyAuditHistory",
+      tags: ["forum", "admin"],
+      summary: "Get moderation audit history for a Reply",
+      description:
+        "Administrative endpoint returning the chronological moderation audit trail for a Forum reply.",
+      responses: {
+        200: {
+          description: "List of moderation audit records",
+          content: {
+            "application/json": { schema: resolver(forumModerationAuditsResponseSchema) },
+          },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const result = await fetchReplyAudits(id);
       return c.json(result);
     }
   );

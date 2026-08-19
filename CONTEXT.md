@@ -96,6 +96,13 @@ Removing content from public view by setting a `deleted_at` timestamp rather
 than deleting the row, preserving the record for administrators.
 _Avoid_: delete, hide
 
+**Forum moderation**:
+The administrative action where an Administrator moderates a Forum post or Reply
+with a required reason, setting `moderated_at` and preserving original-content
+audit metadata in `forum_moderation_audit`. Moderated content is hidden from
+public read paths and direct URLs while remaining visible to administrators.
+_Avoid_: forum ban, thread locking, post removal
+
 **Bookmark**:
 A User’s saved reference to a Business for later access.
 _Avoid_: favorite, saved listing
