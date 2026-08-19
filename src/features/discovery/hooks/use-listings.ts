@@ -14,16 +14,30 @@ async function fetchListingsJson(path: string, errorMessage: string): Promise<un
   return res.json();
 }
 
+export interface MapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
 async function fetchPage(
   q: string,
   category: string,
   openNow: boolean,
+  bounds: MapBounds | null | undefined,
   cursor: string | undefined
 ) {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (category) params.set("category", category);
   if (openNow) params.set("openNow", "true");
+  if (bounds) {
+    params.set("north", bounds.north.toString());
+    params.set("south", bounds.south.toString());
+    params.set("east", bounds.east.toString());
+    params.set("west", bounds.west.toString());
+  }
   if (cursor) params.set("cursor", cursor);
   const query = params.toString();
 
@@ -35,10 +49,15 @@ async function fetchPage(
   );
 }
 
-export function useListingsInfiniteQuery(q: string, category: string, openNow = false) {
+export function useListingsInfiniteQuery(
+  q: string,
+  category: string,
+  openNow = false,
+  bounds?: MapBounds | null
+) {
   return useInfiniteQuery({
-    queryKey: ["listings", q, category, openNow],
-    queryFn: ({ pageParam }) => fetchPage(q, category, openNow, pageParam),
+    queryKey: ["listings", q, category, openNow, bounds],
+    queryFn: ({ pageParam }) => fetchPage(q, category, openNow, bounds, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
     // A failure is a retryable error state, not something to hide behind

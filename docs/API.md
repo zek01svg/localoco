@@ -94,6 +94,16 @@ Query parameters:
 | `q`        | `string` | —       | Text search matched against name, category, and address (see below)                                                                        |
 | `category` | `string` | —       | Exact match on the listing's category; `GET /api/listings/categories` lists the values that exist (any other value simply matches nothing) |
 | `openNow`  | `bool`   | —       | When `"true"`, filters to Businesses whose opening hours cover the current instant in Singapore time (UTC+8)                               |
+| `north`    | `float`  | —       | Maximum latitude bound (-90 to 90); required when filtering by viewport                                                                    |
+| `south`    | `float`  | —       | Minimum latitude bound (-90 to 90); required when filtering by viewport                                                                    |
+| `east`     | `float`  | —       | Maximum longitude bound (-180 to 180); required when filtering by viewport                                                                 |
+| `west`     | `float`  | —       | Minimum longitude bound (-180 to 180); required when filtering by viewport                                                                 |
+
+When filtering by map viewport, `north`, `south`, `east`, and `west` must all
+four be supplied together and satisfy `south <= north`. Viewport filtering is
+applied server-side against stored coordinates (`latitude`, `longitude`)
+before cursor pagination and composes directly with `q`, `category`, and `openNow` filters.
+Rows with `null` coordinates are excluded from bounded queries.
 
 Search and open-now are filters, never ranking signals: `q` is trimmed, case-folded, and
 whitespace-collapsed, and the same normalization is applied to the stored

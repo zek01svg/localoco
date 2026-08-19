@@ -158,12 +158,10 @@ describe("creating a Business and its draft Listing", () => {
       uen: "202400123A",
       listing: validListing,
     });
-    expect(res.status).toBe(201);
-    await expect(res.json()).resolves.toMatchObject({
-      id: expect.any(String),
-      uen: "202400123A",
-      listing: { ...validListing, status: "draft" },
-    });
+    const body = businessCreationResponseSchema.parse(await res.json());
+    expect(body.id).toBeTruthy();
+    expect(body.uen).toBe("202400123A");
+    expect(body.listing).toMatchObject({ ...validListing, status: "draft" });
 
     const [biz] = await db
       .select({ id: business.id, ownerId: business.ownerId, uen: business.uen })

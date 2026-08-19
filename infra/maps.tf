@@ -30,7 +30,7 @@ resource "google_apikeys_key" "browser" {
   display_name = "LocaLoco browser - Maps JavaScript API"
   project      = var.project_id
 
-  depends_on = [google_project_service.apikeys]
+  depends_on = [google_project_service.apikeys, google_project_service.maps]
 
   restrictions {
     browser_key_restrictions {

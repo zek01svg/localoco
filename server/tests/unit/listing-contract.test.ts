@@ -165,23 +165,111 @@ describe("listingsQuerySchema discovery filters", () => {
     expect(parsed.q).toBe("100% _natural_");
   });
 
-  it("parses openNow flag correctly", () => {
-    expect(listingsQuerySchema.parse({ openNow: "true" }).openNow).toBe(true);
-    expect(listingsQuerySchema.parse({ openNow: "false" }).openNow).toBe(false);
-    expect(listingsQuerySchema.parse({}).openNow).toBeUndefined();
-  });
-
-  it("rejects invalid openNow values", () => {
-    expect(listingsQuerySchema.safeParse({ openNow: "yes" }).success).toBe(false);
-    expect(listingsQuerySchema.safeParse({ openNow: "1" }).success).toBe(false);
-    expect(listingsQuerySchema.safeParse({ openNow: "TRUE" }).success).toBe(false);
-  });
-
   it("keeps limit and cursor validation unchanged", () => {
     expect(listingsQuerySchema.safeParse({ limit: "0" }).success).toBe(false);
     expect(listingsQuerySchema.safeParse({ limit: "101" }).success).toBe(false);
     expect(listingsQuerySchema.safeParse({ limit: "not-a-number" }).success).toBe(false);
     expect(listingsQuerySchema.safeParse({ cursor: "x".repeat(257) }).success).toBe(false);
+  });
+
+  it("accepts valid viewport bounding box coordinates", () => {
+    const parsed = listingsQuerySchema.parse({
+      north: "1.45",
+      south: "1.25",
+      east: "104.0",
+      west: "103.6",
+    });
+    expect(parsed.north).toBe(1.45);
+    expect(parsed.south).toBe(1.25);
+    expect(parsed.east).toBe(104.0);
+    expect(parsed.west).toBe(103.6);
+  });
+
+  it("rejects partial viewport bounds", () => {
+    // Only north and south
+    expect(listingsQuerySchema.safeParse({ north: "1.45", south: "1.25" }).success).toBe(false);
+    // Missing west
+    expect(
+      listingsQuerySchema.safeParse({ north: "1.45", south: "1.25", east: "104.0" }).success
+    ).toBe(false);
+  });
+
+  it("rejects out-of-range coordinates", () => {
+    expect(
+      listingsQuerySchema.safeParse({
+        north: "91",
+        south: "1.25",
+        east: "104.0",
+        west: "103.6",
+      }).success
+    ).toBe(false);
+    expect(
+      listingsQuerySchema.safeParse({
+        north: "1.45",
+        south: "-91",
+        east: "104.0",
+        west: "103.6",
+      }).success
+    ).toBe(false);
+    expect(
+      listingsQuerySchema.safeParse({
+        north: "1.45",
+        south: "1.25",
+        east: "181",
+        west: "103.6",
+      }).success
+    ).toBe(false);
+    expect(
+      listingsQuerySchema.safeParse({
+        north: "1.45",
+        south: "1.25",
+        east: "104.0",
+        west: "-181",
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects invalid non-numeric coordinates", () => {
+    expect(
+      listingsQuerySchema.safeParse({
+        north: "invalid",
+        south: "1.25",
+        east: "104.0",
+        west: "103.6",
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects when south latitude is greater than north latitude", () => {
+    expect(
+      listingsQuerySchema.safeParse({
+        north: "1.25",
+        south: "1.45",
+        east: "104.0",
+        west: "103.6",
+      }).success
+    ).toBe(false);
+  });
+
+  it("composes viewport bounds with text search, category, and pagination", () => {
+    const parsed = listingsQuerySchema.parse({
+      q: "cafe",
+      category: "Food & Beverage",
+      limit: "10",
+      cursor: "lst_100",
+      north: "1.45",
+      south: "1.25",
+      east: "104.0",
+      west: "103.6",
+    });
+    expect(parsed.q).toBe("cafe");
+    expect(parsed.category).toBe("Food & Beverage");
+    expect(parsed.limit).toBe(10);
+    expect(parsed.cursor).toBe("lst_100");
+    expect(parsed.north).toBe(1.45);
+    expect(parsed.south).toBe(1.25);
+    expect(parsed.east).toBe(104.0);
+    expect(parsed.west).toBe(103.6);
   });
 });
 

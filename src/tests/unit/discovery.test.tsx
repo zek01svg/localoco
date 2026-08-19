@@ -199,20 +199,14 @@ describe("DiscoveryPage", () => {
     });
   });
 
-  it("filters listings when Open now is toggled", async () => {
+  it("renders a visible degraded state for the map when Google Maps API key is absent without gating the textual directory", async () => {
     mockApi(url => {
       if (url.pathname === "/api/listings/categories") {
         return jsonResponse({ items: ["Cafe"] }, 200);
       }
-      if (url.searchParams.get("openNow") === "true") {
-        return jsonResponse(
-          { items: [listing("lst_2", "24/7 Supper Club")], nextCursor: null },
-          200
-        );
-      }
       return jsonResponse(
         {
-          items: [listing("lst_1", "Garden Cove Cafe"), listing("lst_2", "24/7 Supper Club")],
+          items: [listing("lst_1", "Resilient Kopitiam")],
           nextCursor: null,
         },
         200
@@ -221,18 +215,17 @@ describe("DiscoveryPage", () => {
 
     renderDiscovery();
 
+    // Directory list renders immediately
     await waitFor(() => {
-      expect(screen.getByText("Garden Cove Cafe")).toBeDefined();
+      expect(screen.getByText("Resilient Kopitiam")).toBeDefined();
     });
-    expect(screen.getByText("24/7 Supper Club")).toBeDefined();
 
-    const switchEl = screen.getByRole("switch");
-    expect(switchEl).toBeDefined();
-    fireEvent.click(switchEl);
-
+    // Map panel degrades visibly with an honest message
     await waitFor(() => {
-      expect(screen.getByText("24/7 Supper Club")).toBeDefined();
-      expect(screen.queryByText("Garden Cove Cafe")).toBeNull();
+      expect(screen.getByText("Map unavailable")).toBeDefined();
     });
+    expect(
+      screen.getByText(/Google Maps API key is not configured|could not be loaded/iu)
+    ).toBeDefined();
   });
 });

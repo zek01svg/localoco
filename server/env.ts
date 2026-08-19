@@ -7,6 +7,8 @@ export const env = createEnv({
     VITE_SENTRY_DSN: z.url().optional(),
     VITE_SENTRY_ORG: z.string().min(1).optional(),
     VITE_SENTRY_PROJECT: z.string().min(1).optional(),
+    // Browser Maps key (Maps JavaScript API). Exposed to client via /api/runtime.js.
+    VITE_GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
   },
   server: {
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -61,6 +63,7 @@ export const env = createEnv({
     VITE_SENTRY_DSN: process.env.VITE_SENTRY_DSN,
     VITE_SENTRY_ORG: process.env.VITE_SENTRY_ORG,
     VITE_SENTRY_PROJECT: process.env.VITE_SENTRY_PROJECT,
+    VITE_GOOGLE_MAPS_API_KEY: process.env.VITE_GOOGLE_MAPS_API_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
     SENTRY_DSN: process.env.SENTRY_DSN,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,

@@ -1,6 +1,6 @@
 import type { SQL, SQLWrapper } from "drizzle-orm";
 
-import { and, asc, eq, gt, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, lte, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 
@@ -93,7 +93,7 @@ export const listingsRoutes = new Hono()
       tags: ["listings"],
       summary: "List public business listings",
       description:
-        "Cursor-paginated list of published business listings, ordered by stable id. Draft and moderated Listings are never returned here. `q` filters by normalized text search across name, category, and address; `category` narrows to an exact category; `openNow` filters to businesses open right now in Singapore time.",
+        "Cursor-paginated list of published business listings, ordered by stable id. Draft and moderated Listings are never returned here. `q` filters by normalized text search across name, category, and address; `category` narrows to an exact category; `openNow` filters to businesses open right now in Singapore time; `north`, `south`, `east`, `west` filter by map viewport bounding box coordinates.",
       responses: {
         200: {
           description: "A page of listings",
@@ -114,12 +114,27 @@ export const listingsRoutes = new Hono()
       },
     }),
     async c => {
-      const { limit, cursor, q, category, openNow } = c.req.valid("query");
+      const { limit, cursor, q, category, openNow, north, south, east, west } =
+        c.req.valid("query");
       // Only the unfiltered directory is cached: filtered pages are transient
-      // (each keystroke or category change is a distinct query) and would
-      // otherwise grow the cache unboundedly. The key carries no query text,
+      // (each keystroke, category change, or map pan is a distinct query) and
+      // would otherwise grow the cache unboundedly. The key carries no query text,
       // so no two filter combinations can ever collide on it.
       const cacheKey = `listings:${cursor ?? "first"}:${limit}`;
+
+      const hasBounds =
+        north !== undefined && south !== undefined && east !== undefined && west !== undefined;
+      const boundsCondition = hasBounds
+        ? and(
+            sql`${listing.latitude} is not null`,
+            sql`${listing.longitude} is not null`,
+            gte(listing.latitude, south),
+            lte(listing.latitude, north),
+            west <= east
+              ? and(gte(listing.longitude, west), lte(listing.longitude, east))
+              : or(gte(listing.longitude, west), lte(listing.longitude, east))
+          )
+        : undefined;
 
       const loadPage = async () => {
         const rows = await loadOrDependencyFailure(() =>
@@ -151,7 +166,8 @@ export const listingsRoutes = new Hono()
                       containsNormalized(listing.category, q),
                       containsNormalized(listing.address, q)
                     )
-                  : undefined
+                  : undefined,
+                boundsCondition
               )
             )
             .orderBy(asc(listing.id))
@@ -174,7 +190,7 @@ export const listingsRoutes = new Hono()
         return { items: page, nextCursor };
       };
 
-      const hasFilters = Boolean(q || category || openNow);
+      const hasFilters = Boolean(q) || Boolean(category) || Boolean(openNow) || hasBounds;
       const data = hasFilters ? await loadPage() : await getOrSetCache(cacheKey, 60, loadPage);
 
       return c.json(data);

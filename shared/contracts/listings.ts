@@ -60,33 +60,73 @@ export const listingFields = {
 export const listingSchema = z.object({
   id: z.string().min(1),
   ...listingFields,
-  latitude: z.number().finite().nullable(),
-  longitude: z.number().finite().nullable(),
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable(),
 });
 export type Listing = z.infer<typeof listingSchema>;
 
-export const listingsQuerySchema = z.object({
-  limit: z
+// Viewport coordinate query parameters, parsed from strings into bounded numbers.
+// All four boundaries must be supplied together to form a valid bounding box.
+const coordinateQueryParam = (min: number, max: number, name: string) =>
+  z
     .string()
-    .default("20")
-    .transform(Number)
-    .refine(value => Number.isInteger(value) && value >= 1 && value <= 100, {
-      message: "limit must be an integer between 1 and 100",
-    }),
-  cursor: z.string().min(1).max(256).optional(),
-  // Normalized search text matched case- and whitespace-insensitively against
-  // the Listing's name and descriptive text (category and address). Empty
-  // after trimming means no search filter.
-  q: z.string().trim().max(200).optional(),
-  // Exact category match; the valid values are the distinct categories of
-  // published Listings, served by GET /api/listings/categories.
-  category: z.string().trim().min(1).max(100).optional(),
-  // Filter to Businesses open right now in Singapore time (UTC+8).
-  openNow: z
-    .enum(["true", "false"])
-    .transform(v => v === "true")
-    .optional(),
-});
+    .trim()
+    .min(1)
+    .optional()
+    .transform(value => (value === undefined ? undefined : Number(value)))
+    .refine(
+      value => value === undefined || (Number.isFinite(value) && value >= min && value <= max),
+      {
+        message: `${name} must be a valid number between ${min} and ${max}`,
+      }
+    );
+
+export const listingsQuerySchema = z
+  .object({
+    limit: z
+      .string()
+      .default("20")
+      .transform(Number)
+      .refine(value => Number.isInteger(value) && value >= 1 && value <= 100, {
+        message: "limit must be an integer between 1 and 100",
+      }),
+    cursor: z.string().min(1).max(256).optional(),
+    // Normalized search text matched case- and whitespace-insensitively against
+    // the Listing's name and descriptive text (category and address). Empty
+    // after trimming means no search filter.
+    q: z.string().trim().max(200).optional(),
+    // Exact category match; the valid values are the distinct categories of
+    // published Listings, served by GET /api/listings/categories.
+    category: z.string().trim().min(1).max(100).optional(),
+    // Filter to Businesses open right now in Singapore time (UTC+8).
+    openNow: z
+      .enum(["true", "false"])
+      .transform(v => v === "true")
+      .optional(),
+    // Map viewport bounding box coordinates. When present, filters results
+    // server-side to Listings with stored coordinates falling inside the box.
+    north: coordinateQueryParam(-90, 90, "north"),
+    south: coordinateQueryParam(-90, 90, "south"),
+    east: coordinateQueryParam(-180, 180, "east"),
+    west: coordinateQueryParam(-180, 180, "west"),
+  })
+  .refine(
+    data => {
+      const coords = [data.north, data.south, data.east, data.west];
+      const presentCount = coords.filter(c => c !== undefined).length;
+      return presentCount === 0 || presentCount === 4;
+    },
+    { message: "north, south, east, and west must all be provided together" }
+  )
+  .refine(
+    data => {
+      if (data.north !== undefined && data.south !== undefined) {
+        return data.south <= data.north;
+      }
+      return true;
+    },
+    { message: "south latitude must be less than or equal to north latitude" }
+  );
 export type ListingsQuery = z.infer<typeof listingsQuerySchema>;
 
 export const listingsResponseSchema = z.object({

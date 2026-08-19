@@ -30,11 +30,11 @@ const startFakeGeocoder = (handler: FakeHandler): Promise<string> =>
       if (address && typeof address === "object") {
         servers.push({
           close: () =>
-            new Promise(res =>
+            new Promise<void>(res => {
               server.close(() => {
                 res();
-              })
-            ),
+              });
+            }),
         });
         resolve(`http://127.0.0.1:${address.port}`);
       } else {

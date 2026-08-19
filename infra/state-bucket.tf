@@ -43,6 +43,11 @@ resource "google_project_service" "geocoding" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "maps" {
+  service            = "maps-backend.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_project_service" "monitoring" {
   service            = "monitoring.googleapis.com"
   disable_on_destroy = false

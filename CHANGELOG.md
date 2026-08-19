@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- **Map viewport filter and browser map** (PRS-187): Public discovery page
+  enhancement layering an interactive Google Map on top of the directory via
+  `@vis.gl/react-google-maps`. Server-side bounding box filtering (`north`,
+  `south`, `east`, `west` on `GET /api/listings`) filters results before cursor
+  pagination against stored coordinates without read-time geocoding. The map is
+  loaded lazily so it never gates textual directory discovery; if Maps JavaScript
+  is unavailable or fails, an honest visible degraded state is shown while the
+  textual directory remains fully usable and interactive.
 - **Open-now filter in Business discovery** (PRS-186): Visitors can filter
   Business discovery down to businesses that are open right now in Singapore
   wall-clock time (`GET /api/listings?openNow=true`). Evaluated server-side in
