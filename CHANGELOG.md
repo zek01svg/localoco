@@ -11,6 +11,16 @@ All notable changes to this project will be documented in this file.
   this explicit operation. The transfer is transactional, rejects absent,
   unverified, and synthetic non-login targets, and writes an immutable record
   (actor, previous owner, next owner, reason) to `business_ownership_audit`.
+- **Business discovery with text search, category filter, and cursor
+  pagination** (PRS-184): Public directory page at `/listings`. `GET
+/api/listings` accepts `q` (case- and whitespace-insensitive search across
+  name, category, and address — there is no description field on listings yet,
+  so "descriptive text" covers those three) and `category` (exact match),
+  composing with the existing deterministic keyset pagination; the new
+  `GET /api/listings/categories` serves the distinct published categories for
+  the filter. Dependency failures answer `503 dependency_unavailable` and
+  render a retryable error state, never an empty directory; an honest empty
+  state appears only when nothing matched.
 - **Listing moderation lifecycle and audit** (PRS-182): Full moderation lifecycle
   for Listings (`draft`, `pending_review`, `published`, `rejected`, `suspended`).
   Owners submit listings for review (`POST /api/businesses/:id/listing/submit`);

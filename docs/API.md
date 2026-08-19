@@ -87,10 +87,22 @@ are only visible to their owner (see `GET /api/businesses/:id/listing`).
 
 Query parameters:
 
-| Name     | Type     | Default | Description                                          |
-| :------- | :------- | :------ | :--------------------------------------------------- |
-| `limit`  | `int`    | `20`    | Page size, between 1 and 100                         |
-| `cursor` | `string` | —       | Opaque `id` of the last listing on the previous page |
+| Name       | Type     | Default | Description                                                                                                                                |
+| :--------- | :------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| `limit`    | `int`    | `20`    | Page size, between 1 and 100                                                                                                               |
+| `cursor`   | `string` | —       | Opaque `id` of the last listing on the previous page                                                                                       |
+| `q`        | `string` | —       | Text search matched against name, category, and address (see below)                                                                        |
+| `category` | `string` | —       | Exact match on the listing's category; `GET /api/listings/categories` lists the values that exist (any other value simply matches nothing) |
+
+Search is a filter, never a ranking signal: `q` is trimmed, case-folded, and
+whitespace-collapsed, and the same normalization is applied to the stored
+name, category, and address before a substring match, so minor case or
+formatting differences never hide a Listing. LIKE wildcards in `q` are
+treated as literals. Ordering stays `id` ascending regardless of filters, so
+pages remain deterministic.
+
+> Known gap: listings have no description field yet, so "descriptive text"
+> search covers the listing's name, category, and address only.
 
 - **Response `200 OK`** — `application/json`:
 
@@ -122,11 +134,29 @@ Query parameters:
   (see ADR-0006) and are `null` for listings written before that change —
   reads never trigger geocoding.
 
-  `nextCursor` is `null` on the final page. The server fetches `limit + 1` rows to detect a following page, so no empty trailing page is ever returned.
+  `nextCursor` is `null` on the final page. The server fetches `limit + 1` rows to detect a following page, so no empty trailing page is ever returned. A search that matches nothing is an honest `200` with an empty `items` array — never an error.
 
 - **Response `400`**: query parameters failed validation (`invalid_request`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 - **Response `503`**: the data source failed or returned rows that violate the contract (`dependency_unavailable`). A dependency failure is never reported as a success or an empty collection.
+
+### List listing categories (`GET /api/listings/categories`)
+
+Returns the distinct categories of **published** listings, ordered ascending.
+These are the intended values for the `category` filter; an unknown value
+simply matches nothing. Categories that only exist on unpublished listings
+never appear here.
+
+- **Response `200 OK`** — `application/json`:
+
+  ```json
+  {
+    "items": ["Bakery", "Cafe", "Food & Beverage"]
+  }
+  ```
+
+- **Response `429`**: client exceeded rate limits (`rate_limited`).
+- **Response `503`**: the data source failed (`dependency_unavailable`).
 
 ---
 

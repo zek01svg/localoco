@@ -74,6 +74,13 @@ export const listingsQuerySchema = z.object({
       message: "limit must be an integer between 1 and 100",
     }),
   cursor: z.string().min(1).max(256).optional(),
+  // Normalized search text matched case- and whitespace-insensitively against
+  // the Listing's name and descriptive text (category and address). Empty
+  // after trimming means no search filter.
+  q: z.string().trim().max(200).optional(),
+  // Exact category match; the valid values are the distinct categories of
+  // published Listings, served by GET /api/listings/categories.
+  category: z.string().trim().min(1).max(100).optional(),
 });
 export type ListingsQuery = z.infer<typeof listingsQuerySchema>;
 
@@ -82,6 +89,11 @@ export const listingsResponseSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 export type ListingsResponse = z.infer<typeof listingsResponseSchema>;
+
+export const listingsCategoriesResponseSchema = z.object({
+  items: z.array(z.string()),
+});
+export type ListingsCategoriesResponse = z.infer<typeof listingsCategoriesResponseSchema>;
 
 // The Listing as its owner sees it: the full lifecycle status, rejection reason
 // (when rejected), plus validated fields. Database reads return NULL for absent

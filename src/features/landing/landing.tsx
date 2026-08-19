@@ -13,7 +13,7 @@ import { useSession } from "#client/features/auth";
 const navLinks = [
   { label: "Why LocaLoco", href: "#why" },
   { label: "How it works", href: "#how" },
-  { label: "Explore the map", href: "/map" },
+  { label: "Browse businesses", href: "/listings" },
 ];
 
 const features = [
@@ -144,7 +144,7 @@ function Hero() {
         map-driven experience.
       </p>
       <a
-        href="/map"
+        href="/listings"
         className="bg-primary text-primary-foreground hover:bg-primary/90 mt-10 inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-base font-semibold transition-colors"
       >
         Let&rsquo;s go!

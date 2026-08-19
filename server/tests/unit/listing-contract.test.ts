@@ -5,6 +5,8 @@ import {
   listingAuditsResponseSchema,
   listingModerationActionSchema,
   listingStatusSchema,
+  listingsCategoriesResponseSchema,
+  listingsQuerySchema,
   ownerListingSchema,
 } from "#shared/contracts/listings";
 
@@ -135,5 +137,49 @@ describe("listingAuditRecordSchema and listingAuditsResponseSchema", () => {
     });
     expect(response.items).toHaveLength(1);
     expect(response.items[0].id).toBe("aud_1");
+  });
+});
+
+describe("listingsQuerySchema discovery filters", () => {
+  it("accepts q and category, defaulting limit to 20", () => {
+    const parsed = listingsQuerySchema.parse({ q: "kopitiam", category: "Food & Beverage" });
+    expect(parsed.limit).toBe(20);
+    expect(parsed.q).toBe("kopitiam");
+    expect(parsed.category).toBe("Food & Beverage");
+    expect(parsed.cursor).toBeUndefined();
+  });
+
+  it("trims q and category", () => {
+    const parsed = listingsQuerySchema.parse({ q: "  kopitiam  ", category: "  Cafe  " });
+    expect(parsed.q).toBe("kopitiam");
+    expect(parsed.category).toBe("Cafe");
+  });
+
+  it("rejects q longer than 200 characters and category longer than 100 characters", () => {
+    expect(listingsQuerySchema.safeParse({ q: "a".repeat(201) }).success).toBe(false);
+    expect(listingsQuerySchema.safeParse({ category: "a".repeat(101) }).success).toBe(false);
+  });
+
+  it("passes LIKE wildcard characters through untouched (they are escaped server-side)", () => {
+    const parsed = listingsQuerySchema.parse({ q: "100% _natural_" });
+    expect(parsed.q).toBe("100% _natural_");
+  });
+
+  it("keeps limit and cursor validation unchanged", () => {
+    expect(listingsQuerySchema.safeParse({ limit: "0" }).success).toBe(false);
+    expect(listingsQuerySchema.safeParse({ limit: "101" }).success).toBe(false);
+    expect(listingsQuerySchema.safeParse({ limit: "not-a-number" }).success).toBe(false);
+    expect(listingsQuerySchema.safeParse({ cursor: "x".repeat(257) }).success).toBe(false);
+  });
+});
+
+describe("listingsCategoriesResponseSchema", () => {
+  it("parses a list of category strings", () => {
+    const parsed = listingsCategoriesResponseSchema.parse({ items: ["Bakery", "Cafe"] });
+    expect(parsed.items).toEqual(["Bakery", "Cafe"]);
+  });
+
+  it("rejects non-string categories", () => {
+    expect(listingsCategoriesResponseSchema.safeParse({ items: [1] }).success).toBe(false);
   });
 });
