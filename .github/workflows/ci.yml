@@ -91,6 +91,8 @@ jobs:
             ${{ runner.os }}-bun-
       - name: Install dependencies (frozen)
         run: bun install --frozen-lockfile
+      - name: Build app for SPA shell/assets
+        run: bun run build
       - name: Install Playwright browsers
         run: bunx playwright install chromium
       - name: Run e2e tests
