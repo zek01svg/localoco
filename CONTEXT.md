@@ -68,6 +68,10 @@ email-verification state, and registration timestamp. Only the signed-in User
 can read or update it, and it is never cached publicly.
 _Avoid_: account settings, profile page
 
+**Deletion workflow**:
+The process by which a User permanently and irrevocably destroys their account and all associated data — including owned Businesses, Listings, Listing photos, authored Reviews, Likes, Bookmarks, Forum posts, and any third-party Replies on those posts — preceded by an explicit destructive preview, reauthentication, and session revocation.
+_Avoid_: account deletion, account deactivation, account cancellation, user deletion
+
 ## Discovery and community
 
 **Business discovery**:

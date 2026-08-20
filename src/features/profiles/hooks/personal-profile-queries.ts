@@ -1,10 +1,15 @@
-import type { EmailChange, ProfileUpdate } from "#shared/contracts/profiles";
+import type { AccountDeletion, EmailChange, ProfileUpdate } from "#shared/contracts/profiles";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiUrl } from "#client/lib/api";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
-import { emailChangeResponseSchema, privateProfileSchema } from "#shared/contracts/profiles";
+import {
+  accountDeletionResponseSchema,
+  deletionPreviewSchema,
+  emailChangeResponseSchema,
+  privateProfileSchema,
+} from "#shared/contracts/profiles";
 
 async function errorMessage(res: Response, fallback: string): Promise<string> {
   const envelope = errorEnvelopeSchema.safeParse(await res.json());
@@ -63,6 +68,44 @@ export function useChangeEmailMutation() {
         );
       }
       return emailChangeResponseSchema.parse(await res.json());
+    },
+  });
+}
+
+export function useDeletionPreviewQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["personal-profile-deletion-preview"],
+    queryFn: async () => {
+      const res = await fetch(`${apiUrl}/profile/deletion-preview`);
+      if (!res.ok) {
+        throw new Error(
+          await errorMessage(res, "Deletion preview could not be loaded. Try again shortly.")
+        );
+      }
+      return deletionPreviewSchema.parse(await res.json());
+    },
+    enabled,
+    retry: false,
+  });
+}
+
+export function useDeleteAccountMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: AccountDeletion) => {
+      const res = await fetch(`${apiUrl}/profile`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        throw new Error(await errorMessage(res, "Account deletion failed. Try again shortly."));
+      }
+      return accountDeletionResponseSchema.parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.clear();
     },
   });
 }
