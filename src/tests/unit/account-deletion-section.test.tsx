@@ -7,7 +7,7 @@ import { AccountDeletionSection } from "#client/features/profiles";
 
 const { mockNavigate, mockSignOut } = vi.hoisted(() => ({
   mockNavigate: vi.fn<(..._args: unknown[]) => unknown>(),
-  mockSignOut: vi.fn<() => Promise<unknown>>().mockResolvedValue(),
+  mockSignOut: vi.fn<() => Promise<unknown>>().mockResolvedValue(undefined),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
