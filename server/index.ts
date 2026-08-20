@@ -164,11 +164,13 @@ app.onError(
 
 const server = {
   port: env.PORT,
+  hostname: "0.0.0.0",
   fetch: app.fetch,
 };
 
 getAppLogger("server", "bootstrap").info("Server Started", {
   port: server.port,
+  hostname: server.hostname,
   sentryEnabled: Boolean(env.SENTRY_DSN),
 });
 

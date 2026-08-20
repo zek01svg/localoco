@@ -64,7 +64,7 @@ COPY --chown=bun:bun package.json /app/
 
 # run the app
 USER bun
-EXPOSE 4001/tcp
+EXPOSE 4001
 ENV NODE_ENV=production
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-4001}/health || exit 1
