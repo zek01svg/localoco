@@ -1,6 +1,6 @@
 # use the official Bun image pinned to the packageManager version
 # see all versions at https://hub.docker.com/r/oven/bun/tags
-FROM oven/bun:1.3.14-alpine AS base
+FROM oven/bun:1.4-alpine AS base
 WORKDIR /app
 
 # install dependencies into temp directory
