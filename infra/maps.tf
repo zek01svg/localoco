@@ -36,7 +36,13 @@ resource "google_apikeys_key" "browser" {
 
   restrictions {
     browser_key_restrictions {
-      allowed_referrers = ["https://localoco.ciav.dev/*"]
+      allowed_referrers = [
+        "https://localoco.ciav.dev/*",
+        "http://localhost:*/*",
+        "http://localhost:*",
+        "http://127.0.0.1:*/*",
+        "http://127.0.0.1:*",
+      ]
     }
     api_targets {
       service = "maps-backend.googleapis.com"
@@ -61,7 +67,7 @@ resource "google_monitoring_alert_policy" "geocoding_request_rate" {
   conditions {
     display_name = "Geocoding API requests per 5 minutes above 2000"
     condition_threshold {
-      filter          = "metric.type=\"serviceruntime.googleapis.com/api/request_count\" AND resource.label.service=\"geocoding-backend.googleapis.com\""
+      filter          = "metric.type=\"serviceruntime.googleapis.com/api/request_count\" AND resource.type=\"consumed_api\" AND resource.labels.service=\"geocoding-backend.googleapis.com\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 2000

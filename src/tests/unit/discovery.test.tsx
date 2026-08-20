@@ -13,6 +13,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { env } from "#client/env";
 import { DiscoveryPage } from "#client/features/discovery";
 
 const fetchMock = vi.fn<(_input: string, _init?: RequestInit) => Promise<Response>>();
@@ -200,32 +201,38 @@ describe("DiscoveryPage", () => {
   });
 
   it("renders a visible degraded state for the map when Google Maps API key is absent without gating the textual directory", async () => {
-    mockApi(url => {
-      if (url.pathname === "/api/listings/categories") {
-        return jsonResponse({ items: ["Cafe"] }, 200);
-      }
-      return jsonResponse(
-        {
-          items: [listing("lst_1", "Resilient Kopitiam")],
-          nextCursor: null,
-        },
-        200
-      );
-    });
+    const originalKey = env.VITE_GOOGLE_MAPS_API_KEY;
+    env.VITE_GOOGLE_MAPS_API_KEY = undefined;
+    try {
+      mockApi(url => {
+        if (url.pathname === "/api/listings/categories") {
+          return jsonResponse({ items: ["Cafe"] }, 200);
+        }
+        return jsonResponse(
+          {
+            items: [listing("lst_1", "Resilient Kopitiam")],
+            nextCursor: null,
+          },
+          200
+        );
+      });
 
-    renderDiscovery();
+      renderDiscovery();
 
-    // Directory list renders immediately
-    await waitFor(() => {
-      expect(screen.getByText("Resilient Kopitiam")).toBeDefined();
-    });
+      // Directory list renders immediately
+      await waitFor(() => {
+        expect(screen.getByText("Resilient Kopitiam")).toBeDefined();
+      });
 
-    // Map panel degrades visibly with an honest message
-    await waitFor(() => {
-      expect(screen.getByText("Map unavailable")).toBeDefined();
-    });
-    expect(
-      screen.getByText(/Google Maps API key is not configured|could not be loaded/iu)
-    ).toBeDefined();
+      // Map panel degrades visibly with an honest message
+      await waitFor(() => {
+        expect(screen.getByText("Map unavailable")).toBeDefined();
+      });
+      expect(
+        screen.getByText(/Google Maps API key is not configured|could not be loaded/iu)
+      ).toBeDefined();
+    } finally {
+      env.VITE_GOOGLE_MAPS_API_KEY = originalKey;
+    }
   });
 });
