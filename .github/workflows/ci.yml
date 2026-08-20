@@ -6,7 +6,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  ci:
+  quality-checks:
+    name: Run quality checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,17 +41,63 @@ jobs:
         run: bun run type:check
       - name: Run production build
         run: bun run build
-      - name: Run unit and integration tests
-        run: bun run test
       - name: Check schema and migration history for drift
         run: bunx drizzle-kit check
+      - name: Run dependency audit
+        run: bun run security:audit
+  unit-integration-test:
+    name: Run unit and integration tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Install dependencies (frozen)
+        run: bun install --frozen-lockfile
+      - name: Run unit and integration tests
+        run: bun run test
+  e2e-test:
+    name: Run E2E tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - name: Install dependencies (frozen)
+        run: bun install --frozen-lockfile
       - name: Install Playwright browsers
         run: bunx playwright install chromium
       - name: Run e2e tests
         run: bun run test:e2e
-      - name: Run dependency audit
-        run: bun run security:audit
+
   build-image:
+    name: Build image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -60,6 +107,7 @@ jobs:
       - name: Build container image
         run: docker build -t localoco:gate .
   terraform-checks:
+    name: Run Terraform checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
