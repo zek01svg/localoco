@@ -41,6 +41,7 @@
     "@logtape/pretty": "^2.3.1",
     "@logtape/sentry": "^2.3.0",
     "@sentry/bun": "^10.70.0",
+    "@sentry/hono": "^10.70.0",
     "@sentry/react": "^10.70.0",
     "@shadcn/react": "^0.3.0",
     "@t3-oss/env-core": "^0.13.11",

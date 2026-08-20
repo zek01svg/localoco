@@ -37,6 +37,16 @@ RUN cd /temp/prod && bun install --production --omit=peer --frozen-lockfile
 # copy node_modules from temp directory
 # then copy all (non-ignored) project files into the image
 FROM base AS build
+ARG SENTRY_RELEASE
+ARG VITE_SENTRY_RELEASE
+ARG SENTRY_AUTH_TOKEN
+ARG VITE_SENTRY_ORG
+ARG VITE_SENTRY_PROJECT
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
+ENV VITE_SENTRY_RELEASE=$VITE_SENTRY_RELEASE
+ENV SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
+ENV VITE_SENTRY_ORG=$VITE_SENTRY_ORG
+ENV VITE_SENTRY_PROJECT=$VITE_SENTRY_PROJECT
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . /app
 ENV NODE_ENV=production
@@ -44,6 +54,10 @@ RUN bun run build
 
 # copy production dependencies and source code into final image
 FROM base AS release
+ARG SENTRY_RELEASE
+ARG VITE_SENTRY_RELEASE
+ENV SENTRY_RELEASE=$SENTRY_RELEASE
+ENV VITE_SENTRY_RELEASE=$VITE_SENTRY_RELEASE
 COPY --from=install --chown=bun:bun /temp/prod/node_modules /app/node_modules
 COPY --from=build --chown=bun:bun /app/dist /app/dist
 COPY --chown=bun:bun package.json /app/

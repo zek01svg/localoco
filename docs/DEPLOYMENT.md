@@ -48,7 +48,9 @@ push to main → CI → Publish → CD
    build, and Terraform plan (no apply).
 
 2. **Publish (`publish.yml`)**: triggered automatically via `workflow_run`
-   when CI succeeds on `main`. Builds and pushes
+   when CI succeeds on `main`. Computes the unified Sentry release identifier
+   (`localoco@<version>+sha-<short>`), passes it as build args into the Docker
+   image and `@sentry/vite-plugin` for sourcemap uploads, and pushes
    `ghcr.io/zek01svg/localoco` tagged `main` and `sha-<short>` to GHCR.
    It does not deploy. The SHA-tagged image is the production identity.
 
@@ -90,6 +92,8 @@ protected channels (Secret Manager).
 | `DATABASE_URL`               | PostgreSQL connection string                                      |
 | `BETTER_AUTH_SECRET`         | Better Auth encryption secret (>= 32 chars)                       |
 | `SMOKE_TOKEN`                | Bearer token for the release smoke check                          |
+| `SENTRY_DSN`                 | Sentry Server DSN for error and trace ingestion                   |
+| `VITE_SENTRY_DSN`            | Sentry Browser DSN served to client via /api/runtime.js           |
 | `UPSTASH_REDIS_REST_URL`     | Upstash Redis REST URL for caching and rate limiting              |
 | `UPSTASH_REDIS_REST_TOKEN`   | Upstash Redis REST Token                                          |
 | `QSTASH_TOKEN`               | Upstash QStash REST Token for email queue publishing              |

@@ -12,9 +12,6 @@ All notable changes to this project will be documented in this file.
 - **Authentication & sessions** (PRS-171–175): email/password registration
   with email verification, password reset, session middleware, and the
   administrator role with database-backed authorization.
-- **Forum moderation** (PRS-194): administrative moderation for Forum posts and
-  replies with required reasons, immutable audit logging (`forum_moderation_audit`),
-  `moderated_at` lifecycle tracking, public read filtering, and cache purge.
 - **Businesses & listings** (PRS-178–181): UEN-validated business
   registration, draft listings, server-side address validation with persisted
   coordinates (ADR-0006), opening hours, and private R2 photo management.
@@ -25,10 +22,6 @@ All notable changes to this project will be documented in this file.
   Schema.org structured data.
 - **Reviews and Forum** (PRS-190–191): verified-user reviews with SQL-derived
   ratings, and forum posts/replies with soft deletion and cursor pagination.
-- **Announcements** (PRS-185): public business announcements with publication
-  precondition, bounded visibility dates, automatic expiry filtering,
-  lifecycle cascade, HTTPS media/link validation, administrator moderation
-  with immutable audit log, and canonical URL metadata.
 - **Bookmarks** (PRS-189): private, database-enforced bookmarks on the
   personal profile page.
 - **Plumbing** (PRS-166–170): API contract with error envelope, distributed
