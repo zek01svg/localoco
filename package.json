@@ -27,7 +27,7 @@
     "security:audit": "bun audit --audit-level=high",
     "db:studio": "bun drizzle-kit studio",
     "db:migrate": "bunx drizzle-kit migrate",
-    "db:seed": "bun server/database/seed.ts"
+    "db:seed": "bun scripts/seed.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

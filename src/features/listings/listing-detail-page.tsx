@@ -6,6 +6,7 @@ import { Badge } from "#client/components/ui/badge";
 import { Button } from "#client/components/ui/button";
 import { Card, CardContent } from "#client/components/ui/card";
 import { ListingAnnouncementsSection } from "#client/features/announcements";
+import { BookmarkButton } from "#client/features/bookmarks";
 import { ListingEventsSection } from "#client/features/events";
 import { NotFoundPage } from "#client/features/not-found/not-found";
 import { isOpenAt } from "#shared/contracts/business-hours";
@@ -126,6 +127,7 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
               </Badge>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <BookmarkButton businessId={listing.businessId} size="sm" />
               <Badge variant="outline" className="font-mono text-xs">
                 UEN: {listing.uen}
               </Badge>

@@ -77,6 +77,7 @@ export function useForumPostQuery(postId: string) {
       return forumPostItemSchema.parse(await res.json());
     },
     enabled: Boolean(postId),
+    retry: false,
   });
 }
 

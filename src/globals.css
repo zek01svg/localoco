@@ -58,11 +58,11 @@
   --secondary: #3a3a3a;
   --secondary-foreground: #ffffff;
   --muted: #3a3a3a;
-  --muted-foreground: #a1a1aa;
+  --muted-foreground: #b0b0b8;
   --accent: #3a3a3a;
   --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
+  --destructive: #ff8585;
+  --destructive-foreground: #2a2a2a;
   --border: #404040;
   --input: #3a3a3a;
   --ring: #ffa1a3;
