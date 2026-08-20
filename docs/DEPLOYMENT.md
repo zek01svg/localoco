@@ -225,7 +225,31 @@ so moving traffic is instant and reversible.
 
 ---
 
-## 6. Local Standalone Run
+## 6. Production Seed & Content Bootstrap
+
+The production seed initializes LocaLoco with coherent baseline product content
+(synthetic personas, distributed businesses, published listings, opening hours,
+reviews, forum discussions, likes, announcements, events, and bookmarks):
+
+```bash
+bun run db:seed
+```
+
+- **Standalone script**: The seed is never a migration. Schema evolution and content
+  bootstrap are separate concerns.
+- **Transactional & Idempotent**: The entire seed runs within a single database
+  transaction. Seed entities use deterministic private keys, ensuring reruns are
+  exact no-ops without duplicate records or failures.
+- **Synthetic Personas**: Seeded authors have public profile data and **zero**
+  Better Auth `account` or `session` rows. They can own seeded Businesses and author
+  seeded content, but can never authenticate.
+- **Release Ordering**: In production cutover, the seed runs _after_ zero-traffic
+  deployment and verified administrator promotion (using that administrator as the
+  seed actor) and _before_ traffic promotion.
+
+---
+
+## 7. Local Standalone Run
 
 Without infrastructure (e.g. a VPS or local box):
 
