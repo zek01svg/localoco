@@ -49,7 +49,8 @@ async function dispatchEnqueuedJob(jobId: string, deps?: PipelineDeps): Promise<
       logger.warning("email.qstash.skipped", {
         jobId,
         destinationUrl,
-        message: "QStash skipped: destination URL resolves to a loopback address. Falling back to local in-process delivery.",
+        message:
+          "QStash skipped: destination URL resolves to a loopback address. Falling back to local in-process delivery.",
       });
     } else {
       try {
