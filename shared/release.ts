@@ -1,4 +1,4 @@
-export const DEFAULT_RELEASE = "localoco@2.2.0";
+export const DEFAULT_RELEASE = "localoco@2.3.0";
 
 /**
  * Resolves the immutable Sentry release identifier.

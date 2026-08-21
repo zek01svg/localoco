@@ -1,10 +1,4 @@
-export type DeliveryStatus = "pending" | "processing" | "delivered" | "failed" | "retryable";
-
 export type ErrorClassification = "retryable" | "terminal";
-
-export interface EmailJobPayload {
-  jobId: string;
-}
 
 export interface SendEmailOptions {
   to: string;

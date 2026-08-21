@@ -37,22 +37,22 @@ export const createForumReplySchema = z.object({
 export type CreateForumReply = z.infer<typeof createForumReplySchema>;
 
 // A reply's only editable field is its body, so update accepts the same shape.
-export const updateForumReplySchema = createForumReplySchema;
+export const updateForumReplySchema = z.object({
+  body: forumBodySchema,
+});
 export type UpdateForumReply = z.infer<typeof updateForumReplySchema>;
 
-export const forumAuthorSchema = z.object({
+const forumAuthorSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
   avatarUrl: z.string().nullable(),
 });
-export type ForumAuthor = z.infer<typeof forumAuthorSchema>;
 
-export const forumBusinessReferenceSchema = z.object({
+const forumBusinessReferenceSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   category: z.string().optional(),
 });
-export type ForumBusinessReference = z.infer<typeof forumBusinessReferenceSchema>;
 
 export const forumPostItemSchema = z.object({
   id: z.string().min(1),
@@ -112,7 +112,6 @@ export const forumModerationAuditItemSchema = z.object({
   originalAuthorId: z.string().min(1),
   createdAt: z.coerce.date(),
 });
-export type ForumModerationAuditItem = z.infer<typeof forumModerationAuditItemSchema>;
 
 export const forumModerationAuditsResponseSchema = z.object({
   items: z.array(forumModerationAuditItemSchema),

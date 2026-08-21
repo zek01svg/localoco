@@ -41,13 +41,19 @@ test.describe("LocaLoco landing page", () => {
   test("exposes primary navigation links for discovery flows", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("link", { name: "Why LocaLoco" })).toHaveAttribute("href", "#why");
-    await expect(page.getByRole("link", { name: "How it works" })).toHaveAttribute("href", "#how");
-    await expect(page.getByRole("link", { name: "Browse businesses" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Why LocaLoco", exact: true })).toHaveAttribute(
+      "href",
+      "#why"
+    );
+    await expect(page.getByRole("link", { name: "How it works", exact: true })).toHaveAttribute(
+      "href",
+      "#how"
+    );
+    await expect(page.getByRole("link", { name: "Discover", exact: true })).toHaveAttribute(
       "href",
       "/listings"
     );
-    await expect(page.getByRole("link", { name: "Community forum" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Forum", exact: true })).toHaveAttribute(
       "href",
       "/forum"
     );

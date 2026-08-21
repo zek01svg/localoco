@@ -6,7 +6,7 @@ interface ListingStructuredDataProps {
   listing: PublicListingDetail;
 }
 
-export interface SchemaOrgOpeningHoursSpecification {
+interface SchemaOrgOpeningHoursSpecification {
   "@type": "OpeningHoursSpecification";
   dayOfWeek: string;
   opens: string;

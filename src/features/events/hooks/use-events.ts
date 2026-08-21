@@ -1,20 +1,10 @@
-import type {
-  CreateEvent,
-  EventAuditsResponse,
-  EventItem,
-  EventsResponse,
-  UpdateEvent,
-} from "#shared/contracts/events";
+import type { CreateEvent, EventItem, EventsResponse, UpdateEvent } from "#shared/contracts/events";
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiUrl } from "#client/lib/api";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
-import {
-  eventAuditsResponseSchema,
-  eventItemSchema,
-  eventsResponseSchema,
-} from "#shared/contracts/events";
+import { eventItemSchema, eventsResponseSchema } from "#shared/contracts/events";
 
 async function parseErrorMessage(res: Response, fallback: string): Promise<string> {
   try {
@@ -31,27 +21,6 @@ export class EventNotFoundError extends Error {
     super(message);
     this.name = "EventNotFoundError";
   }
-}
-
-export function usePublicEventsQuery() {
-  return useInfiniteQuery<EventsResponse>({
-    queryKey: ["public-events"],
-    queryFn: async ({ pageParam }) => {
-      const url = new URL(`${apiUrl}/events`);
-      url.searchParams.set("limit", "10");
-      if (typeof pageParam === "string" && pageParam) {
-        url.searchParams.set("cursor", pageParam);
-      }
-
-      const res = await fetch(url.toString(), { credentials: "include" });
-      if (!res.ok) {
-        throw new Error("Could not load events");
-      }
-      return eventsResponseSchema.parse(await res.json());
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
-  });
 }
 
 export function useBusinessEventsQuery(businessId: string, enabled = true) {
@@ -163,48 +132,5 @@ export function useDeleteEventMutation(businessId: string) {
       void queryClient.invalidateQueries({ queryKey: ["public-events"] });
       queryClient.removeQueries({ queryKey: ["event", eventId] });
     },
-  });
-}
-
-export function useModerateEventMutation(eventId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation<EventItem, Error, { action: "moderate" | "restore"; reason: string }>({
-    mutationFn: async payload => {
-      const res = await fetch(`${apiUrl}/events/${eventId}/moderate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const message = await parseErrorMessage(res, "Failed to moderate event");
-        throw new Error(message);
-      }
-
-      return eventItemSchema.parse(await res.json());
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["event", eventId] });
-      void queryClient.invalidateQueries({ queryKey: ["public-events"] });
-      void queryClient.invalidateQueries({ queryKey: ["business-events"] });
-    },
-  });
-}
-
-export function useEventAuditsQuery(eventId: string, enabled = true) {
-  return useQuery<EventAuditsResponse>({
-    queryKey: ["event-audits", eventId],
-    queryFn: async () => {
-      const res = await fetch(`${apiUrl}/events/${eventId}/audits`, {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error("Could not load event audits");
-      }
-      return eventAuditsResponseSchema.parse(await res.json());
-    },
-    enabled: Boolean(eventId) && enabled,
   });
 }

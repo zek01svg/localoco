@@ -5,40 +5,9 @@ import { Link } from "@tanstack/react-router";
 import { CheckCircle2Icon, MailIcon } from "lucide-react";
 
 import { Button } from "#client/components/ui/button";
-import { Skeleton } from "#client/components/ui/skeleton";
 
 import { useSignUpMutation } from "../hooks/auth-queries";
 import { AuthCard, FormErrorAlert, FormField } from "./shell";
-
-export function SignupFormSkeleton() {
-  return (
-    <div className="bg-card text-card-foreground border-border mx-auto max-w-md space-y-6 rounded-xl border p-8 shadow-sm">
-      <div className="space-y-2 text-center">
-        <Skeleton className="mx-auto h-7 w-40" />
-        <Skeleton className="mx-auto h-4 w-64" />
-      </div>
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-9 w-full" />
-        </div>
-        <div className="space-y-1.5">
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-9 w-full" />
-        </div>
-        <div className="space-y-1.5">
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-9 w-full" />
-        </div>
-        <div className="space-y-1.5">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-9 w-full" />
-        </div>
-        <Skeleton className="h-9 w-full rounded-md" />
-      </div>
-    </div>
-  );
-}
 
 function SignupSuccessView({ email }: { email: string }) {
   return (
@@ -47,7 +16,7 @@ function SignupSuccessView({ email }: { email: string }) {
         <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
           <MailIcon aria-hidden="true" className="size-6" />
         </div>
-        <h2 className="text-2xl font-bold tracking-tight">Check your email</h2>
+        <h2 className="font-display text-2xl tracking-tight">Check your email</h2>
         <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
           We sent a verification link to{" "}
           <span className="text-foreground font-semibold">{email}</span>. Please verify your email
@@ -71,7 +40,7 @@ function SignupSuccessView({ email }: { email: string }) {
 function SignupFormHeader() {
   return (
     <div className="mb-6 text-center">
-      <h1 className="text-2xl font-bold tracking-tight">Join LocaLoco</h1>
+      <h1 className="font-display text-2xl tracking-tight">Join LocaLoco</h1>
       <p className="text-muted-foreground mt-1.5 text-sm">
         Discover local gems and connect with your neighborhood
       </p>

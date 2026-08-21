@@ -174,6 +174,6 @@ getAppLogger("server", "bootstrap").info("Server Started", {
   sentryEnabled: Boolean(env.SENTRY_DSN),
 });
 
-export { app, server };
+export { app };
 export type AppType = typeof app;
 export default server;

@@ -14,7 +14,8 @@ docs/
 ├── ARCHITECTURE.md   # System architecture, design decisions, and data flow
 ├── CONTRIBUTING.md   # Developer setup, coding standards, database workflows, & testing
 ├── DEPLOYMENT.md     # Production build, Docker containerization, & environment setup
-└── API.md            # API design, routes, OpenAPI specifications, & error schemas
+├── API.md            # API design, routes, OpenAPI specifications, & error schemas
+└── DESIGN.md         # Visual identity: palette, typography, and design tokens
 ```
 
 ---
@@ -63,6 +64,15 @@ If you are developing backend endpoints or integrating frontend components with 
   - Interactive API Reference (`/api/scalar`) & OpenAPI Specs (`/api/openapi`)
   - Authentication Endpoints (`/api/auth/*`)
   - Standardized Error Formats & Validation Handling
+
+### Design
+
+If you are building UI and need the visual identity reference:
+
+- [**Design Guide**](./DESIGN.md)
+  - Color Palette & Design Tokens
+  - Typography
+  - Component Visual Conventions
 
 ---
 

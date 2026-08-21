@@ -8,7 +8,6 @@ import { getRandomTestIp } from "./auth";
 export const SEEDED_LISTING_ID = "00000000-0000-4000-c000-000000000001";
 export const SEEDED_BOON_TAT_LISTING_ID = "00000000-0000-4000-c000-000000000002";
 export const SEEDED_FORUM_POST_ID = "00000000-0000-4000-f000-000000000001";
-export const SEEDED_NOT_FOUND_ID = "00000000-0000-4000-0000-000000000000";
 
 export const test = base.extend<{ page: Page }>({
   page: async ({ page }, next) => {

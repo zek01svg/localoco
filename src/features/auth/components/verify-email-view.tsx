@@ -10,7 +10,7 @@ interface VerifyEmailViewProps {
   token?: string;
 }
 
-export function VerifyEmailSkeleton() {
+function VerifyEmailSkeleton() {
   return (
     <div className="bg-card text-card-foreground border-border mx-auto max-w-md space-y-6 rounded-xl border p-8 text-center shadow-sm">
       <div className="flex flex-col items-center space-y-3">
@@ -31,7 +31,7 @@ function VerifySuccessState() {
         <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
           <CheckCircle2Icon aria-hidden="true" className="size-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Email verified successfully</h1>
+        <h1 className="font-display text-2xl tracking-tight">Email verified successfully</h1>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
           Your email is now confirmed. You have full access to discover businesses, post reviews,
           and participate in the LocaLoco community.
@@ -54,7 +54,7 @@ function VerifyErrorState({ errorMessage }: { errorMessage: string | null }) {
         <div className="bg-destructive/10 text-destructive mb-4 flex size-12 items-center justify-center rounded-full">
           <AlertTriangleIcon aria-hidden="true" className="size-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Verification failed</h1>
+        <h1 className="font-display text-2xl tracking-tight">Verification failed</h1>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
           {errorMessage ?? "We could not verify your email address with this link."}
         </p>

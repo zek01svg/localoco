@@ -10,7 +10,6 @@ export const publicProfileSchema = z.object({
   displayName: z.string().min(1),
   avatarUrl: z.string().nullable(),
 });
-export type PublicProfile = z.infer<typeof publicProfileSchema>;
 
 // The private shape of a User's own account, served only to the session user.
 // Structurally separate from the public contract: email and verification
@@ -25,7 +24,6 @@ export const privateProfileSchema = z.object({
   // (an ISO-8601 string): coerce accepts both.
   createdAt: z.coerce.date(),
 });
-export type PrivateProfile = z.infer<typeof privateProfileSchema>;
 
 // The session user's own profile edits. Unknown keys — any client-supplied
 // identifier — are stripped by zod, so a body identifier is data, never a

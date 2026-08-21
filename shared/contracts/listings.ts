@@ -71,7 +71,7 @@ export const listingSchema = z.object({
 });
 export type Listing = z.infer<typeof listingSchema>;
 
-export const publicListingPhotoSchema = z.object({
+const publicListingPhotoSchema = z.object({
   id: z.string().min(1),
   contentType: z.string().min(1),
   size: z.number(),
@@ -149,18 +149,15 @@ export const listingsQuerySchema = z
     },
     { message: "south latitude must be less than or equal to north latitude" }
   );
-export type ListingsQuery = z.infer<typeof listingsQuerySchema>;
 
 export const listingsResponseSchema = z.object({
   items: z.array(listingSchema),
   nextCursor: z.string().nullable(),
 });
-export type ListingsResponse = z.infer<typeof listingsResponseSchema>;
 
 export const listingsCategoriesResponseSchema = z.object({
   items: z.array(z.string()),
 });
-export type ListingsCategoriesResponse = z.infer<typeof listingsCategoriesResponseSchema>;
 
 // The Listing as its owner sees it: the full lifecycle status, rejection reason
 // (when rejected), plus validated fields. Database reads return NULL for absent
@@ -191,7 +188,6 @@ export const listingModerationActionSchema = z.object({
   action: z.enum(["publish", "reject", "suspend"]),
   reason: z.string().trim().min(1).max(1000),
 });
-export type ListingModerationAction = z.infer<typeof listingModerationActionSchema>;
 
 export const listingAuditRecordSchema = z.object({
   id: z.string().min(1),
@@ -202,9 +198,7 @@ export const listingAuditRecordSchema = z.object({
   reason: z.string(),
   createdAt: z.coerce.date(),
 });
-export type ListingAuditRecord = z.infer<typeof listingAuditRecordSchema>;
 
 export const listingAuditsResponseSchema = z.object({
   items: z.array(listingAuditRecordSchema),
 });
-export type ListingAuditsResponse = z.infer<typeof listingAuditsResponseSchema>;

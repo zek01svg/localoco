@@ -4,10 +4,16 @@ import ReactDOM from "react-dom/client";
 
 import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
 
+import "@fontsource/young-serif/400.css";
+import "@fontsource-variable/overpass/index.css";
+import "@fontsource/spline-sans-mono/400.css";
+import "@fontsource/spline-sans-mono/500.css";
+
 import { env } from "./env";
 import "./globals.css";
 import { initClientSentry } from "./lib/sentry";
 import { ReactQueryProvider } from "./providers/react-query";
+import { AppThemeProvider } from "./providers/theme";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
@@ -42,7 +48,9 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <ReactQueryProvider>
-        <RouterProvider router={router} />
+        <AppThemeProvider>
+          <RouterProvider router={router} />
+        </AppThemeProvider>
       </ReactQueryProvider>
     </StrictMode>
   );

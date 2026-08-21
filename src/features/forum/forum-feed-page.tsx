@@ -86,13 +86,13 @@ export function ForumFeedPage() {
   };
 
   return (
-    <main className="bg-background min-h-screen pb-16">
+    <main className="pb-16">
       <link rel="canonical" href={`${window.location.origin}/forum`} />
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
+      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
         <header className="flex flex-col justify-between gap-4 border-b pb-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-foreground text-2xl font-bold tracking-tight">Community forum</h1>
+            <h1 className="font-display text-2xl tracking-tight sm:text-3xl">Community forum</h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Questions and discussions about local businesses, grounded in a Business.
             </p>

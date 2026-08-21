@@ -22,7 +22,7 @@ test.describe("Business Management Flows E2E", () => {
 
     await page.goto("/businesses/new");
 
-    await expect(page.getByText("Add your business")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Add your business" })).toBeVisible();
 
     const uenInput = page.getByLabel("UEN");
     const nameInput = page.getByLabel("Business name");

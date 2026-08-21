@@ -6,78 +6,84 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* LocaLoco legacy palette (legacy/frontend/index.css): salmon primary,
-     light surfaces. primary-foreground is darkened from the legacy #fff so
-     text on primary meets WCAG AA contrast. */
-  --background: #ffffff;
-  --foreground: #030213;
-  --card: #ffffff;
-  --card-foreground: #030213;
-  --popover: #ffffff;
-  --popover-foreground: #030213;
+  /* Five-foot-way light mode: kopitiam menu-paper surfaces, charcoal ink,
+     salmon signage. Dark mode below is the default identity. */
+  --background: #f7f2ea;
+  --foreground: #26231f;
+  --card: #fffdf8;
+  --card-foreground: #26231f;
+  --popover: #fffdf8;
+  --popover-foreground: #26231f;
   --primary: #ffa1a3;
-  --primary-foreground: #2a2a2a;
-  --secondary: #ececf0;
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #ffe5e6;
-  --accent-foreground: #030213;
+  --primary-foreground: #2f2224;
+  --secondary: #ece4d6;
+  --secondary-foreground: #26231f;
+  --muted: #ede5d7;
+  --muted-foreground: #6d675c;
+  --accent: #ffe9ea;
+  --accent-foreground: #26231f;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: #0000001a;
-  --input: #f3f3f5;
-  --ring: #ffa1a3;
+  --success: #2e7d54;
+  --success-foreground: #ffffff;
+  --warning: #96660f;
+  --warning-foreground: #ffffff;
+  --border: rgba(38, 35, 31, 0.15);
+  --input: #efe8db;
+  --ring: #f27d80;
   --chart-1: #ffa1a3;
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --chart-2: #2e7d54;
+  --chart-3: #dfa945;
+  --chart-4: #8f6bb0;
+  --chart-5: #4f83a8;
+  --radius: 0.5rem;
+  --sidebar: #fffdf8;
+  --sidebar-foreground: #26231f;
   --sidebar-primary: #ffa1a3;
-  --sidebar-primary-foreground: #2a2a2a;
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: #ffa1a3;
+  --sidebar-primary-foreground: #2f2224;
+  --sidebar-accent: #ece4d6;
+  --sidebar-accent-foreground: #26231f;
+  --sidebar-border: rgba(38, 35, 31, 0.15);
+  --sidebar-ring: #f27d80;
 }
 
 .dark {
-  /* Legacy dark surface: charcoal (#2a2a2a / #3a3a3a) with the same
-     salmon primary. The legacy landing page shipped with class="dark". */
-  --background: #2a2a2a;
-  --foreground: #ffffff;
-  --card: #2a2a2a;
-  --card-foreground: #ffffff;
-  --popover: #2a2a2a;
-  --popover-foreground: #ffffff;
+  /* Storefront-at-dusk: warm charcoal with bone type and salmon signage. */
+  --background: #232220;
+  --foreground: #f2ede4;
+  --card: #2a2926;
+  --card-foreground: #f2ede4;
+  --popover: #2e2d29;
+  --popover-foreground: #f2ede4;
   --primary: #ffa1a3;
-  --primary-foreground: #2a2a2a;
-  --secondary: #3a3a3a;
-  --secondary-foreground: #ffffff;
-  --muted: #3a3a3a;
-  --muted-foreground: #b0b0b8;
-  --accent: #3a3a3a;
-  --accent-foreground: #ffffff;
+  --primary-foreground: #2b1d1e;
+  --secondary: #35342f;
+  --secondary-foreground: #f2ede4;
+  --muted: #32312c;
+  --muted-foreground: #a39d8f;
+  --accent: #38362f;
+  --accent-foreground: #f2ede4;
   --destructive: #ff8585;
-  --destructive-foreground: #2a2a2a;
-  --border: #404040;
-  --input: #3a3a3a;
+  --destructive-foreground: #2b1d1e;
+  --success: #52b788;
+  --success-foreground: #14261c;
+  --warning: #dfa945;
+  --warning-foreground: #2a2010;
+  --border: rgba(242, 237, 228, 0.14);
+  --input: #302f2b;
   --ring: #ffa1a3;
   --chart-1: #ffa1a3;
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #2a2a2a;
-  --sidebar-foreground: #ffffff;
+  --chart-2: #52b788;
+  --chart-3: #dfa945;
+  --chart-4: #b58ecf;
+  --chart-5: #7fa8c9;
+  --sidebar: #2a2926;
+  --sidebar-foreground: #f2ede4;
   --sidebar-primary: #ffa1a3;
-  --sidebar-primary-foreground: #2a2a2a;
-  --sidebar-accent: #3a3a3a;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #404040;
+  --sidebar-primary-foreground: #2b1d1e;
+  --sidebar-accent: #35342f;
+  --sidebar-accent-foreground: #f2ede4;
+  --sidebar-border: rgba(242, 237, 228, 0.14);
   --sidebar-ring: #ffa1a3;
 }
 
@@ -98,6 +104,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -118,13 +128,86 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: "Overpass Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Young Serif", ui-serif, Georgia, serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  ::selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
+
+/* Scalloped shopfront awning valance: a solid band with a row of
+   half-circle scallops hanging from it. Color follows the primary token
+   unless overridden via --awning-color. */
+.awning-scallops {
+  height: 8px;
+  background-image: radial-gradient(
+    circle at 8px 0,
+    var(--awning-color, var(--primary)) 7px,
+    transparent 7.5px
+  );
+  background-size: 16px 8px;
+  background-repeat: repeat-x;
+}
+
+.awning-band {
+  height: 10px;
+  background-color: var(--awning-color, var(--primary));
+}
+
+.awning-band-striped {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--awning-stripe, rgba(255, 255, 255, 0.28)) 0 10px,
+    transparent 10px 20px
+  );
+}
+
+/* Chunkier scallops for the landing storefront illustration. */
+.awning-hero {
+  --awning-size: 20px;
+}
+
+/* Neon-sign power-on: one short stutter then steady. Skipped entirely when
+   the user prefers reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .plaque-flicker {
+    animation: plaque-flicker 1.3s steps(1, end) 0.3s 1 both;
+  }
+  @keyframes plaque-flicker {
+    0% {
+      opacity: 0%;
+    }
+    14% {
+      opacity: 100%;
+    }
+    17% {
+      opacity: 15%;
+    }
+    26% {
+      opacity: 100%;
+    }
+    30% {
+      opacity: 35%;
+    }
+    34% {
+      opacity: 100%;
+    }
   }
 }

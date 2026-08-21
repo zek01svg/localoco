@@ -2,7 +2,6 @@ import type {
   CreateForumPost,
   CreateForumReply,
   ForumFeedResponse,
-  ForumModerationAuditsResponse,
   ForumPostItem,
   ForumRepliesResponse,
   ForumReplyItem,
@@ -17,7 +16,6 @@ import { apiUrl } from "#client/lib/api";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
 import {
   forumFeedResponseSchema,
-  forumModerationAuditsResponseSchema,
   forumPostItemSchema,
   forumRepliesResponseSchema,
   forumReplyItemSchema,
@@ -285,37 +283,5 @@ export function useModerateReplyMutation(postId: string) {
     onSuccess: () => {
       invalidateForumPostCache(queryClient, postId);
     },
-  });
-}
-
-export function useForumPostAuditQuery(postId: string, enabled = true) {
-  return useQuery<ForumModerationAuditsResponse>({
-    queryKey: ["forum-post-audit", postId],
-    queryFn: async () => {
-      const res = await fetch(`${apiUrl}/forum/posts/${encodeURIComponent(postId)}/audit`, {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error("Could not load moderation audit history");
-      }
-      return forumModerationAuditsResponseSchema.parse(await res.json());
-    },
-    enabled: Boolean(postId) && enabled,
-  });
-}
-
-export function useForumReplyAuditQuery(replyId: string, enabled = true) {
-  return useQuery<ForumModerationAuditsResponse>({
-    queryKey: ["forum-reply-audit", replyId],
-    queryFn: async () => {
-      const res = await fetch(`${apiUrl}/forum/replies/${encodeURIComponent(replyId)}/audit`, {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error("Could not load moderation audit history");
-      }
-      return forumModerationAuditsResponseSchema.parse(await res.json());
-    },
-    enabled: Boolean(replyId) && enabled,
   });
 }

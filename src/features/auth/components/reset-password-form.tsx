@@ -18,7 +18,7 @@ function ResetSuccessState() {
         <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
           <CheckCircle2Icon aria-hidden="true" className="size-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Password updated</h1>
+        <h1 className="font-display text-2xl tracking-tight">Password updated</h1>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
           Your password has been changed and all previous sessions were signed out.
         </p>
@@ -40,7 +40,7 @@ function ResetErrorState({ errorMessage }: { errorMessage: string | null }) {
         <div className="bg-destructive/10 text-destructive mb-4 flex size-12 items-center justify-center rounded-full">
           <AlertTriangleIcon aria-hidden="true" className="size-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Reset link failed</h1>
+        <h1 className="font-display text-2xl tracking-tight">Reset link failed</h1>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
           {errorMessage ?? "This reset link is invalid or has expired."}
         </p>
@@ -90,7 +90,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   return (
     <AuthCard>
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Set a new password</h1>
+        <h1 className="font-display text-2xl tracking-tight">Set a new password</h1>
         <p className="text-muted-foreground mt-1.5 text-sm">
           Choose a strong password you do not use elsewhere.
         </p>

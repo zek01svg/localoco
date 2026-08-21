@@ -143,7 +143,7 @@ export function ForumPostCard({
           params={{ postId: post.id }}
           className="text-foreground hover:underline"
         >
-          <h2 className="text-lg font-semibold tracking-tight">{post.title}</h2>
+          <h2 className="font-display text-lg tracking-tight">{post.title}</h2>
         </Link>
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{post.business.name}</Badge>

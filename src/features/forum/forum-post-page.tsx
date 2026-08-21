@@ -70,8 +70,8 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
 
   if (postQuery.isPending) {
     return (
-      <main className="bg-background min-h-screen">
-        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-8">
+      <main>
+        <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-8 sm:px-6">
           <Skeleton className="h-8 w-40" />
           <Skeleton className="h-32 w-full rounded-lg" />
           <Skeleton className="h-24 w-full rounded-lg" />
@@ -86,9 +86,9 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
 
   if (postQuery.isError || !post) {
     return (
-      <main className="bg-background flex min-h-screen items-center justify-center p-6">
-        <div className="border-border w-full max-w-md rounded-xl border p-8 text-center">
-          <h1 className="text-xl font-bold">Could not load discussion</h1>
+      <main className="flex items-center justify-center p-6">
+        <div className="border-border w-full max-w-md rounded-lg border p-8 text-center">
+          <h1 className="font-display text-xl tracking-tight">Could not load discussion</h1>
           <p className="text-muted-foreground mt-2 text-sm">{postQuery.error.message}</p>
           <Button
             className="mt-6"
@@ -213,11 +213,11 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
     typeof user === "object" && user !== null && "role" in user && user.role === "admin";
 
   return (
-    <main className="bg-background min-h-screen pb-16">
+    <main className="pb-16">
       <link rel="canonical" href={`${window.location.origin}/forum/${post.id}`} />
       <meta name="description" content={post.title} />
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
+      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
         <Link
           to="/forum"
           className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm"
@@ -226,7 +226,7 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
           Back to forum
         </Link>
 
-        <article className="flex flex-col gap-4 rounded-lg border p-5">
+        <article className="bg-card text-card-foreground flex flex-col gap-4 rounded-lg border p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Avatar size="sm">
@@ -299,7 +299,7 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
             </div>
           </div>
 
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">{post.title}</h1>
+          <h1 className="font-display text-2xl tracking-tight sm:text-3xl">{post.title}</h1>
 
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{post.business.name}</Badge>
@@ -327,7 +327,7 @@ export function ForumPostPage({ postId }: ForumPostPageProps) {
         </article>
 
         <section aria-labelledby="replies-heading" className="flex flex-col gap-4">
-          <h2 id="replies-heading" className="text-foreground text-xl font-bold tracking-tight">
+          <h2 id="replies-heading" className="font-display text-xl tracking-tight">
             {post.replyCount === 1 ? "1 reply" : `${post.replyCount} replies`}
           </h2>
 

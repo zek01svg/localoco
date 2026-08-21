@@ -1,16 +1,14 @@
 import type {
-  AnnouncementAuditsResponse,
   AnnouncementItem,
   AnnouncementsResponse,
   CreateAnnouncement,
   UpdateAnnouncement,
 } from "#shared/contracts/announcements";
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiUrl } from "#client/lib/api";
 import {
-  announcementAuditsResponseSchema,
   announcementItemSchema,
   announcementsResponseSchema,
 } from "#shared/contracts/announcements";
@@ -31,27 +29,6 @@ export class AnnouncementNotFoundError extends Error {
     super("This announcement is no longer available.");
     this.name = "AnnouncementNotFoundError";
   }
-}
-
-export function usePublicAnnouncementsQuery() {
-  return useInfiniteQuery<AnnouncementsResponse>({
-    queryKey: ["public-announcements"],
-    queryFn: async ({ pageParam }) => {
-      const url = new URL(`${apiUrl}/announcements`);
-      url.searchParams.set("limit", "10");
-      if (typeof pageParam === "string" && pageParam) {
-        url.searchParams.set("cursor", pageParam);
-      }
-
-      const res = await fetch(url.toString(), { credentials: "include" });
-      if (!res.ok) {
-        throw new Error("Could not load announcements");
-      }
-      return announcementsResponseSchema.parse(await res.json());
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
-  });
 }
 
 export function useBusinessAnnouncementsQuery(businessId: string, enabled = true) {
@@ -167,47 +144,5 @@ export function useDeleteAnnouncementMutation(businessId: string) {
       void queryClient.invalidateQueries({ queryKey: ["business-announcements", businessId] });
       void queryClient.invalidateQueries({ queryKey: ["public-announcements"] });
     },
-  });
-}
-
-export function useModerateAnnouncementMutation(announcementId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation<AnnouncementItem, Error, { action: "moderate" | "restore"; reason: string }>({
-    mutationFn: async payload => {
-      const res = await fetch(`${apiUrl}/announcements/${announcementId}/moderate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const message = await parseErrorMessage(res, "Failed to moderate announcement");
-        throw new Error(message);
-      }
-
-      return announcementItemSchema.parse(await res.json());
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["announcement", announcementId] });
-      void queryClient.invalidateQueries({ queryKey: ["public-announcements"] });
-    },
-  });
-}
-
-export function useAnnouncementAuditsQuery(announcementId: string, enabled = true) {
-  return useQuery<AnnouncementAuditsResponse>({
-    queryKey: ["announcement-audits", announcementId],
-    queryFn: async () => {
-      const res = await fetch(`${apiUrl}/announcements/${announcementId}/audits`, {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        throw new Error("Could not load announcement audits");
-      }
-      return announcementAuditsResponseSchema.parse(await res.json());
-    },
-    enabled: Boolean(announcementId) && enabled,
   });
 }

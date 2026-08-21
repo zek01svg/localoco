@@ -80,9 +80,9 @@ export function BusinessEventsSection({ businessId, listingStatus }: BusinessEve
       </CardHeader>
       <CardContent className="space-y-4">
         {!isPublished && (
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+          <div className="border-warning/30 bg-warning/10 text-warning rounded-lg border p-4 text-sm">
             <p className="font-semibold">Publication required</p>
-            <p className="text-amber-800/90 dark:text-amber-300/90">
+            <p className="text-warning/90">
               Only published listings can post events. Once your listing passes review and is live,
               you can publish events here.
             </p>

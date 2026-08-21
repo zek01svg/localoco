@@ -9,7 +9,6 @@ export const businessSchema = z.object({
   id: z.string().min(1),
   uen: z.string().min(1),
 });
-export type Business = z.infer<typeof businessSchema>;
 
 // Singapore UEN formats, validated after normalization (trim + uppercase):
 // - nnnnnnnnX  (9 chars: 8 digits + 1 letter) — pre-2009 ACRA companies
@@ -23,7 +22,6 @@ export const uenField = z
   .refine(value => /^(\d{8}[A-Z]|\d{9}[A-Z]|T\d{2}[A-Z]{2}\d{4}[A-Z])$/u.test(value), {
     message: "UEN must be a valid Singapore UEN",
   });
-export type Uen = z.infer<typeof uenField>;
 
 // UEN uniqueness is enforced by the PostgreSQL unique constraint on the
 // normalized value, not by a check-then-insert, so concurrent creation of the
@@ -31,18 +29,15 @@ export type Uen = z.infer<typeof uenField>;
 export const businessUpdateSchema = z.object({
   uen: uenField,
 });
-export type BusinessUpdate = z.infer<typeof businessUpdateSchema>;
 
 export const businessesQuerySchema = z.object({
   selected: z.string().min(1).max(256).optional(),
 });
-export type BusinessesQuery = z.infer<typeof businessesQuerySchema>;
 
 export const businessesResponseSchema = z.object({
   items: z.array(businessSchema),
   selectedId: z.string().nullable(),
 });
-export type BusinessesResponse = z.infer<typeof businessesResponseSchema>;
 
 // Creating a Business also creates its draft Listing in one atomic write. The
 // actor is never a client claim: `ownerId` is derived from the session and is
@@ -70,4 +65,3 @@ export const ownershipTransferSchema = z.object({
   ownerId: z.string().min(1).max(256),
   reason: z.string().trim().min(1).max(1000),
 });
-export type OwnershipTransfer = z.infer<typeof ownershipTransferSchema>;

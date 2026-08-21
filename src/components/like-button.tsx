@@ -46,12 +46,12 @@ export function LikeButton({
         <HeartIcon
           aria-hidden="true"
           className={`size-3.5 transition-colors ${
-            isLiked ? "fill-red-500 text-red-500" : "text-muted-foreground"
+            isLiked ? "fill-primary text-primary" : "text-muted-foreground"
           }`}
         />
       )}
       <span
-        className={`tabular-nums ${isLiked ? "font-medium text-red-600 dark:text-red-400" : "text-muted-foreground"}`}
+        className={`tabular-nums ${isLiked ? "text-primary font-medium" : "text-muted-foreground"}`}
       >
         {likeCount}
       </span>

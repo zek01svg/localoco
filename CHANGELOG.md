@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2026-08-22
+
+### Changed
+
+- **Visual identity refresh** ("five-foot way"): charcoal + salmon palette, new fonts, and shared `SiteHeader`/`SiteFooter` layout, documented in `docs/DESIGN.md`.
+- PostgreSQL client standardized on `postgres` (postgres.js) — the redundant `pg`/`@types/pg` dependency is removed; all test suites now use the same driver as production.
+- CI: Bun setup deduplicated into a shared composite action (`.github/actions/setup-bun`); unit and integration tests now run as separate jobs.
+- Unused code and exports removed (reported by `knip`).
+
 ## [2.2.0] - 2026-08-21
 
 ### Added

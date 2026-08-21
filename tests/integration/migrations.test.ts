@@ -1,5 +1,5 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
-import { Pool } from "pg";
+import postgres from "postgres";
 import { describe, expect, it } from "vitest";
 import { z } from "zod/v4";
 
@@ -47,13 +47,13 @@ describe("committed migration history", () => {
       const first = runMigrate(databaseUrl);
       expect(first.status, `migrate failed:\n${first.stdout}${first.stderr}`).toBe(0);
 
-      const pool = new Pool({ connectionString: databaseUrl });
+      const sql = postgres(databaseUrl);
       try {
-        const tables = await pool.query<{ table_name: string }>(
-          `select table_name from information_schema.tables
-             where table_schema = 'public' order by table_name`
-        );
-        expect(tables.rows.map(row => row.table_name)).toEqual(
+        const tables = await sql<
+          [{ table_name: string }]
+        >`select table_name from information_schema.tables
+           where table_schema = 'public' order by table_name`;
+        expect(tables.map(row => row.table_name)).toEqual(
           expect.arrayContaining([
             "account",
             "email_delivery",
@@ -64,19 +64,16 @@ describe("committed migration history", () => {
           ])
         );
 
-        const journal = await pool.query<{ n: number }>(
-          `select count(*)::int as n from drizzle."__drizzle_migrations"`
-        );
-        expect(journal.rows[0].n).toBe(expectedMigrationCount());
+        const [journal] = await sql`select count(*)::int as n from drizzle."__drizzle_migrations"`;
+        expect(journal.n).toBe(expectedMigrationCount());
 
         const second = runMigrate(databaseUrl);
         expect(second.status, `re-run failed:\n${second.stdout}${second.stderr}`).toBe(0);
-        const journalAfter = await pool.query<{ n: number }>(
-          `select count(*)::int as n from drizzle."__drizzle_migrations"`
-        );
-        expect(journalAfter.rows[0].n).toBe(expectedMigrationCount());
+        const [journalAfter] =
+          await sql`select count(*)::int as n from drizzle."__drizzle_migrations"`;
+        expect(journalAfter.n).toBe(expectedMigrationCount());
       } finally {
-        await pool.end();
+        await sql.end();
       }
     } finally {
       await container.stop();

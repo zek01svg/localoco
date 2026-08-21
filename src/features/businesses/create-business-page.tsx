@@ -48,11 +48,11 @@ export function CreateBusinessPage() {
 
   return (
     <BusinessesPageGates>
-      <main className="bg-background flex min-h-screen items-start justify-center p-6">
+      <main className="flex items-start justify-center p-6">
         <Card className="mt-16 w-full max-w-xl">
           <CardHeader>
             <CardTitle>
-              <h1 className="text-xl font-semibold">Add your business</h1>
+              <h1 className="font-display text-xl tracking-tight">Add your business</h1>
             </CardTitle>
             <CardDescription>
               Share your business and its opening listing. You can edit the listing any time.

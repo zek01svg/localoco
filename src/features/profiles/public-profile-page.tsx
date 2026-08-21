@@ -19,7 +19,7 @@ export function PublicProfilePage({ userId }: { userId: string }) {
 
   if (isPending) {
     return (
-      <main className="bg-background flex min-h-screen items-start justify-center p-6">
+      <main className="flex items-start justify-center p-6">
         <section className="flex flex-col items-center gap-4 pt-16 text-center">
           <Skeleton className="size-10 rounded-full" />
           <Skeleton className="h-8 w-40" />
@@ -33,21 +33,21 @@ export function PublicProfilePage({ userId }: { userId: string }) {
       return <NotFoundPage />;
     }
     return (
-      <main className="bg-background flex min-h-screen flex-col items-center justify-center p-6">
+      <main className="flex flex-col items-center justify-center p-6">
         <p className="text-muted-foreground">{error.message}</p>
       </main>
     );
   }
 
   return (
-    <main className="bg-background flex min-h-screen items-start justify-center p-6">
+    <main className="flex items-start justify-center p-6">
       <div className="flex w-full max-w-2xl flex-col items-center gap-6 pt-16">
         <section className="flex flex-col items-center gap-4 text-center">
           <Avatar size="lg">
             {data.avatarUrl ? <AvatarImage src={data.avatarUrl} alt={data.displayName} /> : null}
             <AvatarFallback>{initialsOf(data.displayName)}</AvatarFallback>
           </Avatar>
-          <h1 className="text-2xl font-semibold tracking-tight">{data.displayName}</h1>
+          <h1 className="font-display text-2xl tracking-tight">{data.displayName}</h1>
         </section>
 
         <UserReviewsList userId={userId} userName={data.displayName} />

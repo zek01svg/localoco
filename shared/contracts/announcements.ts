@@ -46,8 +46,7 @@ export const announcementLinkUrlSchema = z
     { message: "Link URL must use HTTPS" }
   );
 
-export const announcementStatusSchema = z.enum(["active", "moderated"]);
-export type AnnouncementStatus = z.infer<typeof announcementStatusSchema>;
+const announcementStatusSchema = z.enum(["active", "moderated"]);
 
 export const createAnnouncementSchema = z
   .object({
@@ -115,22 +114,19 @@ export const announcementModerationActionSchema = z.object({
     .min(1, { message: "Moderation reason is required" })
     .max(1000, { message: "Reason cannot exceed 1000 characters" }),
 });
-export type AnnouncementModerationAction = z.infer<typeof announcementModerationActionSchema>;
 
-export const announcementAuthorSchema = z.object({
+const announcementAuthorSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
   avatarUrl: z.string().nullable(),
 });
-export type AnnouncementAuthor = z.infer<typeof announcementAuthorSchema>;
 
-export const announcementBusinessReferenceSchema = z.object({
+const announcementBusinessReferenceSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   category: z.string().optional(),
   uen: z.string().optional(),
 });
-export type AnnouncementBusinessReference = z.infer<typeof announcementBusinessReferenceSchema>;
 
 export const announcementItemSchema = z.object({
   id: z.string().min(1),
@@ -156,7 +152,6 @@ export const announcementsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cursor: z.string().min(1).max(256).optional(),
 });
-export type AnnouncementsQuery = z.infer<typeof announcementsQuerySchema>;
 
 export const announcementsResponseSchema = z.object({
   items: z.array(announcementItemSchema),
@@ -164,7 +159,7 @@ export const announcementsResponseSchema = z.object({
 });
 export type AnnouncementsResponse = z.infer<typeof announcementsResponseSchema>;
 
-export const announcementModerationAuditItemSchema = z.object({
+const announcementModerationAuditItemSchema = z.object({
   id: z.string().min(1),
   announcementId: z.string().min(1),
   actorId: z.string().min(1),
@@ -173,9 +168,7 @@ export const announcementModerationAuditItemSchema = z.object({
   reason: z.string(),
   createdAt: z.coerce.date(),
 });
-export type AnnouncementModerationAuditItem = z.infer<typeof announcementModerationAuditItemSchema>;
 
 export const announcementAuditsResponseSchema = z.object({
   items: z.array(announcementModerationAuditItemSchema),
 });
-export type AnnouncementAuditsResponse = z.infer<typeof announcementAuditsResponseSchema>;

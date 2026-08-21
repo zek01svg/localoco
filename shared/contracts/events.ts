@@ -26,8 +26,7 @@ export const eventLinkUrlSchema = z
   .max(1000, { message: "Link URL cannot exceed 1000 characters" })
   .refine(url => url.startsWith("https://"), { message: "Link URL must use HTTPS" });
 
-export const eventStatusSchema = z.enum(["active", "moderated"]);
-export type EventStatus = z.infer<typeof eventStatusSchema>;
+const eventStatusSchema = z.enum(["active", "moderated"]);
 
 export const createEventSchema = z
   .object({
@@ -79,22 +78,19 @@ export const eventModerationActionSchema = z.object({
     .min(1, { message: "Moderation reason is required" })
     .max(1000, { message: "Reason cannot exceed 1000 characters" }),
 });
-export type EventModerationAction = z.infer<typeof eventModerationActionSchema>;
 
-export const eventAuthorSchema = z.object({
+const eventAuthorSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
   avatarUrl: z.string().nullable(),
 });
-export type EventAuthor = z.infer<typeof eventAuthorSchema>;
 
-export const eventBusinessReferenceSchema = z.object({
+const eventBusinessReferenceSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   category: z.string().optional(),
   uen: z.string().optional(),
 });
-export type EventBusinessReference = z.infer<typeof eventBusinessReferenceSchema>;
 
 export const eventItemSchema = z.object({
   id: z.string().min(1),
@@ -120,7 +116,6 @@ export const eventsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cursor: z.string().min(1).max(256).optional(),
 });
-export type EventsQuery = z.infer<typeof eventsQuerySchema>;
 
 export const eventsResponseSchema = z.object({
   items: z.array(eventItemSchema),
@@ -128,7 +123,7 @@ export const eventsResponseSchema = z.object({
 });
 export type EventsResponse = z.infer<typeof eventsResponseSchema>;
 
-export const eventModerationAuditItemSchema = z.object({
+const eventModerationAuditItemSchema = z.object({
   id: z.string().min(1),
   eventId: z.string().min(1),
   actorId: z.string().min(1),
@@ -137,9 +132,7 @@ export const eventModerationAuditItemSchema = z.object({
   reason: z.string(),
   createdAt: z.coerce.date(),
 });
-export type EventModerationAuditItem = z.infer<typeof eventModerationAuditItemSchema>;
 
 export const eventAuditsResponseSchema = z.object({
   items: z.array(eventModerationAuditItemSchema),
 });
-export type EventAuditsResponse = z.infer<typeof eventAuditsResponseSchema>;

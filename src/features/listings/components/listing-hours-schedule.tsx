@@ -46,7 +46,7 @@ export function ListingHoursSchedule({ hours }: ListingHoursScheduleProps) {
           variant={isCurrentlyOpen ? "default" : "secondary"}
           className={
             isCurrentlyOpen
-              ? "bg-emerald-800 text-white hover:bg-emerald-900 dark:bg-emerald-800"
+              ? "bg-success text-success-foreground hover:bg-success"
               : "text-muted-foreground"
           }
         >
