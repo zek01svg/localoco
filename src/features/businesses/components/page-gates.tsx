@@ -16,7 +16,7 @@ export function PageSkeleton() {
 
 // Shown to signed-in members who have not verified their email: only verified
 // members may create or manage a Business.
-export function VerifyEmailCard({ description }: { description: string }) {
+function VerifyEmailCard({ description }: { description: string }) {
   return (
     <main className="bg-background flex min-h-screen items-start justify-center p-6">
       <Card className="mt-16 w-full max-w-xl">

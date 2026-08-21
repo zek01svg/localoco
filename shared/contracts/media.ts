@@ -39,7 +39,6 @@ export const photoPresignRequestSchema = z
     message: "The filename extension does not match the declared media type",
     path: ["filename"],
   });
-export type PhotoPresignRequest = z.infer<typeof photoPresignRequestSchema>;
 
 // The presigned PUT grant. The client uploads directly to the storage provider
 // without holding any storage credentials; the key is never returned.
@@ -53,7 +52,6 @@ export const photoPresignResponseSchema = z.object({
     "content-type": z.string().min(1),
   }),
 });
-export type PhotoPresignResponse = z.infer<typeof photoPresignResponseSchema>;
 
 // A stored media object as its owner sees it. `size` is the verified actual
 // size for active objects; for pending ones it is the declared size.
@@ -70,4 +68,3 @@ export type MediaObject = z.infer<typeof mediaObjectSchema>;
 export const mediaListResponseSchema = z.object({
   items: z.array(mediaObjectSchema),
 });
-export type MediaListResponse = z.infer<typeof mediaListResponseSchema>;

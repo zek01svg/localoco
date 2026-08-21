@@ -9,7 +9,7 @@ import { z } from "zod/v4";
 // A 24-hour day is explicit: `is24h: true` and no times. The 00:00-23:59
 // interval would be subtly wrong (uncovered last minute) and indistinguishable
 // from an ordinary interval.
-export const hourMinuteField = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/u, {
+const hourMinuteField = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/u, {
   message: "Time must be in HH:MM format",
 });
 
@@ -96,8 +96,6 @@ export const HOURS_DAY_NAMES = [
   "Saturday",
   "Sunday",
 ] as const;
-
-export type HoursDayName = (typeof HOURS_DAY_NAMES)[number];
 
 const SG_OFFSET_MS = 8 * 60 * 60 * 1000;
 

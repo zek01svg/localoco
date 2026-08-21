@@ -10,7 +10,7 @@ interface VerifyEmailViewProps {
   token?: string;
 }
 
-export function VerifyEmailSkeleton() {
+function VerifyEmailSkeleton() {
   return (
     <div className="bg-card text-card-foreground border-border mx-auto max-w-md space-y-6 rounded-xl border p-8 text-center shadow-sm">
       <div className="flex flex-col items-center space-y-3">

@@ -12,7 +12,7 @@ export interface FakeEmailProvider extends EmailProvider {
   clear(): void;
 }
 
-export class ResendApiError extends Error {
+class ResendApiError extends Error {
   readonly status: number;
 
   constructor(message: string, status = 500) {

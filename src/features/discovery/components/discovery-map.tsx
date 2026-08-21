@@ -204,5 +204,3 @@ export function DiscoveryMap(props: DiscoveryMapProps) {
     </MapErrorBoundary>
   );
 }
-
-export default DiscoveryMap;

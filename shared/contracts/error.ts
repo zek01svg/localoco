@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 
-export const errorCodes = [
+const errorCodes = [
   "invalid_request",
   "unauthorized",
   "forbidden",
@@ -12,7 +12,7 @@ export const errorCodes = [
   "internal_error",
 ] as const;
 
-export const errorCodeSchema = z.enum(errorCodes);
+const errorCodeSchema = z.enum(errorCodes);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
 
 export const errorEnvelopeSchema = z.object({

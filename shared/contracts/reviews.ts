@@ -7,10 +7,9 @@ export const ratingSchema = z
   .int({ message: "Rating must be an integer" })
   .min(1, { message: "Rating must be at least 1" })
   .max(5, { message: "Rating must be at most 5" });
-export type Rating = z.infer<typeof ratingSchema>;
 
 // Review text content bounds: non-empty, max 2000 characters.
-export const reviewContentSchema = z
+const reviewContentSchema = z
   .string()
   .trim()
   .min(1, { message: "Review content cannot be empty" })
@@ -32,19 +31,17 @@ export const updateReviewSchema = z
   });
 export type UpdateReview = z.infer<typeof updateReviewSchema>;
 
-export const reviewAuthorSchema = z.object({
+const reviewAuthorSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
   avatarUrl: z.string().nullable(),
 });
-export type ReviewAuthor = z.infer<typeof reviewAuthorSchema>;
 
-export const businessReferenceSchema = z.object({
+const businessReferenceSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   category: z.string().optional(),
 });
-export type BusinessReference = z.infer<typeof businessReferenceSchema>;
 
 export const reviewItemSchema = z.object({
   id: z.string().min(1),
@@ -65,7 +62,6 @@ export const reviewAggregateSchema = z.object({
   averageRating: z.number().nullable(),
   totalCount: z.number().int().min(0),
 });
-export type ReviewAggregate = z.infer<typeof reviewAggregateSchema>;
 
 export const reviewsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),

@@ -21,7 +21,9 @@ import { useDebounce } from "#client/hooks/use-debounce";
 import { useListingsCategoriesQuery, useListingsInfiniteQuery } from "./hooks/use-listings";
 
 // Maps JavaScript loads lazily so it never gates the textual directory.
-const DiscoveryMap = React.lazy(() => import("./components/discovery-map"));
+const DiscoveryMap = React.lazy(() =>
+  import("./components/discovery-map").then(m => ({ default: m.DiscoveryMap }))
+);
 
 function MapSkeleton() {
   return (
