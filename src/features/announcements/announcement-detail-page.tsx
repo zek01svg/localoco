@@ -26,7 +26,7 @@ export function AnnouncementDetailPage({ announcementId }: AnnouncementDetailPag
 
   if (query.isPending) {
     return (
-      <main className="bg-background flex min-h-screen items-center justify-center p-6">
+      <main className="flex items-center justify-center p-6">
         <p className="text-muted-foreground text-sm">Loading announcement...</p>
       </main>
     );
@@ -38,9 +38,9 @@ export function AnnouncementDetailPage({ announcementId }: AnnouncementDetailPag
 
   if (query.isError) {
     return (
-      <main className="bg-background flex min-h-screen items-center justify-center p-6">
-        <div className="border-border w-full max-w-md rounded-xl border p-8 text-center">
-          <h1 className="text-xl font-bold">Could not load announcement</h1>
+      <main className="flex items-center justify-center p-6">
+        <div className="border-border w-full max-w-md rounded-lg border p-8 text-center">
+          <h1 className="font-display text-xl tracking-tight">Could not load announcement</h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {query.error.message || "An unexpected error occurred."}
           </p>
@@ -61,7 +61,7 @@ export function AnnouncementDetailPage({ announcementId }: AnnouncementDetailPag
   const metaDescription = announcement.content.slice(0, 160);
 
   return (
-    <main className="bg-background min-h-screen pb-16">
+    <main className="pb-16">
       {/* Social and SEO Metadata */}
       <title>{`${announcement.title} — LocaLoco`}</title>
       <meta name="description" content={metaDescription} />
@@ -104,7 +104,7 @@ export function AnnouncementDetailPage({ announcementId }: AnnouncementDetailPag
                 </Badge>
               )}
             </div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            <h1 className="font-display text-2xl tracking-tight sm:text-3xl lg:text-4xl">
               {announcement.title}
             </h1>
             <div className="text-muted-foreground flex flex-wrap items-center gap-4 text-xs sm:text-sm">
@@ -128,7 +128,7 @@ export function AnnouncementDetailPage({ announcementId }: AnnouncementDetailPag
           </header>
 
           {announcement.imageUrl && (
-            <div className="overflow-hidden rounded-xl border">
+            <div className="overflow-hidden rounded-lg border">
               <img
                 src={announcement.imageUrl}
                 alt={announcement.title}

@@ -78,7 +78,7 @@ export function BusinessReviewsSection({ businessId, ownerId }: BusinessReviewsS
     <section className="flex flex-col gap-6" aria-labelledby="reviews-heading">
       <div className="flex flex-col justify-between gap-4 border-b pb-4 sm:flex-row sm:items-center">
         <div>
-          <h2 id="reviews-heading" className="text-foreground text-xl font-bold tracking-tight">
+          <h2 id="reviews-heading" className="font-display text-xl tracking-tight">
             Customer Reviews
           </h2>
           <div className="mt-1 flex items-center gap-2">

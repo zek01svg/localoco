@@ -20,7 +20,7 @@ export function ErrorPage({ error }: { error?: unknown }) {
         <p className="text-muted-foreground text-lg leading-relaxed font-light md:text-xl">
           Something went wrong
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">This page couldn&rsquo;t load</h1>
+        <h1 className="font-display text-2xl tracking-tight">This page couldn&rsquo;t load</h1>
         <p className="text-muted-foreground text-sm leading-relaxed">
           An unexpected error interrupted the request. Try again, or head back to the home page.
         </p>

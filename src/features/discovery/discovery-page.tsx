@@ -53,14 +53,14 @@ function ListingCard({
   return (
     <Card
       className={clsx(
-        "cursor-pointer transition-colors hover:border-foreground/20",
+        "cursor-pointer transition-colors hover:border-primary/50",
         isSelected && "ring-primary ring-2"
       )}
       onClick={onSelect}
     >
       <div className="flex flex-col gap-2 p-5">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">
+          <h2 className="font-display text-lg tracking-tight">
             <Link
               to="/listings/$id"
               params={{ id: listing.id }}
@@ -127,16 +127,18 @@ export function DiscoveryPage() {
   };
 
   return (
-    <main className="bg-background min-h-screen">
+    <main>
       <meta
         name="description"
         content="Browse Singapore's local businesses by name, category, and neighbourhood."
       />
       <link rel="canonical" href={`${location.origin}/listings`} />
 
-      <div className="mx-auto w-full max-w-7xl px-6 py-10">
+      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Discover local businesses</h1>
+          <h1 className="font-display text-3xl tracking-tight md:text-4xl">
+            Discover local businesses
+          </h1>
           <p className="text-muted-foreground mt-2">
             Search the directory by name, category, or neighbourhood.
           </p>
@@ -227,7 +229,9 @@ export function DiscoveryPage() {
                 </ul>
               ) : listingsQuery.isError ? (
                 <div className="border-border rounded-lg border p-10 text-center">
-                  <h2 className="text-lg font-semibold">Business listings could not be loaded</h2>
+                  <h2 className="font-display text-lg tracking-tight">
+                    Business listings could not be loaded
+                  </h2>
                   <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
                     {listingsQuery.error.message}
                   </p>

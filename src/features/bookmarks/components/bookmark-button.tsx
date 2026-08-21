@@ -1,5 +1,6 @@
-import { BookmarkIcon, LoaderCircleIcon } from "lucide-react";
+import { LoaderCircleIcon } from "lucide-react";
 
+import { TissuePacketIcon } from "#client/components/custom/tissue-packet-icon";
 import { Button } from "#client/components/ui/button";
 import { useSession } from "#client/features/auth";
 
@@ -63,10 +64,9 @@ export function BookmarkButton({
       {isPending ? (
         <LoaderCircleIcon aria-hidden="true" className="size-4 animate-spin" />
       ) : (
-        <BookmarkIcon
-          aria-hidden="true"
+        <TissuePacketIcon
           className={`size-4 transition-colors ${
-            isBookmarked ? "fill-primary text-primary" : "text-muted-foreground"
+            isBookmarked ? "fill-primary/20 text-primary" : "text-muted-foreground"
           }`}
         />
       )}

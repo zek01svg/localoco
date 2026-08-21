@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { Link } from "@tanstack/react-router";
 import { cn } from "src/lib/utils";
 
 import { Input } from "#client/components/ui/input";
@@ -8,16 +7,8 @@ import { Label } from "#client/components/ui/label";
 
 export function AuthPageShell({ children }: { children: ReactNode }) {
   return (
-    <main className="bg-background flex min-h-screen flex-col justify-center px-6 py-12">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link
-          to="/"
-          className="text-primary mx-auto block text-center text-2xl font-bold tracking-tight"
-        >
-          LocaLoco
-        </Link>
-      </div>
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">{children}</div>
+    <main className="flex flex-col justify-center px-6 py-12">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">{children}</div>
     </main>
   );
 }
@@ -26,7 +17,7 @@ export function AuthCard({ children, className }: { children: ReactNode; classNa
   return (
     <div
       className={cn(
-        "bg-card text-card-foreground border-border mx-auto max-w-md rounded-xl border p-8 shadow-sm",
+        "bg-card text-card-foreground border-border mx-auto max-w-md rounded-lg border p-8",
         className
       )}
     >

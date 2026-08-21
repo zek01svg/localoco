@@ -16,7 +16,7 @@ function SignupSuccessView({ email }: { email: string }) {
         <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
           <MailIcon aria-hidden="true" className="size-6" />
         </div>
-        <h2 className="text-2xl font-bold tracking-tight">Check your email</h2>
+        <h2 className="font-display text-2xl tracking-tight">Check your email</h2>
         <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
           We sent a verification link to{" "}
           <span className="text-foreground font-semibold">{email}</span>. Please verify your email
@@ -40,7 +40,7 @@ function SignupSuccessView({ email }: { email: string }) {
 function SignupFormHeader() {
   return (
     <div className="mb-6 text-center">
-      <h1 className="text-2xl font-bold tracking-tight">Join LocaLoco</h1>
+      <h1 className="font-display text-2xl tracking-tight">Join LocaLoco</h1>
       <p className="text-muted-foreground mt-1.5 text-sm">
         Discover local gems and connect with your neighborhood
       </p>

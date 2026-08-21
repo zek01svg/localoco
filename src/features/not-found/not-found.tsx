@@ -4,8 +4,13 @@ export function NotFoundPage() {
   return (
     <div className="bg-background selection:bg-primary/20 relative flex min-h-screen flex-col items-center justify-center p-6">
       <main className="animate-in fade-in relative z-10 w-full max-w-md space-y-8 text-center duration-700">
-        <p className="text-muted-foreground text-lg leading-relaxed font-light md:text-xl">404</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Page not found</h1>
+        <p
+          aria-hidden="true"
+          className="font-display text-primary text-6xl tracking-tight md:text-7xl"
+        >
+          404
+        </p>
+        <h1 className="font-display -mt-4 text-2xl tracking-tight">Page not found</h1>
         <EmptyState
           title="Nothing here yet"
           description="This page doesn&rsquo;t exist or isn&rsquo;t part of the app yet."

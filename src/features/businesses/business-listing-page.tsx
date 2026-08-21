@@ -64,7 +64,7 @@ export function BusinessListingPage({ businessId }: { businessId: string }) {
       {listingQuery.isPending ? <PageSkeleton /> : null}
       {listingQuery.error instanceof ListingNotFoundError ? <NotFoundPage /> : null}
       {listingQuery.error && !(listingQuery.error instanceof ListingNotFoundError) ? (
-        <main className="bg-background flex min-h-screen items-start justify-center p-6">
+        <main className="flex items-start justify-center p-6">
           <Card className="mt-16 w-full max-w-xl">
             <CardHeader>
               <CardTitle>Could not load your listing</CardTitle>
@@ -146,9 +146,9 @@ function ListingStatusBanner({
 
     case "pending_review":
       return (
-        <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
-          <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Pending Review</p>
-          <p className="text-sm text-amber-800/80 dark:text-amber-300/80">
+        <div className="border-warning/30 bg-warning/10 rounded-lg border p-4">
+          <p className="text-warning text-sm font-medium">Pending Review</p>
+          <p className="text-warning/90 text-sm">
             An administrator is currently reviewing your listing.
           </p>
         </div>
@@ -156,9 +156,9 @@ function ListingStatusBanner({
 
     case "published":
       return (
-        <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4">
-          <p className="text-sm font-medium text-emerald-900 dark:text-emerald-200">Published</p>
-          <p className="text-sm text-emerald-800/80 dark:text-emerald-300/80">
+        <div className="border-success/30 bg-success/10 rounded-lg border p-4">
+          <p className="text-success text-sm font-medium">Published</p>
+          <p className="text-success/90 text-sm">
             Your listing is live in public discovery. Saving changes will return it to review.
           </p>
         </div>
@@ -209,7 +209,7 @@ function ListingEditForm({ businessId, listing }: { businessId: string; listing:
   });
 
   return (
-    <main className="bg-background flex min-h-screen items-start justify-center p-6">
+    <main className="flex items-start justify-center p-6">
       <div className="mt-16 flex w-full max-w-xl flex-col gap-6">
         <ListingStatusBanner businessId={businessId} listing={listing} />
         <Card className="w-full">

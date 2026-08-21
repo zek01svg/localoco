@@ -16,7 +16,7 @@ import { initialsOf } from "./initials";
 
 function ProfileSkeleton() {
   return (
-    <main className="bg-background flex min-h-screen items-start justify-center p-6">
+    <main className="flex items-start justify-center p-6">
       <section className="w-full max-w-xl space-y-6 pt-16">
         <div className="flex items-center gap-4">
           <Skeleton className="size-16 rounded-full" />
@@ -161,7 +161,7 @@ export function PersonalProfilePage() {
   }
 
   return (
-    <main className="bg-background flex min-h-screen items-start justify-center p-6">
+    <main className="flex items-start justify-center p-6">
       <section className="w-full max-w-xl space-y-8 pt-16">
         <header className="flex items-center gap-4">
           <Avatar size="lg">
@@ -171,14 +171,14 @@ export function PersonalProfilePage() {
             <AvatarFallback>{initialsOf(profile.displayName)}</AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+            <h1 className="font-display flex items-center gap-2 text-2xl tracking-tight">
               {profile.displayName}
               {isVerified ? (
-                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                <span className="bg-success/10 text-success rounded-full px-2 py-0.5 text-xs font-normal">
                   Verified
                 </span>
               ) : (
-                <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-normal text-amber-600 dark:text-amber-400">
+                <span className="bg-warning/10 text-warning rounded-full px-2 py-0.5 text-xs font-normal">
                   Unverified
                 </span>
               )}
@@ -189,16 +189,16 @@ export function PersonalProfilePage() {
 
         <section
           aria-labelledby="profile-details-heading"
-          className="border-border rounded-xl border p-6"
+          className="border-border rounded-lg border p-6"
         >
-          <h2 id="profile-details-heading" className="mb-4 text-lg font-semibold tracking-tight">
+          <h2 id="profile-details-heading" className="font-display mb-4 text-lg tracking-tight">
             Profile details
           </h2>
           <ProfileDetailsForm displayName={profile.displayName} avatarUrl={profile.avatarUrl} />
         </section>
 
-        <section aria-labelledby="email-heading" className="border-border rounded-xl border p-6">
-          <h2 id="email-heading" className="mb-4 text-lg font-semibold tracking-tight">
+        <section aria-labelledby="email-heading" className="border-border rounded-lg border p-6">
+          <h2 id="email-heading" className="font-display mb-4 text-lg tracking-tight">
             Email address
           </h2>
           <EmailChangeForm />
@@ -206,9 +206,9 @@ export function PersonalProfilePage() {
 
         <section
           aria-labelledby="bookmarks-heading"
-          className="border-border rounded-xl border p-6"
+          className="border-border rounded-lg border p-6"
         >
-          <h2 id="bookmarks-heading" className="mb-4 text-lg font-semibold tracking-tight">
+          <h2 id="bookmarks-heading" className="font-display mb-4 text-lg tracking-tight">
             Saved bookmarks
           </h2>
           <BookmarksSection />
@@ -216,9 +216,9 @@ export function PersonalProfilePage() {
 
         <section
           aria-labelledby="businesses-heading"
-          className="border-border rounded-xl border p-6"
+          className="border-border rounded-lg border p-6"
         >
-          <h2 id="businesses-heading" className="mb-4 text-lg font-semibold tracking-tight">
+          <h2 id="businesses-heading" className="font-display mb-4 text-lg tracking-tight">
             Owned businesses
           </h2>
           <OwnedBusinessesSection isVerified={isVerified} />

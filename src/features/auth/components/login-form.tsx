@@ -9,7 +9,7 @@ import { AuthCard, FormErrorAlert, FormField } from "./shell";
 function LoginFormHeader() {
   return (
     <div className="mb-6 text-center">
-      <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
+      <h1 className="font-display text-2xl tracking-tight">Welcome back</h1>
       <p className="text-muted-foreground mt-1.5 text-sm">Sign in to LocaLoco</p>
     </div>
   );

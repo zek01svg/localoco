@@ -25,7 +25,7 @@ export function ListingPhotoGallery({ photos, listingName }: ListingPhotoGallery
     return (
       <div
         aria-label="No photos available"
-        className="bg-muted/40 border-border flex h-48 w-full flex-col items-center justify-center rounded-xl border p-6 text-center sm:h-64"
+        className="bg-muted/40 border-border flex h-48 w-full flex-col items-center justify-center rounded-lg border p-6 text-center sm:h-64"
       >
         <ImageIcon aria-hidden="true" className="text-muted-foreground size-10 stroke-1" />
         <p className="text-muted-foreground mt-2 text-sm">
@@ -48,7 +48,7 @@ export function ListingPhotoGallery({ photos, listingName }: ListingPhotoGallery
   return (
     <section aria-label="Business photos gallery" className="flex flex-col gap-3">
       {/* Main Hero Photo */}
-      <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-xl border sm:aspect-21/9">
+      <div className="bg-muted relative aspect-video w-full overflow-hidden rounded-lg border sm:aspect-21/9">
         <img
           src={currentPhoto.url}
           alt={`${listingName} (${selectedIndex + 1} of ${photos.length})`}

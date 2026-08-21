@@ -45,9 +45,9 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
 
   if (listingQuery.isError) {
     return (
-      <main className="bg-background flex min-h-screen items-center justify-center p-6">
-        <div className="border-border w-full max-w-md rounded-xl border p-8 text-center">
-          <h1 className="text-xl font-bold">Could not load listing</h1>
+      <main className="flex items-center justify-center p-6">
+        <div className="border-border w-full max-w-md rounded-lg border p-8 text-center">
+          <h1 className="font-display text-xl tracking-tight">Could not load listing</h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {listingQuery.error.message ||
               "An unexpected error occurred while loading this listing."}
@@ -83,7 +83,7 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
     `Discover ${listing.name}, a local ${listing.category} located at ${listing.address}, Singapore ${listing.postalCode}.`;
 
   return (
-    <main className="bg-background min-h-screen pb-16">
+    <main className="pb-16">
       {/* Social and SEO Metadata */}
       <title>{`${listing.name} — LocaLoco`}</title>
       <meta name="description" content={metaDescription} />
@@ -119,7 +119,7 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
         <header className="border-border flex flex-col gap-4 border-b pb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+              <h1 className="font-display text-2xl tracking-tight sm:text-3xl lg:text-4xl">
                 {listing.name}
               </h1>
               <Badge variant="secondary" className="text-xs sm:text-sm">
@@ -136,7 +136,7 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
                   variant={isCurrentlyOpen ? "default" : "secondary"}
                   className={
                     isCurrentlyOpen
-                      ? "bg-emerald-800 text-white hover:bg-emerald-900 dark:bg-emerald-800"
+                      ? "bg-success text-success-foreground hover:bg-success"
                       : "text-muted-foreground"
                   }
                 >
@@ -163,7 +163,7 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
             {/* Description Section (Deliberately omitted when empty) */}
             {listing.description && (
               <section aria-labelledby="about-heading" className="flex flex-col gap-3">
-                <h2 id="about-heading" className="text-xl font-semibold">
+                <h2 id="about-heading" className="font-display text-xl tracking-tight">
                   About
                 </h2>
                 <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line sm:text-base">

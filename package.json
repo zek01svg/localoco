@@ -30,6 +30,9 @@
     "db:seed": "bun scripts/seed.ts"
   },
   "dependencies": {
+    "@fontsource-variable/overpass": "^5.3.0",
+    "@fontsource/spline-sans-mono": "^5.3.0",
+    "@fontsource/young-serif": "^5.3.0",
     "@hono/standard-validator": "^0.4.0",
     "@logtape/logtape": "^2.3.1",
     "@logtape/pretty": "^2.3.1",
@@ -52,6 +55,7 @@
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.3",
     "lucide-react": "^1.33.0",
+    "next-themes": "^0.4.6",
     "nuqs": "^2.10.0",
     "pg": "^8.23.0",
     "postgres": "^3.4.9",

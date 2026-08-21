@@ -9,7 +9,7 @@ import { AuthCard, FormErrorAlert, FormField } from "./shell";
 function ForgotPasswordHeader() {
   return (
     <div className="mb-6 text-center">
-      <h1 className="text-2xl font-bold tracking-tight">Forgot your password?</h1>
+      <h1 className="font-display text-2xl tracking-tight">Forgot your password?</h1>
       <p className="text-muted-foreground mt-1.5 text-sm">
         Enter your email and we will send you a reset link.
       </p>
@@ -24,7 +24,7 @@ function RequestSentState() {
         <div className="bg-primary/10 text-primary mb-4 flex size-12 items-center justify-center rounded-full">
           <MailCheckIcon aria-hidden="true" className="size-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight">Check your email</h1>
+        <h1 className="font-display text-2xl tracking-tight">Check your email</h1>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
           If this email is registered, a password reset link is on its way. The link expires in 10
           minutes.

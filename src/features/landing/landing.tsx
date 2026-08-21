@@ -1,176 +1,138 @@
-import {
-  BookmarkIcon,
-  HandHeartIcon,
-  HeartIcon,
-  MapIcon,
-  MapPinIcon,
-  StoreIcon,
-  UsersIcon,
-} from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { BookmarkIcon, MapPinIcon, StoreIcon, UsersIcon } from "lucide-react";
 
-import { useSession } from "#client/features/auth";
-
-const navLinks = [
-  { label: "Why LocaLoco", href: "#why" },
-  { label: "How it works", href: "#how" },
-  { label: "Browse businesses", href: "/listings" },
-  { label: "Community forum", href: "/forum" },
-];
+import { TissuePacketIcon } from "#client/components/custom/tissue-packet-icon";
 
 const features = [
   {
     icon: MapPinIcon,
-    title: "Find Nearby",
-    description: "Discover local businesses on an interactive map.",
+    title: "Find what's near",
+    description: "Every listing sits on the map, so you can see what's open around you right now.",
   },
   {
-    icon: HeartIcon,
-    title: "Save Favorites",
-    description: "Bookmark spots and never forget your favorites.",
+    icon: BookmarkIcon,
+    title: "Chope your spots",
+    description: "Bookmark the places you love and get back to them in one tap.",
   },
   {
     icon: StoreIcon,
-    title: "Support Local",
-    description: "Help local businesses thrive in your area.",
+    title: "Back the independents",
+    description: "Reviews and recommendations help neighbourhood businesses thrive.",
   },
   {
     icon: UsersIcon,
-    title: "Community",
-    description: "Connect with locals who share your interests.",
+    title: "Talk shop",
+    description: "Swap orders, tips, and finds with locals in the community forum.",
   },
 ];
 
 const steps = [
   {
-    icon: MapIcon,
-    title: "Open the map",
-    description: "See all local businesses in your area at a glance.",
+    title: "Open the directory",
+    description: "Search by name, category, or neighbourhood — or just browse the map.",
   },
   {
-    icon: BookmarkIcon,
-    title: "Explore & discover",
-    description: "Browse businesses, read reviews, and find hidden gems.",
+    title: "Pick your spot",
+    description: "Check opening hours, reviews, and announcements before you head down.",
   },
   {
-    icon: HandHeartIcon,
-    title: "Visit & support",
-    description: "Support your local community and share your experiences.",
+    title: "Visit & share",
+    description: "Support the shop, then leave a review or start a forum post.",
   },
 ];
 
-function LandingAuthNav() {
-  const { user, isAuthenticated, isVerified, signOut } = useSession();
-
-  if (isAuthenticated && user) {
-    return (
-      <li className="flex items-center gap-3">
-        <a
-          href="/profile"
-          className="text-foreground flex items-center gap-1.5 font-medium hover:underline"
-        >
-          {user.name}
-          {isVerified ? null : (
-            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-normal text-amber-600 dark:text-amber-400">
-              Unverified
-            </span>
-          )}
-        </a>
-        <button
-          type="button"
-          onClick={() => {
-            void signOut();
-          }}
-          className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-        >
-          Sign out
-        </button>
-      </li>
-    );
-  }
-
-  return (
-    <li className="flex items-center gap-3">
-      <a
-        href="/login"
-        className="text-muted-foreground hover:text-foreground font-medium transition-colors"
-      >
-        Sign in
-      </a>
-      <a
-        href="/signup"
-        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-4 py-1.5 font-medium transition-colors"
-      >
-        Sign up
-      </a>
-    </li>
-  );
-}
-
-function LandingHeader() {
-  return (
-    <header className="border-border/60 border-b">
-      <nav
-        aria-label="Primary"
-        className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4"
-      >
-        <a href="/" className="text-primary text-lg font-bold tracking-tight">
-          LocaLoco
-        </a>
-        <ul className="flex items-center gap-6 text-sm">
-          {navLinks.map(link => (
-            <li key={link.href}>
-              <a
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                href={link.href}
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
-          <LandingAuthNav />
-        </ul>
-      </nav>
-    </header>
-  );
-}
-
 function Hero() {
   return (
-    <section className="bg-accent/40 px-6 py-24 text-center md:py-32">
-      <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-balance md:text-6xl">
-        Find local gems <span className="text-primary">right around the corner</span>
-      </h1>
-      <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed md:text-xl">
-        Connect with independent shops, cozy cafés, and hidden markets — all in one beautiful,
-        map-driven experience.
-      </p>
-      <a
-        href="/listings"
-        className="bg-primary text-primary-foreground hover:bg-primary/90 mt-10 inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-base font-semibold transition-colors"
-      >
-        Let&rsquo;s go!
-      </a>
+    <section className="border-border/60 border-b">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-4 pt-8 pb-20 sm:px-6 md:pt-10 md:pb-28 lg:grid-cols-[1.1fr_1fr]">
+        <div>
+          <h1 className="font-display mt-5 text-4xl leading-[1.08] tracking-tight text-balance md:text-6xl">
+            Find <span className="text-primary inline-block whitespace-nowrap">local gems</span>{" "}
+            before the queue does.
+          </h1>
+          <p className="text-muted-foreground mt-6 max-w-xl text-lg leading-relaxed">
+            Kopitiams, provision shops, independent bookshops — the places that make your
+            neighbourhood yours, mapped and reviewed by the people who live here.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-4">
+            <Link
+              to="/listings"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-full px-8 py-3.5 text-base font-semibold transition-colors"
+            >
+              Let&rsquo;s go!
+            </Link>
+            <Link
+              to="/forum"
+              className="border-border hover:bg-muted/80 inline-flex items-center rounded-full border px-6 py-3.5 text-base font-semibold transition-colors"
+            >
+              Join the forum
+            </Link>
+          </div>
+          <p className="text-muted-foreground mt-6 text-sm">
+            <a href="#why" className="underline-offset-4 hover:underline">
+              Why LocaLoco
+            </a>
+            <span aria-hidden="true"> · </span>
+            <a href="#how" className="underline-offset-4 hover:underline">
+              How it works
+            </a>
+          </p>
+        </div>
+        <StorefrontScene />
+      </div>
     </section>
+  );
+}
+
+/* Decorative shopfront built entirely from CSS — charcoal in both themes by
+   design; it is an illustration, not themed UI. */
+function StorefrontScene() {
+  return (
+    <div aria-hidden="true" className="relative mx-auto w-full max-w-sm select-none">
+      <div className="rounded-xl border border-black/10 bg-[#2a2926] text-[#f2ede4] shadow-2xl dark:border-white/10">
+        <div className="awning-hero">
+          <div className="awning-band awning-band-striped h-7" />
+          <div className="awning-scallops" />
+        </div>
+        <div className="flex flex-col items-center px-8 pt-9 pb-0">
+          <div className="border-primary/60 rounded-md border-2 px-7 py-3.5 text-center">
+            <p className="font-display text-primary text-3xl tracking-wide [text-shadow:0_0_18px_rgba(255,161,163,0.35)]">
+              Kopi &amp; Toast
+            </p>
+            <p className="mt-1 font-mono text-[10px] tracking-[0.3em] uppercase opacity-60">
+              Heritage · Singapore
+            </p>
+          </div>
+          <div className="mt-6 h-24 w-full rounded-t-md border border-white/10 [background:repeating-linear-gradient(180deg,rgba(255,255,255,0.07)_0_5px,transparent_5px_11px)]" />
+          <div className="relative w-full">
+            <TissuePacketIcon className="text-primary/80 absolute -top-8 left-6 size-6 -rotate-6" />
+            <div className="h-2 w-full rounded-t bg-white/10" />
+          </div>
+          <div className="h-3 w-full [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.08)_0_28px,transparent_28px_56px)]" />
+        </div>
+      </div>
+      <div className="plaque-flicker absolute -top-3 -right-3 rotate-3 rounded-md border-2 border-[#52b788] bg-[#232220] px-3 py-1.5 font-mono text-sm tracking-[0.25em] text-[#52b788] [box-shadow:0_0_16px_rgba(82,183,136,0.3)]">
+        OPEN
+      </div>
+    </div>
   );
 }
 
 function WhySection() {
   return (
-    <section id="why" className="px-6 py-20 md:py-28">
-      <div className="mx-auto max-w-5xl">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Why LocaLoco?</h2>
-          <p className="text-muted-foreground mt-3 text-lg">
-            Everything you need to explore and support your community
-          </p>
-        </div>
-        <ul className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+    <section id="why" className="scroll-mt-24 px-4 py-20 sm:px-6 md:py-28">
+      <div className="mx-auto max-w-6xl">
+        <p className="text-muted-foreground font-mono text-xs tracking-[0.3em] uppercase">
+          Why LocaLoco
+        </p>
+        <h2 className="font-display mt-3 text-3xl tracking-tight md:text-4xl">Why LocaLoco?</h2>
+        <ul className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {features.map(feature => (
-            <li key={feature.title} className="flex flex-col items-center gap-3 text-center">
-              <span className="bg-primary/10 text-primary flex size-12 items-center justify-center rounded-full">
-                <feature.icon aria-hidden="true" className="size-6" />
+            <li key={feature.title} className="flex flex-col gap-3">
+              <span className="bg-primary/15 text-primary flex size-10 items-center justify-center rounded-md">
+                <feature.icon aria-hidden="true" className="size-5" />
               </span>
-              <h3 className="text-lg font-semibold tracking-tight">{feature.title}</h3>
+              <h3 className="font-display text-lg tracking-tight">{feature.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
             </li>
           ))}
@@ -182,49 +144,49 @@ function WhySection() {
 
 function HowSection() {
   return (
-    <section id="how" className="bg-accent/40 px-6 py-20 md:py-28">
+    <section id="how" className="scroll-mt-24 px-4 py-20 sm:px-6 md:py-28">
       <div className="mx-auto max-w-3xl">
-        <h2 className="text-center text-3xl font-bold tracking-tight md:text-4xl">How it works</h2>
-        <ol className="mt-14 space-y-10">
+        <p className="text-muted-foreground font-mono text-xs tracking-[0.3em] uppercase">
+          How it works
+        </p>
+        <h2 className="font-display mt-3 text-3xl tracking-tight md:text-4xl">
+          Three steps to your new regular
+        </h2>
+        <ol className="border-border bg-card mx-auto mt-12 max-w-md rounded-lg border border-dashed p-6 sm:p-8">
           {steps.map((step, index) => (
-            <li key={step.title} className="flex items-start gap-5">
-              <span
-                aria-hidden="true"
-                className="border-primary text-primary flex size-10 shrink-0 items-center justify-center rounded-full border font-semibold"
-              >
-                {index + 1}
+            <li
+              key={step.title}
+              className="not-first:border-border flex items-start gap-4 py-4 not-first:border-b not-first:border-dashed"
+            >
+              <span aria-hidden="true" className="text-primary pt-0.5 font-mono text-sm">
+                {String(index + 1).padStart(2, "0")}
               </span>
-              <div className="pt-1">
-                <step.icon aria-hidden="true" className="text-primary mb-2 size-5" />
-                <h3 className="text-xl font-semibold tracking-tight">{step.title}</h3>
-                <p className="text-muted-foreground mt-1 leading-relaxed">{step.description}</p>
+              <div>
+                <h3 className="font-semibold tracking-tight">{step.title}</h3>
+                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                  {step.description}
+                </p>
               </div>
             </li>
           ))}
+          <li
+            aria-hidden="true"
+            className="text-muted-foreground pt-5 text-center font-mono text-xs tracking-[0.2em] uppercase"
+          >
+            *** see you at the kopitiam ***
+          </li>
         </ol>
       </div>
     </section>
   );
 }
 
-function LandingFooter() {
-  return (
-    <footer className="border-border/60 border-t px-6 py-8 text-center">
-      <p className="text-muted-foreground text-sm">&copy; 2026 LocaLoco. All rights reserved.</p>
-    </footer>
-  );
-}
-
 export function LandingPage() {
   return (
-    <div className="bg-background flex min-h-screen flex-col">
-      <LandingHeader />
-      <main className="flex-1">
-        <Hero />
-        <WhySection />
-        <HowSection />
-      </main>
-      <LandingFooter />
-    </div>
+    <main>
+      <Hero />
+      <WhySection />
+      <HowSection />
+    </main>
   );
 }

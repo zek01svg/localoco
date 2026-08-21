@@ -2,7 +2,7 @@ import { Skeleton } from "#client/components/ui/skeleton";
 
 export function ListingDetailSkeleton() {
   return (
-    <main aria-label="Loading listing details" className="bg-background min-h-screen">
+    <main aria-label="Loading listing details">
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
         {/* Hero Header Skeleton */}
         <div className="flex flex-col gap-4 border-b pb-8">
