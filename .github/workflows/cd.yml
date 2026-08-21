@@ -112,17 +112,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-      - name: Install dependencies (frozen)
-        run: bun install --frozen-lockfile
+      - name: Setup Bun and install dependencies
+        uses: ./.github/actions/setup-bun
       - name: Run committed migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
