@@ -2,7 +2,9 @@ import type { ReviewItem } from "#shared/contracts/reviews";
 
 import { formatDistanceToNow } from "date-fns";
 import { Edit2, MoreVertical, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
+import { LikeButton } from "#client/components/like-button";
 import { StarRating } from "#client/components/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "#client/components/ui/avatar";
 import { Button } from "#client/components/ui/button";
@@ -12,6 +14,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "#client/components/ui/dropdown-menu";
+import { useSession } from "#client/features/auth";
+import { useToggleReviewLikeMutation } from "#client/features/likes";
 import { initialsOf } from "#client/features/profiles/initials";
 
 interface ReviewCardProps {
@@ -29,10 +33,29 @@ export function ReviewCard({
   onEdit,
   onDelete,
 }: ReviewCardProps) {
+  const { isAuthenticated, isVerified } = useSession();
+  const likeMutation = useToggleReviewLikeMutation(review.businessId);
+
   const isAuthor = currentUserId === review.userId;
   const canModify = isAuthor || isAdmin;
 
   const timeAgo = formatDistanceToNow(new Date(review.createdAt), { addSuffix: true });
+
+  const handleLikeToggle = async () => {
+    if (!isAuthenticated) {
+      toast.error("Sign in to like reviews");
+      return;
+    }
+    if (!isVerified) {
+      toast.error("Verify your email to like reviews");
+      return;
+    }
+    try {
+      await likeMutation.mutateAsync({ reviewId: review.id, isLiked: review.isLiked });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update like");
+    }
+  };
 
   return (
     <article className="bg-card text-card-foreground flex flex-col gap-3 rounded-lg border p-4 shadow-xs">
@@ -98,6 +121,19 @@ export function ReviewCard({
       <p className="text-foreground text-sm leading-relaxed break-words whitespace-pre-wrap">
         {review.content}
       </p>
+
+      <div className="flex items-center justify-start border-t pt-2">
+        <LikeButton
+          isLiked={review.isLiked}
+          likeCount={review.likeCount}
+          onToggle={() => {
+            void handleLikeToggle();
+          }}
+          isPending={likeMutation.isPending}
+          disabled={!isAuthenticated || !isVerified}
+          ariaLabel={review.isLiked ? "Unlike review" : "Like review"}
+        />
+      </div>
     </article>
   );
 }

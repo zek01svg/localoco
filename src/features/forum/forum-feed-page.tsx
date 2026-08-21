@@ -9,12 +9,14 @@ import { Skeleton } from "#client/components/ui/skeleton";
 import { useSession } from "#client/features/auth";
 import { EmptyState } from "#client/features/empty/empty-state";
 
+import { ForumModerationDialog } from "./components/forum-moderation-dialog";
 import { ForumPostCard } from "./components/forum-post-card";
 import { ForumPostDialog } from "./components/forum-post-dialog";
 import {
   useCreateForumPostMutation,
   useDeleteForumPostMutation,
   useForumFeedQuery,
+  useModerateForumPostMutation,
   useUpdateForumPostMutation,
 } from "./hooks/use-forum";
 
@@ -22,6 +24,7 @@ export function ForumFeedPage() {
   const { user, isAuthenticated, isVerified } = useSession();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState<ForumPostItem | null>(null);
+  const [postToModerate, setPostToModerate] = useState<ForumPostItem | null>(null);
 
   const { data, isPending, error, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
     useForumFeedQuery();
@@ -29,6 +32,10 @@ export function ForumFeedPage() {
   const createMutation = useCreateForumPostMutation();
   const updateMutation = useUpdateForumPostMutation(postToEdit?.id ?? "");
   const deleteMutation = useDeleteForumPostMutation();
+  const moderateMutation = useModerateForumPostMutation(postToModerate?.id ?? "");
+
+  const isAdmin =
+    typeof user === "object" && user !== null && "role" in user && user.role === "admin";
 
   useEffect(() => {
     document.title = "Community forum — LocaLoco";
@@ -65,6 +72,16 @@ export function ForumFeedPage() {
       toast.success("Post deleted");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to delete post");
+    }
+  };
+
+  const handleModerate = async (reason: string) => {
+    try {
+      await moderateMutation.mutateAsync({ reason });
+      toast.success("Post moderated");
+      setPostToModerate(null);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to moderate post");
     }
   };
 
@@ -140,12 +157,16 @@ export function ForumFeedPage() {
                 key={post.id}
                 post={post}
                 currentUserId={user?.id}
+                isAdmin={isAdmin}
                 onEdit={p => {
                   setPostToEdit(p);
                   setDialogOpen(true);
                 }}
                 onDelete={p => {
                   void handleDelete(p);
+                }}
+                onModerate={p => {
+                  setPostToModerate(p);
                 }}
               />
             ))}
@@ -173,6 +194,17 @@ export function ForumFeedPage() {
           postToEdit={postToEdit}
           onSubmit={handleSubmitDialog}
           isPending={createMutation.isPending || updateMutation.isPending}
+        />
+
+        <ForumModerationDialog
+          open={Boolean(postToModerate)}
+          onOpenChange={open => {
+            if (!open) setPostToModerate(null);
+          }}
+          title="Moderate Forum Post"
+          description="Provide a reason for moderating this forum post. It will be hidden from public view."
+          onSubmit={handleModerate}
+          isPending={moderateMutation.isPending}
         />
       </div>
     </main>

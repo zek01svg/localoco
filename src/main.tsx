@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/react";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
@@ -7,33 +6,26 @@ import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
 
 import { env } from "./env";
 import "./globals.css";
-import { NuqsProvider } from "./providers/nuqs";
+import { initClientSentry } from "./lib/sentry";
 import { ReactQueryProvider } from "./providers/react-query";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 
 // Create a new router instance
 const router = createRouter({ routeTree });
-const sentryDsn = env.VITE_SENTRY_DSN;
 
-if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    environment: import.meta.env.MODE,
-    tracesSampleRate: import.meta.env.DEV ? 1 : 0.2,
-  });
-}
+initClientSentry(router);
 
 configureAppLogging({
   runtime: "browser",
   isDevelopment: import.meta.env.DEV,
-  enableSentrySink: Boolean(sentryDsn),
+  enableSentrySink: Boolean(env.VITE_SENTRY_DSN),
 });
 
 const logger = getAppLogger("browser", "bootstrap");
 logger.info("frontend.startup", {
   mode: import.meta.env.MODE,
-  sentryEnabled: Boolean(sentryDsn),
+  sentryEnabled: Boolean(env.VITE_SENTRY_DSN),
 });
 
 // Register the router instance for type safety
@@ -50,9 +42,7 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <ReactQueryProvider>
-        <NuqsProvider>
-          <RouterProvider router={router} />
-        </NuqsProvider>
+        <RouterProvider router={router} />
       </ReactQueryProvider>
     </StrictMode>
   );

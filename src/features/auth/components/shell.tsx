@@ -8,7 +8,7 @@ import { Label } from "#client/components/ui/label";
 
 export function AuthPageShell({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-background flex min-h-screen flex-col justify-center px-6 py-12">
+    <main className="bg-background flex min-h-screen flex-col justify-center px-6 py-12">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link
           to="/"
@@ -18,7 +18,7 @@ export function AuthPageShell({ children }: { children: ReactNode }) {
         </Link>
       </div>
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">{children}</div>
-    </div>
+    </main>
   );
 }
 

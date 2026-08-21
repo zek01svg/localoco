@@ -41,6 +41,15 @@ jobs:
             type=raw,value=main
             type=sha,prefix=sha-
 
+      - name: Compute release metadata
+        id: release
+        run: |
+          pkg_version="$(jq -r .version package.json)"
+          short_sha="$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)"
+          release="localoco@${pkg_version}+sha-${short_sha}"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "Computed release identifier: $release"
+
       - name: Build and push image
         id: build
         uses: docker/build-push-action@v6
@@ -49,5 +58,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SENTRY_RELEASE=${{ steps.release.outputs.release }}
+            VITE_SENTRY_RELEASE=${{ steps.release.outputs.release }}
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            VITE_SENTRY_ORG=${{ secrets.SENTRY_ORG || vars.SENTRY_ORG || 'localoco' }}
+            VITE_SENTRY_PROJECT=${{ secrets.SENTRY_PROJECT || vars.SENTRY_PROJECT || 'localoco' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

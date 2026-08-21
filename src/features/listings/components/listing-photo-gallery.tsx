@@ -14,9 +14,12 @@ export function ListingPhotoGallery({ photos, listingName }: ListingPhotoGallery
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const photoIds = photos.map(p => p.id).join(",");
+  // Sync selected index when photo set changes — must clamp to new length
+  /* oxlint-disable react/set-state-in-effect, react/exhaustive-effect-dependencies */
   useEffect(() => {
     setSelectedIndex(prev => (prev < photos.length ? prev : 0));
   }, [photoIds, photos.length]);
+  /* oxlint-enable react/set-state-in-effect, react/exhaustive-effect-dependencies */
 
   if (photos.length === 0) {
     return (

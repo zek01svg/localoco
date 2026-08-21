@@ -68,6 +68,10 @@ email-verification state, and registration timestamp. Only the signed-in User
 can read or update it, and it is never cached publicly.
 _Avoid_: account settings, profile page
 
+**Deletion workflow**:
+The process by which a User permanently and irrevocably destroys their account and all associated data — including owned Businesses, Listings, Listing photos, authored Reviews, Likes, Bookmarks, Forum posts, and any third-party Replies on those posts — preceded by an explicit destructive preview, reauthentication, and session revocation.
+_Avoid_: account deletion, account deactivation, account cancellation, user deletion
+
 ## Discovery and community
 
 **Business discovery**:
@@ -96,13 +100,30 @@ Removing content from public view by setting a `deleted_at` timestamp rather
 than deleting the row, preserving the record for administrators.
 _Avoid_: delete, hide
 
+**Forum moderation**:
+The administrative action where an Administrator moderates a Forum post or Reply
+with a required reason, setting `moderated_at` and preserving original-content
+audit metadata in `forum_moderation_audit`. Moderated content is hidden from
+public read paths and direct URLs while remaining visible to administrators.
+_Avoid_: forum ban, thread locking, post removal
+
 **Bookmark**:
 A User’s saved reference to a Business for later access.
 _Avoid_: favorite, saved listing
 
+**Like**:
+A User’s unique, idempotent positive endorsement of a Review, Forum post, or
+Reply. A Like is a unique relation between a User and a resource, not an
+incrementable counter; like counts are derived from persisted relations.
+_Avoid_: upvote, reaction, favorite, star, thumbs-up
+
 **Announcement**:
 A public update published by a Business owner for a Business's audience.
 _Avoid_: notification, alert, message
+
+**Event**:
+A public, time-bounded activity associated with one published Business. Unlike an Announcement (which is a general public update with optional visibility dates), an Event's start and end timestamps define the substance of the activity itself.
+_Avoid_: activity, meetup, schedule, announcement
 
 **Opening hours**:
 A Business's schedule of open intervals, stored as one entry per day of the

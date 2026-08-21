@@ -12,7 +12,9 @@ import {
   CardHeader,
   CardTitle,
 } from "#client/components/ui/card";
+import { BusinessAnnouncementsSection } from "#client/features/announcements";
 import { useSession } from "#client/features/auth";
+import { BusinessEventsSection } from "#client/features/events";
 import { NotFoundPage } from "#client/features/not-found/not-found";
 import { BusinessReviewsSection } from "#client/features/reviews";
 
@@ -295,6 +297,8 @@ function ListingEditForm({ businessId, listing }: { businessId: string; listing:
           </CardContent>
         </Card>
         <ListingPhotosSection businessId={businessId} />
+        <BusinessAnnouncementsSection businessId={businessId} listingStatus={listing.status} />
+        <BusinessEventsSection businessId={businessId} listingStatus={listing.status} />
         <Card>
           <CardContent className="pt-6">
             <BusinessReviewsSection businessId={businessId} ownerId={user?.id} />

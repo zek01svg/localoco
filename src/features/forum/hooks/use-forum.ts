@@ -2,9 +2,11 @@ import type {
   CreateForumPost,
   CreateForumReply,
   ForumFeedResponse,
+  ForumModerationAuditsResponse,
   ForumPostItem,
   ForumRepliesResponse,
   ForumReplyItem,
+  ModerateForumContent,
   UpdateForumPost,
   UpdateForumReply,
 } from "#shared/contracts/forum";
@@ -15,6 +17,7 @@ import { apiUrl } from "#client/lib/api";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
 import {
   forumFeedResponseSchema,
+  forumModerationAuditsResponseSchema,
   forumPostItemSchema,
   forumRepliesResponseSchema,
   forumReplyItemSchema,
@@ -74,6 +77,7 @@ export function useForumPostQuery(postId: string) {
       return forumPostItemSchema.parse(await res.json());
     },
     enabled: Boolean(postId),
+    retry: false,
   });
 }
 
@@ -235,5 +239,83 @@ export function useDeleteReplyMutation(postId: string) {
     onSuccess: () => {
       invalidateForumPostCache(queryClient, postId);
     },
+  });
+}
+
+export function useModerateForumPostMutation(postId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<ForumPostItem, Error, ModerateForumContent>({
+    mutationFn: async payload => {
+      const res = await fetch(`${apiUrl}/forum/posts/${encodeURIComponent(postId)}/moderate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const message = await parseErrorMessage(res, "Failed to moderate post");
+        throw new Error(message);
+      }
+      return forumPostItemSchema.parse(await res.json());
+    },
+    onSuccess: () => {
+      invalidateForumPostCache(queryClient, postId);
+    },
+  });
+}
+
+export function useModerateReplyMutation(postId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<ForumReplyItem, Error, { replyId: string; data: ModerateForumContent }>({
+    mutationFn: async ({ replyId, data }) => {
+      const res = await fetch(`${apiUrl}/forum/replies/${encodeURIComponent(replyId)}/moderate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const message = await parseErrorMessage(res, "Failed to moderate reply");
+        throw new Error(message);
+      }
+      return forumReplyItemSchema.parse(await res.json());
+    },
+    onSuccess: () => {
+      invalidateForumPostCache(queryClient, postId);
+    },
+  });
+}
+
+export function useForumPostAuditQuery(postId: string, enabled = true) {
+  return useQuery<ForumModerationAuditsResponse>({
+    queryKey: ["forum-post-audit", postId],
+    queryFn: async () => {
+      const res = await fetch(`${apiUrl}/forum/posts/${encodeURIComponent(postId)}/audit`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Could not load moderation audit history");
+      }
+      return forumModerationAuditsResponseSchema.parse(await res.json());
+    },
+    enabled: Boolean(postId) && enabled,
+  });
+}
+
+export function useForumReplyAuditQuery(replyId: string, enabled = true) {
+  return useQuery<ForumModerationAuditsResponse>({
+    queryKey: ["forum-reply-audit", replyId],
+    queryFn: async () => {
+      const res = await fetch(`${apiUrl}/forum/replies/${encodeURIComponent(replyId)}/audit`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Could not load moderation audit history");
+      }
+      return forumModerationAuditsResponseSchema.parse(await res.json());
+    },
+    enabled: Boolean(replyId) && enabled,
   });
 }

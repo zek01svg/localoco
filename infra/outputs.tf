@@ -19,3 +19,15 @@ output "state_bucket" {
 output "dns_hostname" {
   value = var.hostname
 }
+
+output "google_maps_server_api_key" {
+  description = "Google Maps Geocoding API server key"
+  value       = google_apikeys_key.server.key_string
+  sensitive   = true
+}
+
+output "google_maps_browser_api_key" {
+  description = "Google Maps JavaScript API browser key"
+  value       = google_apikeys_key.browser.key_string
+  sensitive   = true
+}

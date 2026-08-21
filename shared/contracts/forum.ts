@@ -63,9 +63,12 @@ export const forumPostItemSchema = z.object({
   author: forumAuthorSchema,
   business: forumBusinessReferenceSchema,
   replyCount: z.number().int().min(0),
+  likeCount: z.number().int().min(0).default(0),
+  isLiked: z.boolean().default(false),
   // Null on every public read; administrators reading with includeDeleted see
-  // the soft-deletion timestamp.
+  // the soft-deletion or moderation timestamp.
   deletedAt: z.coerce.date().nullable(),
+  moderatedAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
@@ -77,18 +80,49 @@ export const forumReplyItemSchema = z.object({
   userId: z.string().min(1),
   body: z.string(),
   author: forumAuthorSchema,
+  likeCount: z.number().int().min(0).default(0),
+  isLiked: z.boolean().default(false),
   // Null on every public read; administrators reading with includeDeleted see
-  // the soft-deletion timestamp.
+  // the soft-deletion or moderation timestamp.
   deletedAt: z.coerce.date().nullable(),
+  moderatedAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
 export type ForumReplyItem = z.infer<typeof forumReplyItemSchema>;
 
+export const moderateForumContentSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(1, { message: "Moderation reason is required" })
+    .max(1000, { message: "Reason cannot exceed 1000 characters" }),
+});
+export type ModerateForumContent = z.infer<typeof moderateForumContentSchema>;
+
+export const forumModerationAuditItemSchema = z.object({
+  id: z.string().min(1),
+  targetType: z.enum(["post", "reply"]),
+  targetId: z.string().min(1),
+  actorId: z.string().min(1),
+  actorDisplayName: z.string().optional(),
+  reason: z.string().min(1),
+  originalTitle: z.string().nullable().optional(),
+  originalBody: z.string().min(1),
+  originalAuthorId: z.string().min(1),
+  createdAt: z.coerce.date(),
+});
+export type ForumModerationAuditItem = z.infer<typeof forumModerationAuditItemSchema>;
+
+export const forumModerationAuditsResponseSchema = z.object({
+  items: z.array(forumModerationAuditItemSchema),
+});
+export type ForumModerationAuditsResponse = z.infer<typeof forumModerationAuditsResponseSchema>;
+
 export const forumQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cursor: z.string().min(1).max(256).optional(),
-  // Admins may opt into soft-deleted content; non-admins get 403.
+  // Admins may opt into soft-deleted and moderated content; non-admins get 403.
   includeDeleted: z
     .preprocess(v => (v === "true" ? true : v === "false" ? false : v), z.boolean())
     .default(false),

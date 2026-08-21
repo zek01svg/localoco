@@ -5,6 +5,9 @@ import { useEffect } from "react";
 import { Badge } from "#client/components/ui/badge";
 import { Button } from "#client/components/ui/button";
 import { Card, CardContent } from "#client/components/ui/card";
+import { ListingAnnouncementsSection } from "#client/features/announcements";
+import { BookmarkButton } from "#client/features/bookmarks";
+import { ListingEventsSection } from "#client/features/events";
 import { NotFoundPage } from "#client/features/not-found/not-found";
 import { isOpenAt } from "#shared/contracts/business-hours";
 
@@ -124,6 +127,7 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
               </Badge>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <BookmarkButton businessId={listing.businessId} size="sm" />
               <Badge variant="outline" className="font-mono text-xs">
                 UEN: {listing.uen}
               </Badge>
@@ -132,7 +136,7 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
                   variant={isCurrentlyOpen ? "default" : "secondary"}
                   className={
                     isCurrentlyOpen
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500"
+                      ? "bg-emerald-800 text-white hover:bg-emerald-900 dark:bg-emerald-800"
                       : "text-muted-foreground"
                   }
                 >
@@ -149,6 +153,12 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
           <div className="flex flex-col gap-8 lg:col-span-7">
             {/* Photo Gallery */}
             <ListingPhotoGallery photos={listing.photos} listingName={listing.name} />
+
+            {/* Announcements Section */}
+            <ListingAnnouncementsSection businessId={listing.businessId} />
+
+            {/* Events Section */}
+            <ListingEventsSection businessId={listing.businessId} />
 
             {/* Description Section (Deliberately omitted when empty) */}
             {listing.description && (

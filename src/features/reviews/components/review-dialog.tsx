@@ -33,6 +33,8 @@ export function ReviewDialog({
   const [content, setContent] = useState<string>(reviewToEdit?.content ?? "");
   const [error, setError] = useState<string | null>(null);
 
+  // Reset form when dialog opens — must sync prop `open` to local state
+  /* oxlint-disable react/set-state-in-effect */
   useEffect(() => {
     if (open) {
       setRating(reviewToEdit?.rating ?? 5);
@@ -40,6 +42,7 @@ export function ReviewDialog({
       setError(null);
     }
   }, [open, reviewToEdit]);
+  /* oxlint-enable react/set-state-in-effect */
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();

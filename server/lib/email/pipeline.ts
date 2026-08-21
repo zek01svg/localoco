@@ -18,6 +18,19 @@ const logger = getAppLogger("server", "email");
 // In-flight jobs stuck in 'processing' longer than 5 minutes can be safely reclaimed
 const STALE_LEASE_MS = 5 * 60 * 1000;
 
+/**
+ * Returns true when the URL's hostname is a loopback address (localhost, 127.x.x.x, ::1).
+ * QStash is a cloud service and cannot deliver webhooks to loopback addresses.
+ */
+function isLoopbackUrl(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === "localhost" || hostname === "::1" || hostname.startsWith("127.");
+  } catch {
+    return false;
+  }
+}
+
 export interface PipelineDeps {
   db?: typeof db;
   provider?: EmailProvider;
@@ -32,16 +45,25 @@ async function dispatchEnqueuedJob(jobId: string, deps?: PipelineDeps): Promise<
 
   if (env.QSTASH_TOKEN) {
     const destinationUrl = `${env.VITE_APP_URL}/api/webhooks/qstash/email-delivery`;
-    try {
-      await publishEmailJob({ jobId, destinationUrl });
-    } catch (err) {
-      logger.error(err instanceof Error ? err : new Error(String(err)), {
+    if (isLoopbackUrl(destinationUrl)) {
+      logger.warning("email.qstash.skipped", {
         jobId,
         destinationUrl,
-        message: "Failed to publish job to QStash",
+        message:
+          "QStash skipped: destination URL resolves to a loopback address. Falling back to local in-process delivery.",
       });
+    } else {
+      try {
+        await publishEmailJob({ jobId, destinationUrl });
+      } catch (err) {
+        logger.error(err instanceof Error ? err : new Error(String(err)), {
+          jobId,
+          destinationUrl,
+          message: "Failed to publish job to QStash",
+        });
+      }
+      return;
     }
-    return;
   }
 
   if (env.NODE_ENV === "development") {

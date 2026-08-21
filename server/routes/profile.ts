@@ -1,16 +1,33 @@
-import type { EmailChangeResponse } from "#shared/contracts/profiles";
+import type {
+  AccountDeletionResponse,
+  DeletionPreview,
+  EmailChangeResponse,
+} from "#shared/contracts/profiles";
 
-import { eq } from "drizzle-orm";
+import { and, eq, ne, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { describeRoute, resolver, validator } from "hono-openapi";
 
-import { user } from "#server/database/auth";
+import { announcement } from "#server/database/announcement";
+import { session, user } from "#server/database/auth";
+import { bookmark } from "#server/database/bookmark";
+import { business } from "#server/database/business";
+import { event } from "#server/database/event";
+import { forumPost, forumReply } from "#server/database/forum";
+import { forumPostLike, forumReplyLike, reviewLike } from "#server/database/likes";
+import { listing } from "#server/database/listing";
+import { mediaObject } from "#server/database/media";
+import { review } from "#server/database/reviews";
 import { auth } from "#server/lib/auth";
 import { requireAuth, requireVerified } from "#server/lib/auth-middleware";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
+import { deleteObject } from "#server/lib/media-storage";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
 import {
+  accountDeletionResponseSchema,
+  accountDeletionSchema,
+  deletionPreviewSchema,
   emailChangeResponseSchema,
   emailChangeSchema,
   privateProfileSchema,
@@ -57,6 +74,182 @@ const privateProfile = {
   emailVerified: user.emailVerified,
   createdAt: user.createdAt,
 } as const;
+
+async function getDeletionPreviewCounts(userId: string): Promise<DeletionPreview> {
+  const [
+    ownedListingsResult,
+    forumPostsResult,
+    thirdPartyRepliesResult,
+    reviewsResult,
+    forumRepliesResult,
+    eventsResult,
+    announcementsResult,
+    bookmarksResult,
+    reviewLikesResult,
+    forumPostLikesResult,
+    forumReplyLikesResult,
+  ] = await Promise.all([
+    // 1. Owned listings
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(listing)
+      .innerJoin(business, eq(listing.businessId, business.id))
+      .where(eq(business.ownerId, userId)),
+    // 2. Affected forum posts (authored by user)
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(forumPost)
+      .where(eq(forumPost.userId, userId)),
+    // 3. Third-party replies on user-started forum posts
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(forumReply)
+      .innerJoin(forumPost, eq(forumReply.postId, forumPost.id))
+      .where(and(eq(forumPost.userId, userId), ne(forumReply.userId, userId))),
+    // 4. Reviews authored by user
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(review)
+      .where(eq(review.userId, userId)),
+    // 5. Forum replies authored by user
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(forumReply)
+      .where(eq(forumReply.userId, userId)),
+    // 6. Events authored by user
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(event)
+      .where(eq(event.userId, userId)),
+    // 7. Announcements authored by user
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(announcement)
+      .where(eq(announcement.userId, userId)),
+    // 8. Bookmarks saved by user
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(bookmark)
+      .where(eq(bookmark.userId, userId)),
+    // 9. Review likes by user
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(reviewLike)
+      .where(eq(reviewLike.userId, userId)),
+    // 10. Forum post likes by user
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(forumPostLike)
+      .where(eq(forumPostLike.userId, userId)),
+    // 11. Forum reply likes by user
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(forumReplyLike)
+      .where(eq(forumReplyLike.userId, userId)),
+  ]);
+
+  const ownedListings = ownedListingsResult[0]?.count ?? 0;
+  const affectedForumPosts = forumPostsResult[0]?.count ?? 0;
+  const thirdPartyReplies = thirdPartyRepliesResult[0]?.count ?? 0;
+
+  const reviewsCount = reviewsResult[0]?.count ?? 0;
+  const forumRepliesCount = forumRepliesResult[0]?.count ?? 0;
+  const eventsCount = eventsResult[0]?.count ?? 0;
+  const announcementsCount = announcementsResult[0]?.count ?? 0;
+  const bookmarksCount = bookmarksResult[0]?.count ?? 0;
+  const reviewLikesCount = reviewLikesResult[0]?.count ?? 0;
+  const forumPostLikesCount = forumPostLikesResult[0]?.count ?? 0;
+  const forumReplyLikesCount = forumReplyLikesResult[0]?.count ?? 0;
+
+  const authoredContributions =
+    reviewsCount +
+    affectedForumPosts +
+    forumRepliesCount +
+    eventsCount +
+    announcementsCount +
+    bookmarksCount +
+    reviewLikesCount +
+    forumPostLikesCount +
+    forumReplyLikesCount;
+
+  return {
+    ownedListings,
+    authoredContributions,
+    affectedForumPosts,
+    thirdPartyReplies,
+  };
+}
+
+async function executeAccountDeletion(
+  userId: string,
+  password: string,
+  headers: Headers
+): Promise<AccountDeletionResponse> {
+  // Step 1: Reauthentication via password check
+  let verified = false;
+  try {
+    const result = await auth.api.verifyPassword({
+      headers,
+      body: { password },
+    });
+    if (result.status) {
+      verified = true;
+    }
+  } catch (cause) {
+    if (isRequestFailure(cause) && cause.statusCode < 500) {
+      throw new HttpError(401, "unauthorized", "Invalid password", undefined, { cause });
+    }
+    throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, { cause });
+  }
+
+  if (!verified) {
+    throw new HttpError(401, "unauthorized", "Invalid password");
+  }
+
+  // Step 2: Revoke all active sessions before destructive work begins
+  try {
+    await auth.api.revokeSessions({ headers }).catch(() => {});
+    await db.delete(session).where(eq(session.userId, userId));
+  } catch (cause) {
+    throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, { cause });
+  }
+
+  // Step 3: Delete R2 objects owned by the User and their Businesses
+  try {
+    const userMediaRows = await db
+      .select({ key: mediaObject.key })
+      .from(mediaObject)
+      .leftJoin(business, eq(mediaObject.businessId, business.id))
+      .where(or(eq(mediaObject.ownerId, userId), eq(business.ownerId, userId)));
+
+    await Promise.allSettled(
+      userMediaRows.map(async row => {
+        try {
+          await deleteObject(row.key);
+        } catch {
+          // Storage deletions are idempotent
+        }
+      })
+    );
+  } catch (cause) {
+    throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, { cause });
+  }
+
+  // Step 4: Single-transaction PostgreSQL cascade hard-delete
+  const now = new Date();
+  try {
+    await db.transaction(async tx => {
+      await tx.delete(user).where(eq(user.id, userId));
+    });
+  } catch (cause) {
+    throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, { cause });
+  }
+
+  return {
+    status: "account_deleted",
+    deletedAt: now,
+  };
+}
 
 export const profileRoutes = new Hono()
   .get(
@@ -245,5 +438,135 @@ export const profileRoutes = new Hono()
       return c.json({
         status: "confirmation_sent",
       } satisfies EmailChangeResponse);
+    }
+  )
+  .get(
+    "/profile/deletion-preview",
+    requireAuth,
+    describeRoute({
+      operationId: "getAccountDeletionPreview",
+      tags: ["users"],
+      summary: "Get deletion preview counts for the session user",
+      description:
+        "Returns the exact counts of resources and authored content that will be destroyed if the User's account is permanently deleted: owned Listings, authored contributions, affected Forum posts, and third-party Replies destroyed when user-started Forum posts are removed.",
+      responses: {
+        200: {
+          description: "Accurate deletion preview counts",
+          content: {
+            "application/json": { schema: resolver(deletionPreviewSchema) },
+          },
+        },
+        ...authErrorResponses,
+        503: {
+          description: "The user data source is temporarily unavailable",
+          content: {
+            "application/json": { schema: resolver(errorEnvelopeSchema) },
+          },
+        },
+      },
+    }),
+    async c => {
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+
+      let counts: DeletionPreview;
+      try {
+        counts = await getDeletionPreviewCounts(actor.userId);
+      } catch (cause) {
+        throw new HttpError(503, "dependency_unavailable", dependencyMessage, undefined, {
+          cause,
+        });
+      }
+
+      c.header("Cache-Control", "private, no-store");
+      return c.json(counts);
+    }
+  )
+  .delete(
+    "/profile",
+    requireAuth,
+    validator("json", accountDeletionSchema, onValidationError),
+    describeRoute({
+      operationId: "deletePersonalAccount",
+      tags: ["users"],
+      summary: "Permanently delete the session user's account",
+      description:
+        "Irrevocably destroys the User's account, personal data, owned Businesses, Listings, Listing photos, and all authored content. Requires reauthentication via password and explicit destructive confirmation ('DELETE'). Revokes all active sessions before deleting R2 media and executing single-transaction PostgreSQL cascade hard-delete.",
+      responses: {
+        200: {
+          description: "Account permanently deleted",
+          content: {
+            "application/json": { schema: resolver(accountDeletionResponseSchema) },
+          },
+        },
+        400: {
+          description: "Invalid request payload or confirmation string",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
+        ...authErrorResponses,
+        503: {
+          description: "The user data source is temporarily unavailable",
+          content: {
+            "application/json": { schema: resolver(errorEnvelopeSchema) },
+          },
+        },
+      },
+    }),
+    async c => {
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+
+      const { password } = c.req.valid("json");
+      const result = await executeAccountDeletion(actor.userId, password, c.req.raw.headers);
+
+      c.header("Cache-Control", "private, no-store");
+      return c.json(result);
+    }
+  )
+  .post(
+    "/profile/delete",
+    requireAuth,
+    validator("json", accountDeletionSchema, onValidationError),
+    describeRoute({
+      operationId: "deletePersonalAccountPost",
+      tags: ["users"],
+      summary: "Permanently delete the session user's account (POST alternative)",
+      description:
+        "Irrevocably destroys the User's account, personal data, owned Businesses, Listings, Listing photos, and all authored content.",
+      responses: {
+        200: {
+          description: "Account permanently deleted",
+          content: {
+            "application/json": { schema: resolver(accountDeletionResponseSchema) },
+          },
+        },
+        400: {
+          description: "Invalid request payload or confirmation string",
+          content: { "application/json": { schema: resolver(errorEnvelopeSchema) } },
+        },
+        ...authErrorResponses,
+        503: {
+          description: "The user data source is temporarily unavailable",
+          content: {
+            "application/json": { schema: resolver(errorEnvelopeSchema) },
+          },
+        },
+      },
+    }),
+    async c => {
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+
+      const { password } = c.req.valid("json");
+      const result = await executeAccountDeletion(actor.userId, password, c.req.raw.headers);
+
+      c.header("Cache-Control", "private, no-store");
+      return c.json(result);
     }
   );

@@ -45,6 +45,9 @@ locals {
     "roles/iam.serviceAccountAdmin",
     "roles/iam.workloadIdentityPoolAdmin",
     "roles/storage.admin",
+    "roles/serviceusage.apiKeysAdmin",
+    "roles/serviceusage.serviceUsageAdmin",
+    "roles/monitoring.admin",
   ]
 }
 

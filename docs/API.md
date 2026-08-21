@@ -840,6 +840,52 @@ taken address cannot be enumerated.
   (`forbidden`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 
+### Get deletion preview (`GET /api/profile/deletion-preview`)
+
+Returns the exact counts of resources and authored content that will be destroyed if the session User's account is permanently deleted: owned listings, authored contributions (reviews + forum posts/replies + likes), affected forum posts (posts started by the User that will be removed), and third-party replies destroyed when those posts are removed.
+
+- **Response `200 OK`** — `application/json`, `Cache-Control: private, no-store`:
+
+  ```json
+  {
+    "ownedListings": 2,
+    "authoredContributions": 9,
+    "affectedForumPosts": 1,
+    "thirdPartyReplies": 3
+  }
+  ```
+
+- **Response `401`**: no session (`unauthorized`).
+- **Response `503`**: the data source failed (`dependency_unavailable`).
+
+### Permanently delete account (`DELETE /api/profile` / `POST /api/profile/delete`)
+
+Irrevocably destroys the User's account, personal data, owned businesses/listings, listing photos, and all authored content. Both `DELETE /api/profile` and `POST /api/profile/delete` are wired to the same handler (the `POST` alternative exists for clients that cannot send a `DELETE` body).
+
+Requires password reauthentication and explicit destructive confirmation (`confirmation: "DELETE"`). Revokes all active sessions before deleting R2 objects (`Promise.allSettled`, idempotent) and executes a single-transaction PostgreSQL cascade hard-delete (`DELETE FROM user WHERE id = ?`).
+
+- **Request** — `application/json`:
+
+  ```json
+  {
+    "password": "current-password",
+    "confirmation": "DELETE"
+  }
+  ```
+
+- **Response `200 OK`** — `application/json`, `Cache-Control: private, no-store`:
+
+  ```json
+  {
+    "status": "account_deleted",
+    "deletedAt": "2026-08-21T00:00:00.000Z"
+  }
+  ```
+
+- **Response `400`**: missing/invalid password or confirmation not equal to `DELETE` (`invalid_request`).
+- **Response `401`**: no session (`unauthorized`) or password reauthentication failed (`unauthorized` for credential errors, `503` for provider failures).
+- **Response `503`**: the data source or credential verification is temporarily unavailable (`dependency_unavailable`).
+
 ---
 
 ## 11. Listing photos
@@ -1204,6 +1250,38 @@ Deletes a review. Requires a verified session and can only be performed by the r
 - **Response `403`**: actor is neither the author nor an administrator (`forbidden`).
 - **Response `404`**: review not found (`not_found`).
 
+### Like a Review (`POST /api/reviews/:id/like`)
+
+Idempotently endorses a review. Requires an authenticated session with a verified email (`requireVerified`).
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "liked",
+    "liked": true,
+    "likeCount": 5
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: review not found (`not_found`).
+
+### Unlike a Review (`DELETE /api/reviews/:id/like`)
+
+Idempotently removes an endorsement for a review. Requires an authenticated session with a verified email (`requireVerified`).
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "unliked",
+    "liked": false,
+    "likeCount": 4
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: review not found (`not_found`).
+
 ### List Reviews by User (`GET /api/users/:id/reviews`)
 
 Public endpoint returning cursor-paginated reviews written by a user for public profile contribution feeds.
@@ -1336,6 +1414,38 @@ Marks a post as soft-deleted (`deleted_at`). Requires a verified session and onl
 - **Response `403`**: actor is not the author (`forbidden`).
 - **Response `404`**: post not found or already soft-deleted (`not_found`).
 
+### Like a Forum post (`POST /api/forum/posts/:id/like`)
+
+Idempotently endorses a Forum post. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators liking a soft-deleted post receive 404.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "liked",
+    "liked": true,
+    "likeCount": 1
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: post not found or soft-deleted (`not_found`).
+
+### Unlike a Forum post (`DELETE /api/forum/posts/:id/like`)
+
+Idempotently removes an endorsement for a Forum post. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators unliking a soft-deleted post receive 404.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "unliked",
+    "liked": false,
+    "likeCount": 0
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: post not found or soft-deleted (`not_found`).
+
 ### Get Replies to a Forum post (`GET /api/forum/posts/:id/replies`)
 
 Public endpoint returning cursor-paginated Replies to a post in chronological (oldest-first) order. Soft-deleted replies are excluded. Soft-deleted posts answer 404 unless an administrator passes `includeDeleted=true`.
@@ -1406,3 +1516,400 @@ Marks a reply as soft-deleted. Requires a verified session and only the reply's 
 - **Response `401`**: authentication required (`unauthorized`).
 - **Response `403`**: actor is not the author (`forbidden`).
 - **Response `404`**: reply not found or already soft-deleted (`not_found`).
+
+### Like a Forum reply (`POST /api/forum/replies/:id/like`)
+
+Idempotently endorses a Forum reply. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators liking a soft-deleted or moderated reply receive 404.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "liked",
+    "liked": true,
+    "likeCount": 1
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: reply not found, soft-deleted, or moderated (`not_found`).
+
+### Unlike a Forum reply (`DELETE /api/forum/replies/:id/like`)
+
+Idempotently removes an endorsement for a Forum reply. Requires an authenticated session with a verified email (`requireVerified`). Non-administrators unliking a soft-deleted or moderated reply receive 404.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "status": "unliked",
+    "liked": false,
+    "likeCount": 0
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: reply not found, soft-deleted, or moderated (`not_found`).
+
+### Moderate a Forum post (`POST /api/forum/posts/:id/moderate`)
+
+Administrative endpoint to moderate a Forum post with a required reason. Sets `moderated_at`, writes an immutable audit record in `forum_moderation_audit` with original content and actor metadata, and invalidates public cache keys. Moderated content is hidden from all public views.
+
+- **Request Body**:
+  ```json
+  {
+    "reason": "Violates community standards against abuse"
+  }
+  ```
+- **Response `200 OK`**: the moderated Forum post payload (with `moderatedAt` populated).
+- **Response `400`**: validation error (missing or empty reason, over 1000 characters) (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not an administrator (`forbidden`).
+- **Response `404`**: post not found (`not_found`).
+- **Response `409`**: post is already moderated (`conflict`).
+
+### Get Moderation Audit History for a Post (`GET /api/forum/posts/:id/audit`)
+
+Administrative endpoint returning the complete chronological moderation audit trail for a Forum post.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "audit_123",
+        "targetType": "post",
+        "targetId": "post_456",
+        "actorId": "usr_admin",
+        "actorDisplayName": "Mod Admin",
+        "reason": "Violates community standards against abuse",
+        "originalTitle": "Weekend crowd?",
+        "originalBody": "How busy is it on Saturdays?",
+        "originalAuthorId": "usr_789",
+        "createdAt": "2026-08-19T06:00:00.000Z"
+      }
+    ]
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not an administrator (`forbidden`).
+- **Response `404`**: post not found (`not_found`).
+
+### Moderate a Reply (`POST /api/forum/replies/:id/moderate`)
+
+Administrative endpoint to moderate a Forum reply with a required reason. Sets `moderated_at`, writes an immutable audit record in `forum_moderation_audit`, and invalidates public cache keys.
+
+- **Request Body**:
+  ```json
+  {
+    "reason": "Targeted harassment"
+  }
+  ```
+- **Response `200 OK`**: the moderated Reply payload (with `moderatedAt` populated).
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not an administrator (`forbidden`).
+- **Response `404`**: reply not found (`not_found`).
+- **Response `409`**: reply is already moderated (`conflict`).
+
+### Get Moderation Audit History for a Reply (`GET /api/forum/replies/:id/audit`)
+
+Administrative endpoint returning the complete chronological moderation audit trail for a Forum reply.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "audit_789",
+        "targetType": "reply",
+        "targetId": "reply_123",
+        "actorId": "usr_admin",
+        "actorDisplayName": "Mod Admin",
+        "reason": "Targeted harassment",
+        "originalTitle": null,
+        "originalBody": "Abusive reply content",
+        "originalAuthorId": "usr_other",
+        "createdAt": "2026-08-19T06:05:00.000Z"
+      }
+    ]
+  }
+  ```
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: actor is not an administrator (`forbidden`).
+- **Response `404`**: reply not found (`not_found`).
+
+---
+
+## 15. Announcements
+
+Public updates and notices posted by owners of published Businesses.
+
+### List public Announcements (`GET /api/announcements`)
+
+Returns a cursor-paginated list of active announcements across published listings, newest first. Expired announcements or those from non-published listings are excluded automatically.
+
+Query parameters:
+
+| Name     | Type     | Default | Description                      |
+| :------- | :------- | :------ | :------------------------------- |
+| `limit`  | `int`    | `20`    | Page size (1 to 100)             |
+| `cursor` | `string` | —       | Cursor string from previous page |
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "ann_123",
+        "businessId": "biz_456",
+        "userId": "usr_789",
+        "title": "Weekend Flash Sale",
+        "content": "Get 30% off all items this weekend!",
+        "imageUrl": "https://example.com/banner.jpg",
+        "linkUrl": "https://example.com/order",
+        "startsAt": "2026-08-01T00:00:00.000Z",
+        "endsAt": "2026-08-31T23:59:59.000Z",
+        "status": "active",
+        "moderationReason": null,
+        "canonicalUrl": "/announcements/ann_123",
+        "business": {
+          "id": "biz_456",
+          "name": "Alice Bakery",
+          "category": "Cafe",
+          "uen": "T09LL0001A"
+        },
+        "author": {
+          "id": "usr_789",
+          "displayName": "Alice Tan",
+          "avatarUrl": null
+        },
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "updatedAt": "2026-08-01T00:00:00.000Z"
+      }
+    ],
+    "nextCursor": null
+  }
+  ```
+- **Response `400`**: invalid cursor or query parameters (`invalid_request`).
+
+### Get Announcement detail (`GET /api/announcements/:id`)
+
+Fetches announcement details with canonical URL and metadata. Public viewers can only see active announcements on published listings; business owners and administrators can see any state.
+
+- **Response `200 OK`**: Announcement item payload.
+- **Response `404`**: announcement not found or not visible (`not_found`).
+
+### Create Business Announcement (`POST /api/businesses/:id/announcements`)
+
+Creates an announcement for an owned published business. Requires the listing to be in `published` state; returns 409 Conflict otherwise. Produces zero email deliveries.
+
+- **Request Body**:
+  ```json
+  {
+    "title": "Weekend Flash Sale",
+    "content": "Get 30% off all items this weekend!",
+    "imageUrl": "https://example.com/banner.jpg",
+    "linkUrl": "https://example.com/order",
+    "startsAt": "2026-08-01T00:00:00.000Z",
+    "endsAt": "2026-08-31T23:59:59.000Z"
+  }
+  ```
+- **Response `201 Created`**: Created Announcement payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: business not found or not owned (`not_found`).
+- **Response `409`**: business listing is not in published state (`conflict`).
+
+### List Business Announcements (`GET /api/businesses/:id/announcements`)
+
+Returns announcements for a specific business. Business owners and administrators receive all announcements (active, scheduled, expired, moderated); public visitors only see active, unexpired announcements on published listings.
+
+- **Response `200 OK`**: Paginated announcements response.
+
+### Update Business Announcement (`PATCH /api/businesses/:id/announcements/:announcementId`)
+
+Updates an owned announcement.
+
+- **Response `200 OK`**: Updated Announcement payload.
+- **Response `404`**: business or announcement not found (`not_found`).
+
+### Delete Business Announcement (`DELETE /api/businesses/:id/announcements/:announcementId`)
+
+Permanently deletes an announcement.
+
+- **Response `204 No Content`**: Announcement deleted.
+
+### Moderate Announcement (`POST /api/announcements/:id/moderate`)
+
+Administrator endpoint to moderate or restore an announcement with an immutable reason and audit record.
+
+- **Request Body**:
+  ```json
+  {
+    "action": "moderate",
+    "reason": "Violates community guidelines."
+  }
+  ```
+- **Response `200 OK`**: Moderated Announcement payload.
+- **Response `403`**: administrator role required (`forbidden`).
+- **Response `404`**: announcement not found (`not_found`).
+
+### List Announcement Moderation Audits (`GET /api/announcements/:id/audits`)
+
+Administrator endpoint returning the immutable moderation history for an announcement.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "aud_123",
+        "announcementId": "ann_123",
+        "actorId": "usr_admin",
+        "previousStatus": "active",
+        "nextStatus": "moderated",
+        "reason": "Violates community guidelines.",
+        "createdAt": "2026-08-19T00:00:00.000Z"
+      }
+    ]
+  }
+  ```
+
+---
+
+## 16. Events
+
+Public, time-bounded activities published by owners of published Businesses.
+
+### List public Events (`GET /api/events`)
+
+Returns a cursor-paginated list of active upcoming/ongoing events across published listings, newest first. Expired events (`endsAt < now`) or those from non-published listings are excluded automatically.
+
+Query parameters:
+
+| Name     | Type     | Default | Description                      |
+| :------- | :------- | :------ | :------------------------------- |
+| `limit`  | `int`    | `20`    | Page size (1 to 100)             |
+| `cursor` | `string` | —       | Cursor string from previous page |
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "evt_123",
+        "businessId": "biz_456",
+        "userId": "usr_789",
+        "title": "Specialty Coffee Cupping Workshop",
+        "description": "Learn to taste and evaluate specialty single-origin coffees.",
+        "imageUrl": "https://images.example.com/coffee.jpg",
+        "linkUrl": "https://example.com/rsvp",
+        "startsAt": "2026-09-01T10:00:00.000Z",
+        "endsAt": "2026-09-01T12:00:00.000Z",
+        "status": "active",
+        "moderationReason": null,
+        "canonicalUrl": "/events/evt_123",
+        "business": {
+          "id": "biz_456",
+          "name": "Alice Bakery",
+          "category": "Cafe",
+          "uen": "T09LL0001A"
+        },
+        "author": {
+          "id": "usr_789",
+          "displayName": "Alice Tan",
+          "avatarUrl": null
+        },
+        "createdAt": "2026-08-20T00:00:00.000Z",
+        "updatedAt": "2026-08-20T00:00:00.000Z"
+      }
+    ],
+    "nextCursor": null
+  }
+  ```
+- **Response `400`**: invalid cursor or query parameters (`invalid_request`).
+
+### Get Event detail (`GET /api/events/:id`)
+
+Fetches event details with canonical URL and metadata. Public viewers can only see active, non-expired events on published listings; business owners and administrators can see any state.
+
+- **Response `200 OK`**: Event item payload.
+- **Response `404`**: event not found or not visible (`not_found`).
+
+### Create Business Event (`POST /api/businesses/:id/events`)
+
+Creates an event for an owned published business. Requires the listing to be in `published` state; returns 409 Conflict otherwise. Mandatory start and end timestamps are validated so end never precedes start. Produces zero email deliveries.
+
+- **Request Body**:
+  ```json
+  {
+    "title": "Specialty Coffee Cupping Workshop",
+    "description": "Learn to taste and evaluate specialty single-origin coffees.",
+    "imageUrl": "https://images.example.com/coffee.jpg",
+    "linkUrl": "https://example.com/rsvp",
+    "startsAt": "2026-09-01T10:00:00.000Z",
+    "endsAt": "2026-09-01T12:00:00.000Z"
+  }
+  ```
+- **Response `201 Created`**: Created Event payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `401`**: authentication required (`unauthorized`).
+- **Response `403`**: email unverified (`forbidden`).
+- **Response `404`**: business not found or not owned (`not_found`).
+- **Response `409`**: business listing is not in published state (`conflict`).
+
+### List Business Events (`GET /api/businesses/:id/events`)
+
+Returns events for a specific business. Business owners and administrators receive all events (active, expired, moderated); public visitors only see active, non-expired events on published listings.
+
+- **Response `200 OK`**: Paginated events response.
+
+### Update Business Event (`PATCH /api/businesses/:id/events/:eventId`)
+
+Updates an owned event.
+
+- **Response `200 OK`**: Updated Event payload.
+- **Response `400`**: validation error (`invalid_request`).
+- **Response `404`**: business or event not found (`not_found`).
+
+### Delete Business Event (`DELETE /api/businesses/:id/events/:eventId`)
+
+Permanently deletes an event.
+
+- **Response `204 No Content`**: Event deleted.
+
+### Moderate Event (`POST /api/events/:id/moderate`)
+
+Administrator endpoint to moderate or restore an event with an immutable reason and audit record.
+
+- **Request Body**:
+  ```json
+  {
+    "action": "moderate",
+    "reason": "Violates safety and licensing requirements."
+  }
+  ```
+- **Response `200 OK`**: Moderated Event payload.
+- **Response `403`**: administrator role required (`forbidden`).
+- **Response `404`**: event not found (`not_found`).
+
+### List Event Moderation Audits (`GET /api/events/:id/audits`)
+
+Administrator endpoint returning the immutable moderation history for an event.
+
+- **Response `200 OK`**:
+  ```json
+  {
+    "items": [
+      {
+        "id": "aud_456",
+        "eventId": "evt_123",
+        "actorId": "usr_admin",
+        "previousStatus": "active",
+        "nextStatus": "moderated",
+        "reason": "Violates safety and licensing requirements.",
+        "createdAt": "2026-08-20T00:00:00.000Z"
+      }
+    ]
+  }
+  ```

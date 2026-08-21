@@ -85,6 +85,8 @@ function Carousel({
     [scrollPrev, scrollNext]
   );
 
+  // Sync external carousel API — intentional
+  /* oxlint-disable react/set-state-in-effect */
   React.useEffect(() => {
     if (!api || !setApi) return;
     setApi(api);
@@ -100,6 +102,7 @@ function Carousel({
       api?.off("select", onSelect);
     };
   }, [api, onSelect]);
+  /* oxlint-enable react/set-state-in-effect */
 
   return (
     <CarouselContext.Provider

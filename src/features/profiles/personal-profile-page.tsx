@@ -7,6 +7,7 @@ import { Skeleton } from "#client/components/ui/skeleton";
 import { useSession } from "#client/features/auth";
 import { useBookmarksQuery, useRemoveBookmarkMutation } from "#client/features/bookmarks";
 
+import { AccountDeletionSection } from "./components/account-deletion-section";
 import { EmailChangeForm } from "./components/email-change-form";
 import { ProfileDetailsForm } from "./components/profile-details-form";
 import { usePersonalProfileQuery } from "./hooks/personal-profile-queries";
@@ -222,6 +223,8 @@ export function PersonalProfilePage() {
           </h2>
           <OwnedBusinessesSection isVerified={isVerified} />
         </section>
+
+        <AccountDeletionSection />
       </section>
     </main>
   );

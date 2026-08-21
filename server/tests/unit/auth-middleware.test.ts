@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createErrorHandler } from "#server/lib/errors";
 
-const { mockGetSession, mockAdminRows } = vi.hoisted(() => ({
+const { mockGetSession, mockAdminRows, mockBusinessRows } = vi.hoisted(() => ({
   mockGetSession: vi.fn<
     () => Promise<{
       user: { id: string; emailVerified: boolean };
@@ -14,6 +14,7 @@ const { mockGetSession, mockAdminRows } = vi.hoisted(() => ({
     } | null>
   >(),
   mockAdminRows: [] as { userId: string }[],
+  mockBusinessRows: [] as { id: string }[],
 }));
 
 vi.mock("#server/lib/auth", () => ({
@@ -26,17 +27,22 @@ vi.mock("#server/lib/auth", () => ({
 
 vi.mock("#server/lib/db", () => ({
   db: {
-    select: () => ({
+    select: (fields: unknown) => ({
       from: () => ({
         where: () => ({
-          limit: () => Promise.resolve(mockAdminRows),
+          limit: () => {
+            if (fields && typeof fields === "object" && "id" in fields) {
+              return Promise.resolve(mockBusinessRows);
+            }
+            return Promise.resolve(mockAdminRows);
+          },
         }),
       }),
     }),
   },
 }));
 
-const { resolveAuth, requireAuth, requireVerified, requireAdmin } =
+const { resolveAuth, requireAuth, requireVerified, requireAdmin, requireBusinessOwner } =
   await import("#server/lib/auth-middleware");
 
 type TestVariables = { requestId: string; auth: AuthContext | undefined };
@@ -57,6 +63,8 @@ const createTestApp = (...middleware: MiddlewareHandler[]) => {
   app.use("/protected", ...middleware);
   app.get("/protected", c => c.json({ ok: true, auth: c.get("auth") }));
   app.get("/public", resolveAuth, c => c.json({ ok: true, auth: c.get("auth") }));
+  app.use("/businesses/:id", requireBusinessOwner);
+  app.get("/businesses/:id", c => c.json({ ok: true, id: c.req.param("id"), auth: c.get("auth") }));
 
   app.onError(createErrorHandler({ logger }));
   return app;
@@ -65,6 +73,7 @@ const createTestApp = (...middleware: MiddlewareHandler[]) => {
 beforeEach(() => {
   mockGetSession.mockReset();
   mockAdminRows.length = 0;
+  mockBusinessRows.length = 0;
 });
 
 describe("resolveAuth - single resolution per request", () => {
@@ -167,5 +176,107 @@ describe("requireAdmin", () => {
     expect(res.status).toBe(403);
     const body: unknown = await res.json();
     expect(body).toMatchObject({ error: { code: "forbidden" } });
+  });
+});
+
+describe("requireBusinessOwner", () => {
+  it("permits access when the verified user owns the requested business", async () => {
+    mockGetSession.mockResolvedValueOnce({
+      user: { id: "usr_owner", emailVerified: true },
+      session: { id: "ses_owner" },
+    });
+    mockBusinessRows.push({ id: "biz_123" });
+
+    const app = createTestApp();
+    const res = await app.request("/businesses/biz_123", {
+      headers: { cookie: "localoco.session_token=owner_token" },
+    });
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      ok: true,
+      id: "biz_123",
+      auth: { userId: "usr_owner", emailVerified: true, isAdmin: false },
+    });
+  });
+
+  it("permits access when the verified user is an administrator", async () => {
+    mockGetSession.mockResolvedValueOnce({
+      user: { id: "usr_admin", emailVerified: true },
+      session: { id: "ses_admin" },
+    });
+    mockAdminRows.push({ userId: "usr_admin" });
+    mockBusinessRows.push({ id: "biz_123" });
+
+    const app = createTestApp();
+    const res = await app.request("/businesses/biz_123", {
+      headers: { cookie: "localoco.session_token=admin_token" },
+    });
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      ok: true,
+      id: "biz_123",
+      auth: { userId: "usr_admin", emailVerified: true, isAdmin: true },
+    });
+  });
+
+  it("answers 404 not found when the business does not exist or user does not own it (anti-enumeration)", async () => {
+    mockGetSession.mockResolvedValueOnce({
+      user: { id: "usr_other", emailVerified: true },
+      session: { id: "ses_other" },
+    });
+    // mockBusinessRows is empty - simulating non-owned or non-existent business
+
+    const app = createTestApp();
+    const res = await app.request("/businesses/biz_foreign", {
+      headers: { cookie: "localoco.session_token=other_token" },
+    });
+
+    expect(res.status).toBe(404);
+    await expect(res.json()).resolves.toEqual({
+      error: {
+        code: "not_found",
+        message: "Business not found",
+        requestId: "req-auth-test",
+      },
+    });
+  });
+
+  it("rejects anonymous requests with 401 unauthorized", async () => {
+    mockGetSession.mockResolvedValueOnce(null);
+
+    const app = createTestApp();
+    const res = await app.request("/businesses/biz_123");
+
+    expect(res.status).toBe(401);
+    await expect(res.json()).resolves.toEqual({
+      error: {
+        code: "unauthorized",
+        message: "Authentication required",
+        requestId: "req-auth-test",
+      },
+    });
+  });
+
+  it("rejects unverified users with 403 forbidden", async () => {
+    mockGetSession.mockResolvedValueOnce({
+      user: { id: "usr_unverified", emailVerified: false },
+      session: { id: "ses_unverified" },
+    });
+
+    const app = createTestApp();
+    const res = await app.request("/businesses/biz_123", {
+      headers: { cookie: "localoco.session_token=unverified_token" },
+    });
+
+    expect(res.status).toBe(403);
+    const body: unknown = await res.json();
+    expect(body).toMatchObject({
+      error: {
+        code: "forbidden",
+        message: "Email verification required to perform this action",
+      },
+    });
   });
 });
