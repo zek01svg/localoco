@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import AxeBuilder from "@axe-core/playwright";
+import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test as base } from "@playwright/test";
 
 import { getRandomTestIp } from "./auth";

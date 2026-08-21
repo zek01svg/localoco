@@ -31,12 +31,15 @@ export function ForumModerationDialog({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  // Reset form when dialog opens — must sync prop `open` to local state
+  /* oxlint-disable react/set-state-in-effect */
   useEffect(() => {
     if (open) {
       setReason("");
       setError(null);
     }
   }, [open]);
+  /* oxlint-enable react/set-state-in-effect */
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();

@@ -51,7 +51,13 @@ const listing = (id: string, name: string): Listing => ({
 });
 
 function renderDiscovery() {
-  const rootRoute = createRootRoute({ component: () => <Outlet /> });
+  const rootRoute = createRootRoute({
+    component: () => (
+      <NuqsAdapter>
+        <Outlet />
+      </NuqsAdapter>
+    ),
+  });
   const listingsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/listings",
@@ -71,9 +77,7 @@ function renderDiscovery() {
 
   render(
     <QueryClientProvider client={queryClient}>
-      <NuqsAdapter>
-        <RouterProvider router={router} />
-      </NuqsAdapter>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   );
 }

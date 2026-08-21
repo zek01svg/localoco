@@ -7,7 +7,6 @@ import { configureAppLogging, getAppLogger } from "#shared/logger.ts";
 import { env } from "./env";
 import "./globals.css";
 import { initClientSentry } from "./lib/sentry";
-import { NuqsProvider } from "./providers/nuqs";
 import { ReactQueryProvider } from "./providers/react-query";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen";
@@ -43,9 +42,7 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <ReactQueryProvider>
-        <NuqsProvider>
-          <RouterProvider router={router} />
-        </NuqsProvider>
+        <RouterProvider router={router} />
       </ReactQueryProvider>
     </StrictMode>
   );

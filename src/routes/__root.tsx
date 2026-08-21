@@ -1,5 +1,6 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
 import { ErrorPage } from "#client/features/error/error-page";
 import { LoadingPage } from "#client/features/loading/loading-page";
@@ -13,7 +14,9 @@ export const Route = createRootRoute({
   notFoundComponent: NotFoundPage,
   component: () => (
     <>
-      <Outlet />
+      <NuqsAdapter>
+        <Outlet />
+      </NuqsAdapter>
       {/* Devtools render a footer landmark that would duplicate the app's
           contentinfo in production; keep them out of shipped builds. */}
       {import.meta.env.DEV ? <TanStackRouterDevtools /> : null}

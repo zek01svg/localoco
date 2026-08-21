@@ -5,6 +5,8 @@ const MOBILE_BREAKPOINT = 768;
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>();
 
+  // Sync with external media query — intentional with window.matchMedia
+  /* oxlint-disable react/set-state-in-effect */
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
     const onChange = () => {
@@ -16,6 +18,7 @@ export function useIsMobile() {
       mql.removeEventListener("change", onChange);
     };
   }, []);
+  /* oxlint-enable react/set-state-in-effect */
 
   return !!isMobile;
 }

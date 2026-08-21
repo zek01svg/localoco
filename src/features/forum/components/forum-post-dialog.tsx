@@ -45,6 +45,8 @@ export function ForumPostDialog({
 
   const isEditing = Boolean(postToEdit);
 
+  // Reset form when dialog opens — must sync prop `open` to local state
+  /* oxlint-disable react/set-state-in-effect */
   useEffect(() => {
     if (open) {
       setTitle(postToEdit?.title ?? "");
@@ -56,6 +58,7 @@ export function ForumPostDialog({
       setSelectFailed(false);
     }
   }, [open, postToEdit]);
+  /* oxlint-enable react/set-state-in-effect */
 
   const businessSearch = useQuery({
     queryKey: ["forum-business-search", debouncedQ],

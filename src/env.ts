@@ -16,6 +16,7 @@ export const env: ClientEnv = {
   VITE_SENTRY_ORG: win?.__env?.VITE_SENTRY_ORG ?? import.meta.env?.VITE_SENTRY_ORG,
   VITE_SENTRY_PROJECT: win?.__env?.VITE_SENTRY_PROJECT ?? import.meta.env?.VITE_SENTRY_PROJECT,
   VITE_SENTRY_RELEASE: win?.__env?.VITE_SENTRY_RELEASE ?? import.meta.env?.VITE_SENTRY_RELEASE,
-  VITE_GOOGLE_MAPS_API_KEY:
-    win?.__env?.VITE_GOOGLE_MAPS_API_KEY ?? import.meta.env?.VITE_GOOGLE_MAPS_API_KEY,
+  // Maps key is runtime-only via /api/runtime.js to avoid baking AIza secrets
+  // into the static bundle (health test guards this). No import.meta fallback.
+  VITE_GOOGLE_MAPS_API_KEY: win?.__env?.VITE_GOOGLE_MAPS_API_KEY,
 };

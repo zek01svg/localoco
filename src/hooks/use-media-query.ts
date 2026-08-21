@@ -3,6 +3,8 @@ import * as React from "react";
 export function useMediaQuery(query: string) {
   const [value, setValue] = React.useState(false);
 
+  // Sync with external media query — intentional with matchMedia
+  /* oxlint-disable react/set-state-in-effect */
   React.useEffect(() => {
     function onChange(event: MediaQueryListEvent) {
       setValue(event.matches);
@@ -16,6 +18,7 @@ export function useMediaQuery(query: string) {
       result.removeEventListener("change", onChange);
     };
   }, [query]);
+  /* oxlint-enable react/set-state-in-effect */
 
   return value;
 }
