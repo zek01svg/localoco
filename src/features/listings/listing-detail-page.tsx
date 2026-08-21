@@ -136,7 +136,7 @@ export function ListingDetailPage({ listingId }: ListingDetailPageProps) {
                   variant={isCurrentlyOpen ? "default" : "secondary"}
                   className={
                     isCurrentlyOpen
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500"
+                      ? "bg-emerald-800 text-white hover:bg-emerald-900 dark:bg-emerald-800"
                       : "text-muted-foreground"
                   }
                 >

@@ -4,7 +4,7 @@ import { DEFAULT_RELEASE, resolveRelease } from "#shared/release.ts";
 
 describe("release identifier resolution", () => {
   it("has a canonical default release format", () => {
-    expect(DEFAULT_RELEASE).toBe("localoco@2.1.0");
+    expect(DEFAULT_RELEASE).toBe("localoco@2.2.0");
   });
 
   it("uses default release name when none is provided or whitespace only", () => {

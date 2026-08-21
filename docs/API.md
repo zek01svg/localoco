@@ -840,6 +840,52 @@ taken address cannot be enumerated.
   (`forbidden`).
 - **Response `429`**: client exceeded rate limits (`rate_limited`).
 
+### Get deletion preview (`GET /api/profile/deletion-preview`)
+
+Returns the exact counts of resources and authored content that will be destroyed if the session User's account is permanently deleted: owned listings, authored contributions (reviews + forum posts/replies + likes), affected forum posts (posts started by the User that will be removed), and third-party replies destroyed when those posts are removed.
+
+- **Response `200 OK`** — `application/json`, `Cache-Control: private, no-store`:
+
+  ```json
+  {
+    "ownedListings": 2,
+    "authoredContributions": 9,
+    "affectedForumPosts": 1,
+    "thirdPartyReplies": 3
+  }
+  ```
+
+- **Response `401`**: no session (`unauthorized`).
+- **Response `503`**: the data source failed (`dependency_unavailable`).
+
+### Permanently delete account (`DELETE /api/profile` / `POST /api/profile/delete`)
+
+Irrevocably destroys the User's account, personal data, owned businesses/listings, listing photos, and all authored content. Both `DELETE /api/profile` and `POST /api/profile/delete` are wired to the same handler (the `POST` alternative exists for clients that cannot send a `DELETE` body).
+
+Requires password reauthentication and explicit destructive confirmation (`confirmation: "DELETE"`). Revokes all active sessions before deleting R2 objects (`Promise.allSettled`, idempotent) and executes a single-transaction PostgreSQL cascade hard-delete (`DELETE FROM user WHERE id = ?`).
+
+- **Request** — `application/json`:
+
+  ```json
+  {
+    "password": "current-password",
+    "confirmation": "DELETE"
+  }
+  ```
+
+- **Response `200 OK`** — `application/json`, `Cache-Control: private, no-store`:
+
+  ```json
+  {
+    "status": "account_deleted",
+    "deletedAt": "2026-08-21T00:00:00.000Z"
+  }
+  ```
+
+- **Response `400`**: missing/invalid password or confirmation not equal to `DELETE` (`invalid_request`).
+- **Response `401`**: no session (`unauthorized`) or password reauthentication failed (`unauthorized` for credential errors, `503` for provider failures).
+- **Response `503`**: the data source or credential verification is temporarily unavailable (`dependency_unavailable`).
+
 ---
 
 ## 11. Listing photos

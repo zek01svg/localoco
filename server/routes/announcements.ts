@@ -449,13 +449,25 @@ export const announcementsRoutes = new Hono()
       const body = c.req.valid("json");
 
       const existingRows = await db
-        .select({ id: announcement.id })
+        .select({
+          id: announcement.id,
+          startsAt: announcement.startsAt,
+          endsAt: announcement.endsAt,
+        })
         .from(announcement)
         .where(and(eq(announcement.id, announcementId), eq(announcement.businessId, businessId)))
         .limit(1);
 
       if (existingRows.length === 0) {
         throw new HttpError(404, "not_found", "Announcement not found");
+      }
+
+      const existing = existingRows[0];
+      const newStartsAt = body.startsAt === undefined ? existing.startsAt : body.startsAt;
+      const newEndsAt = body.endsAt === undefined ? existing.endsAt : body.endsAt;
+
+      if (newStartsAt !== null && newEndsAt !== null && newEndsAt < newStartsAt) {
+        throw new HttpError(400, "invalid_request", "End date must not precede start date");
       }
 
       const updateData: Partial<typeof announcement.$inferInsert> = {
