@@ -1,31 +1,55 @@
 name: localoco
 
 services:
-  maildev:
-    image: maildev/maildev
-    container_name: maildev
+  localoco-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    container_name: localoco-app
     ports:
-      - 1080:1080
-      - 1025:1025
+      - 4001:4001
+    depends_on:
+      localoco-postgres:
+        condition: service_healthy
+      localoco-minio:
+        condition: service_started
+      localoco-minio_init:
+        condition: service_completed_successfully
     environment:
-      - MAILDEV_OUTGOING_USER=username
-      - MAILDEV_OUTGOING_PASS=password
-      - MAILDEV_INCOMING_USER=username
-      - MAILDEV_INCOMING_PASS=password
-  postgres:
-    image: postgres:17-alpine
-    container_name: postgres
+      - NODE_ENV=production
+      - PORT=4001
+      - VITE_APP_URL=http://localhost:4001
+      - DATABASE_URL=postgresql://postgres:password@localoco-postgres:5432/app
+      - BETTER_AUTH_SECRET=your-development-secret-key-at-least-32-chars
+      - SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+      - VITE_SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+      - AWS_S3_ENDPOINT=http://localoco-minio:9000
+      - AWS_S3_BUCKET=app
+      - FORCE_PATH_STYLE=true
+
+  localoco-postgres:
+    image: postgres:18-alpine
+    container_name: localoco-postgres
     ports:
       - 5432:5432
     volumes:
-      - ./data/postgres/data:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=app
-  minio:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  localoco-minio:
     image: quay.io/minio/minio
-    container_name: minio
+    container_name: localoco-minio
     ports:
       - 9000:9000
       - 9001:9001
@@ -36,18 +60,18 @@ services:
       - MINIO_ROOT_PASSWORD=password
     command: server /data --console-address ":9001"
 
-  minio_init:
+  localoco-minio_init:
     image: minio/mc
-    container_name: minio_init
+    container_name: localoco-minio_init
     depends_on:
-      - minio
+      - localoco-minio
     environment:
       - MC_USER=admin
       - MC_PASS=password
       - MC_BUCKET=app
     entrypoint: >
       /bin/sh -c "
-        until (mc alias set minio http://minio:9000 $$MC_USER $$MC_PASS 2>/dev/null) do echo '...' && sleep 1; done;
+        until (mc alias set minio http://localoco-minio:9000 $$MC_USER $$MC_PASS 2>/dev/null) do echo '...' && sleep 1; done;
         echo 'Creating bucket $$MC_BUCKET';
         mc mb --ignore-existing minio/$$MC_BUCKET;
         exit 0;

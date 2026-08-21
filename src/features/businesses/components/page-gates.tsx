@@ -21,7 +21,9 @@ export function VerifyEmailCard({ description }: { description: string }) {
     <main className="bg-background flex min-h-screen items-start justify-center p-6">
       <Card className="mt-16 w-full max-w-xl">
         <CardHeader>
-          <CardTitle>Verify your email first</CardTitle>
+          <CardTitle>
+            <h1 className="text-xl font-semibold">Verify your email first</h1>
+          </CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
       </Card>

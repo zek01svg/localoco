@@ -1,12 +1,60 @@
 import type { ReviewItem } from "#shared/contracts/reviews";
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import * as React from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ReviewCard } from "#client/features/reviews/components/review-card";
 import { ReviewDialog } from "#client/features/reviews/components/review-dialog";
 
+const { mockUseSession } = vi.hoisted(() => ({
+  mockUseSession: vi.fn<() => unknown>(),
+}));
+
+vi.mock("#client/lib/auth", () => ({
+  auth: {
+    useSession: () => mockUseSession(),
+    signOut: vi.fn<() => Promise<unknown>>(),
+  },
+}));
+
+function stubSession(userOverride?: { id?: string; emailVerified?: boolean } | null) {
+  const user =
+    userOverride === null
+      ? null
+      : {
+          id: userOverride?.id ?? "usr_1",
+          name: "Alice Tan",
+          email: "alice@example.com",
+          emailVerified: userOverride?.emailVerified ?? true,
+        };
+  const session = user ? { id: "sess_1" } : null;
+  mockUseSession.mockReturnValue({
+    session,
+    user,
+    data: { session, user },
+    isPending: false,
+    error: null,
+    isAuthenticated: Boolean(session && user),
+    isVerified: Boolean(user?.emailVerified),
+  });
+}
+
+function renderWithQueryClient(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
+
 describe("ReviewCard component", () => {
+  beforeEach(() => {
+    stubSession();
+  });
   afterEach(cleanup);
 
   const mockReview: ReviewItem = {
@@ -20,12 +68,14 @@ describe("ReviewCard component", () => {
       displayName: "Alice Tan",
       avatarUrl: null,
     },
+    likeCount: 0,
+    isLiked: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   it("renders author name, rating, and content", () => {
-    render(<ReviewCard review={mockReview} />);
+    renderWithQueryClient(<ReviewCard review={mockReview} />);
     expect(screen.getByText("Alice Tan")).toBeDefined();
     expect(screen.getByText("Delicious prata and great teh tarik!")).toBeDefined();
   });
@@ -34,7 +84,7 @@ describe("ReviewCard component", () => {
     const handleEdit = vi.fn<(_review: ReviewItem) => void>();
     const handleDelete = vi.fn<(_review: ReviewItem) => void>();
 
-    render(
+    renderWithQueryClient(
       <ReviewCard
         review={mockReview}
         currentUserId="usr_1"
@@ -94,6 +144,8 @@ describe("ReviewDialog component — edit mode", () => {
       rating: 4,
       content: "Initial feedback",
       author: { id: "usr_1", displayName: "Alice", avatarUrl: null },
+      likeCount: 0,
+      isLiked: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

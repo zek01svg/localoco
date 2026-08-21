@@ -1,7 +1,15 @@
+import * as Sentry from "@sentry/react";
 import { useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 
-export function ErrorPage() {
+export function ErrorPage({ error }: { error?: unknown }) {
   const router = useRouter();
+
+  useEffect(() => {
+    if (error) {
+      Sentry.captureException(error);
+    }
+  }, [error]);
 
   return (
     <div className="bg-background selection:bg-primary/20 relative flex min-h-screen flex-col items-center justify-center p-6">

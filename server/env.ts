@@ -7,6 +7,7 @@ export const env = createEnv({
     VITE_SENTRY_DSN: z.url().optional(),
     VITE_SENTRY_ORG: z.string().min(1).optional(),
     VITE_SENTRY_PROJECT: z.string().min(1).optional(),
+    VITE_SENTRY_RELEASE: z.string().min(1).optional(),
     // Browser Maps key (Maps JavaScript API). Exposed to client via /api/runtime.js.
     VITE_GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
   },
@@ -15,6 +16,7 @@ export const env = createEnv({
     PORT: z.coerce.number().default(4001),
     DATABASE_URL: z.url(),
     SENTRY_DSN: z.url().optional(),
+    SENTRY_RELEASE: z.string().min(1).optional(),
     SENTRY_AUTH_TOKEN: z.string().min(1).optional(),
 
     // Better Auth
@@ -63,9 +65,11 @@ export const env = createEnv({
     VITE_SENTRY_DSN: process.env.VITE_SENTRY_DSN,
     VITE_SENTRY_ORG: process.env.VITE_SENTRY_ORG,
     VITE_SENTRY_PROJECT: process.env.VITE_SENTRY_PROJECT,
+    VITE_SENTRY_RELEASE: process.env.VITE_SENTRY_RELEASE,
     VITE_GOOGLE_MAPS_API_KEY: process.env.VITE_GOOGLE_MAPS_API_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
     SENTRY_DSN: process.env.SENTRY_DSN,
+    SENTRY_RELEASE: process.env.SENTRY_RELEASE,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
 
     // Better Auth

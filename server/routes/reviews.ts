@@ -14,12 +14,14 @@ import postgres from "postgres";
 
 import { user } from "#server/database/auth";
 import { business } from "#server/database/business";
+import { reviewLike } from "#server/database/likes";
 import { listing } from "#server/database/listing";
 import { review } from "#server/database/reviews";
-import { requireVerified } from "#server/lib/auth-middleware";
+import { requireVerified, resolveAuth } from "#server/lib/auth-middleware";
 import { db } from "#server/lib/db";
 import { HttpError, onValidationError } from "#server/lib/errors";
 import { errorEnvelopeSchema } from "#shared/contracts/error";
+import { likeActionResponseSchema } from "#shared/contracts/likes";
 import {
   createReviewSchema,
   reviewItemSchema,
@@ -179,6 +181,8 @@ async function insertReview(
     rating: body.rating,
     content: body.content,
     author,
+    likeCount: 0,
+    isLiked: false,
     createdAt: now,
     updatedAt: now,
   };
@@ -186,7 +190,8 @@ async function insertReview(
 
 async function fetchBusinessReviews(
   businessId: string,
-  query: ReviewsQuery
+  query: ReviewsQuery,
+  actorUserId?: string
 ): Promise<ReviewsResponse> {
   const bizRows = await db
     .select({ id: business.id })
@@ -227,6 +232,10 @@ async function fetchBusinessReviews(
       authorId: user.id,
       authorDisplayName: user.name,
       authorAvatarUrl: user.image,
+      likeCount: sql<number>`(select count(*)::int from ${reviewLike} where ${reviewLike.reviewId} = ${review.id})`,
+      isLiked: actorUserId
+        ? sql<boolean>`exists(select 1 from ${reviewLike} where ${reviewLike.reviewId} = ${review.id} and ${reviewLike.userId} = ${actorUserId})`
+        : sql<boolean>`false`,
     })
     .from(review)
     .innerJoin(user, eq(review.userId, user.id))
@@ -246,6 +255,8 @@ async function fetchBusinessReviews(
       displayName: r.authorDisplayName,
       avatarUrl: r.authorAvatarUrl,
     },
+    likeCount: r.likeCount,
+    isLiked: r.isLiked,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   }));
@@ -292,6 +303,15 @@ async function modifyReview(id: string, body: UpdateReview, userId: string): Pro
     throw err;
   }
 
+  const [likeRow] = await db
+    .select({
+      likeCount: sql<number>`(select count(*)::int from ${reviewLike} where ${reviewLike.reviewId} = ${id})`,
+      isLiked: sql<boolean>`exists(select 1 from ${reviewLike} where ${reviewLike.reviewId} = ${id} and ${reviewLike.userId} = ${userId})`,
+    })
+    .from(review)
+    .where(eq(review.id, id))
+    .limit(1);
+
   const author = await getAuthorProfile(userId);
   return {
     id: existing.id,
@@ -300,6 +320,8 @@ async function modifyReview(id: string, body: UpdateReview, userId: string): Pro
     rating: body.rating ?? existing.rating,
     content: body.content ?? existing.content,
     author,
+    likeCount: likeRow.likeCount,
+    isLiked: likeRow.isLiked,
     createdAt: existing.createdAt,
     updatedAt: now,
   };
@@ -325,7 +347,8 @@ async function removeReview(id: string, actor: AuthContext): Promise<void> {
 
 async function fetchUserReviews(
   targetUserId: string,
-  query: ReviewsQuery
+  query: ReviewsQuery,
+  actorUserId?: string
 ): Promise<ReviewsResponse> {
   const targetUserRows = await db
     .select({ id: user.id, displayName: user.name, avatarUrl: user.image })
@@ -357,6 +380,10 @@ async function fetchUserReviews(
       updatedAt: review.updatedAt,
       businessName: listing.name,
       businessCategory: listing.category,
+      likeCount: sql<number>`(select count(*)::int from ${reviewLike} where ${reviewLike.reviewId} = ${review.id})`,
+      isLiked: actorUserId
+        ? sql<boolean>`exists(select 1 from ${reviewLike} where ${reviewLike.reviewId} = ${review.id} and ${reviewLike.userId} = ${actorUserId})`
+        : sql<boolean>`false`,
     })
     .from(review)
     .leftJoin(listing, eq(review.businessId, listing.businessId))
@@ -377,6 +404,8 @@ async function fetchUserReviews(
       name: r.businessName ?? "Business",
       category: r.businessCategory ?? undefined,
     },
+    likeCount: r.likeCount,
+    isLiked: r.isLiked,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
   }));
@@ -387,6 +416,64 @@ async function fetchUserReviews(
   return {
     items,
     nextCursor,
+  };
+}
+
+async function likeReview(reviewId: string, userId: string) {
+  const reviewRows = await db
+    .select({ id: review.id })
+    .from(review)
+    .where(eq(review.id, reviewId))
+    .limit(1);
+
+  if (reviewRows.length === 0) {
+    throw new HttpError(404, "not_found", "Review not found");
+  }
+
+  await db
+    .insert(reviewLike)
+    .values({
+      userId,
+      reviewId,
+    })
+    .onConflictDoNothing();
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(reviewLike)
+    .where(eq(reviewLike.reviewId, reviewId));
+
+  return {
+    status: "liked" as const,
+    liked: true,
+    likeCount: countRow.count,
+  };
+}
+
+async function unlikeReview(reviewId: string, userId: string) {
+  const reviewRows = await db
+    .select({ id: review.id })
+    .from(review)
+    .where(eq(review.id, reviewId))
+    .limit(1);
+
+  if (reviewRows.length === 0) {
+    throw new HttpError(404, "not_found", "Review not found");
+  }
+
+  await db
+    .delete(reviewLike)
+    .where(and(eq(reviewLike.userId, userId), eq(reviewLike.reviewId, reviewId)));
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(reviewLike)
+    .where(eq(reviewLike.reviewId, reviewId));
+
+  return {
+    status: "unliked" as const,
+    liked: false,
+    likeCount: countRow.count,
   };
 }
 
@@ -422,6 +509,7 @@ export const reviewsRoutes = new Hono()
   )
   .get(
     "/businesses/:id/reviews",
+    resolveAuth,
     describeRoute({
       operationId: "getBusinessReviews",
       tags: ["reviews"],
@@ -440,7 +528,8 @@ export const reviewsRoutes = new Hono()
     async c => {
       const { id: businessId } = c.req.param();
       const query = c.req.valid("query");
-      const result = await fetchBusinessReviews(businessId, query);
+      const actor = c.get("auth");
+      const result = await fetchBusinessReviews(businessId, query, actor?.userId);
       return c.json(result);
     }
   )
@@ -498,8 +587,61 @@ export const reviewsRoutes = new Hono()
       return c.body(null, 204);
     }
   )
+  .post(
+    "/reviews/:id/like",
+    requireVerified,
+    describeRoute({
+      operationId: "likeReview",
+      tags: ["reviews"],
+      summary: "Like a Review",
+      description: "Idempotently endorses a review. Requires a verified User.",
+      responses: {
+        200: {
+          description: "Review liked successfully",
+          content: { "application/json": { schema: resolver(likeActionResponseSchema) } },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+      const result = await likeReview(id, actor.userId);
+      return c.json(result);
+    }
+  )
+  .delete(
+    "/reviews/:id/like",
+    requireVerified,
+    describeRoute({
+      operationId: "unlikeReview",
+      tags: ["reviews"],
+      summary: "Unlike a Review",
+      description: "Idempotently removes endorsement for a review. Requires a verified User.",
+      responses: {
+        200: {
+          description: "Review unliked successfully",
+          content: { "application/json": { schema: resolver(likeActionResponseSchema) } },
+        },
+        ...authenticatedErrorResponses,
+      },
+    }),
+    async c => {
+      const { id } = c.req.param();
+      const actor = c.get("auth");
+      if (!actor) {
+        throw new HttpError(401, "unauthorized", "Authentication required");
+      }
+      const result = await unlikeReview(id, actor.userId);
+      return c.json(result);
+    }
+  )
   .get(
     "/users/:id/reviews",
+    resolveAuth,
     describeRoute({
       operationId: "getUserReviews",
       tags: ["reviews"],
@@ -517,7 +659,8 @@ export const reviewsRoutes = new Hono()
     async c => {
       const { id: targetUserId } = c.req.param();
       const query = c.req.valid("query");
-      const result = await fetchUserReviews(targetUserId, query);
+      const actor = c.get("auth");
+      const result = await fetchUserReviews(targetUserId, query, actor?.userId);
       return c.json(result);
     }
   );

@@ -1,6 +1,6 @@
 import type { SQL } from "drizzle-orm";
 
-import { isNull } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { index, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
@@ -23,6 +23,7 @@ export const forumPost = pgTable(
     title: varchar("title", { length: 200 }).notNull(),
     body: text("body").notNull(),
     deletedAt: timestamp("deleted_at"),
+    moderatedAt: timestamp("moderated_at"),
     createdAt: timestamp("created_at")
       .$defaultFn(() => new Date())
       .notNull(),
@@ -50,6 +51,7 @@ export const forumReply = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
     deletedAt: timestamp("deleted_at"),
+    moderatedAt: timestamp("moderated_at"),
     createdAt: timestamp("created_at")
       .$defaultFn(() => new Date())
       .notNull(),
@@ -63,15 +65,44 @@ export const forumReply = pgTable(
   ]
 );
 
+export const forumModerationAudit = pgTable(
+  "forum_moderation_audit",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    targetType: varchar("target_type", { length: 16 }).$type<"post" | "reply">().notNull(),
+    targetId: text("target_id").notNull(),
+    actorId: text("actor_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    reason: text("reason").notNull(),
+    originalTitle: varchar("original_title", { length: 200 }),
+    originalBody: text("original_body").notNull(),
+    originalAuthorId: text("original_author_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at")
+      .$defaultFn(() => new Date())
+      .notNull(),
+  },
+  table => [
+    index("forum_moderation_audit_target_idx").on(table.targetType, table.targetId),
+    index("forum_moderation_audit_actor_idx").on(table.actorId),
+  ]
+);
+
 export type ForumPostRow = typeof forumPost.$inferSelect;
 export type NewForumPostRow = typeof forumPost.$inferInsert;
 export type ForumReplyRow = typeof forumReply.$inferSelect;
 export type NewForumReplyRow = typeof forumReply.$inferInsert;
+export type ForumModerationAuditRow = typeof forumModerationAudit.$inferSelect;
+export type NewForumModerationAuditRow = typeof forumModerationAudit.$inferInsert;
 
 // The single public-visibility boundary for Forum content. Every public read
 // path must route through these predicates: a path that forgets them
-// republishes soft-deleted content. The administrator moderation slice
-// (PRS-194) extends these predicates with its moderation state columns, so
-// the filter stays in exactly one place.
-export const publiclyVisiblePost = (t: typeof forumPost = forumPost): SQL => isNull(t.deletedAt);
-export const publiclyVisibleReply = (t: typeof forumReply = forumReply): SQL => isNull(t.deletedAt);
+// republishes soft-deleted or moderated content.
+export const publiclyVisiblePost = (t: typeof forumPost = forumPost): SQL =>
+  sql`${t.deletedAt} is null and ${t.moderatedAt} is null`;
+export const publiclyVisibleReply = (t: typeof forumReply = forumReply): SQL =>
+  sql`${t.deletedAt} is null and ${t.moderatedAt} is null`;

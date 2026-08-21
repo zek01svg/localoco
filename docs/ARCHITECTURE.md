@@ -253,11 +253,20 @@ Observability is built-in across both client and server tiers:
                                       └────────────────────┘
 ```
 
-- **Structured Logging**: Powered by **Logtape** (`shared/logger.ts`), operating synchronously or asynchronously with custom log sinks.
-- **Error & Performance Tracking**: Powered by **Sentry**:
-  - `@sentry/bun` instruments the Hono backend server, capturing uncaught exceptions and tracing HTTP requests via `Sentry.honoIntegration()`.
-  - `@sentry/react` instruments client-side rendering errors and performance metrics.
-  - `@sentry/vite-plugin` uploads source maps automatically during production builds when Sentry environment variables are provided.
+- **Single Observability Vendor**: Sentry is the sole deliberately operated application monitoring stack.
+- **Structured Logging**: Powered by **Logtape** (`shared/logger.ts`), operating synchronously or asynchronously with custom log sinks (Console sink in dev/prod, and `@logtape/sentry` sink for breadcrumbs/events).
+- **Backend Telemetry (`@sentry/bun`)**: Instruments the Bun/Hono server, capturing uncaught exceptions, tracing HTTP requests and database queries, and attaching per-request correlated `requestId` isolation tags.
+- **Frontend Telemetry (`@sentry/react`)**: Instruments client-side routing and performance with `tanstackRouterBrowserTracingIntegration(router)` and captures runtime rendering errors.
+- **Privacy-Preserving Session Replay**: Captured strictly on error (`replaysOnErrorSampleRate: 1.0`, `replaysSessionSampleRate: 0.0`) with aggressive content masking (`maskAllText: true`, `blockAllMedia: true`, `maskAllInputs: true`, no request bodies captured).
+- **Sampling & Free Tier Budget Guardrails**:
+  - Production tracing sampled at 10% (`tracesSampleRate: 0.1`) to prevent overage.
+  - Automatic paid overage disabled in Sentry project settings (hard quota).
+  - Non-actionable expected 4xx HTTP responses (`HttpError` validation/auth errors) are filtered out of error tracking.
+- **Actionable Alerts**: Sentry alert policies configured for conditions requiring operator intervention:
+  1. Unhandled 500 server error spikes (>5 events / 5 min).
+  2. Frontend React unhandled crash spikes.
+  3. Error rate regression on new immutable release versions.
+- **Release Tracking & Source Maps**: `@sentry/vite-plugin` uploads source maps automatically during production builds with unified immutable release identifiers (`resolveRelease()`).
 
 ---
 

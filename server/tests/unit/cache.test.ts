@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getOrSetCache } from "#server/lib/cache";
+import { deleteCacheKeys, getOrSetCache } from "#server/lib/cache";
 
 const mockGet = vi.fn<(_key: string) => Promise<unknown>>();
 const mockSet =
   vi.fn<(_key: string, _value: unknown, _options?: { ex?: number }) => Promise<unknown>>();
+const mockDel = vi.fn<(..._keys: string[]) => Promise<number>>();
 
 vi.mock("#server/lib/redis", () => ({
   redis: {
     get: (key: string) => mockGet(key),
     set: (key: string, value: unknown, options?: { ex?: number }) => mockSet(key, value, options),
+    del: (...keys: string[]) => mockDel(...keys),
   },
 }));
 
@@ -95,5 +97,32 @@ describe("getOrSetCache error resilience", () => {
 
     expect(result).toEqual(freshData);
     expect(fetcher).toHaveBeenCalledOnce();
+  });
+});
+
+describe("deleteCacheKeys operations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("calls redis.del with provided keys", async () => {
+    mockDel.mockResolvedValueOnce(2);
+
+    await deleteCacheKeys("forum:post:1", "forum:feed:first:20");
+
+    expect(mockDel).toHaveBeenCalledWith("forum:post:1", "forum:feed:first:20");
+  });
+
+  it("does nothing when empty keys list provided", async () => {
+    await deleteCacheKeys();
+
+    expect(mockDel).not.toHaveBeenCalled();
+  });
+
+  it("handles redis.del errors gracefully without throwing", async () => {
+    mockDel.mockRejectedValueOnce(new Error("Redis del timeout"));
+
+    await expect(deleteCacheKeys("forum:post:1")).resolves.toBeUndefined();
+    expect(mockDel).toHaveBeenCalledWith("forum:post:1");
   });
 });

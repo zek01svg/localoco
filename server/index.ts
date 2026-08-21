@@ -14,8 +14,10 @@ import {
   publicRateLimit,
 } from "#server/lib";
 import {
+  announcementsRoutes,
   bookmarksRoutes,
   businessesRoutes,
+  eventsRoutes,
   forumRoutes,
   healthRoutes,
   listingsRoutes,
@@ -34,7 +36,7 @@ initSentry();
 configureAppLogging({
   runtime: "server",
   isDevelopment: env.NODE_ENV === "development",
-  enableSentrySink: Boolean(env.SENTRY_DSN ?? env.VITE_SENTRY_DSN),
+  enableSentrySink: Boolean(env.SENTRY_DSN),
 });
 
 const logger = getAppLogger("server", "http");
@@ -103,6 +105,8 @@ const apiRoutes = new Hono()
   .use("*", publicRateLimit)
   .route("/", listingsRoutes)
   .route("/", businessesRoutes)
+  .route("/", announcementsRoutes)
+  .route("/", eventsRoutes)
   .route("/", forumRoutes)
   .route("/", bookmarksRoutes)
   .route("/", mediaRoutes)
@@ -119,7 +123,10 @@ const app = new Hono<AppEnv>()
     const requestId = crypto.randomUUID();
     c.set("requestId", requestId);
     c.header("X-Request-Id", requestId);
-    await next();
+    await Sentry.withIsolationScope(async scope => {
+      scope.setTag("requestId", requestId);
+      await next();
+    });
   })
   .route("/api", apiRoutes)
   .route("/", healthRoutes);
@@ -149,19 +156,22 @@ app.route("/", baseRoutes);
 app.onError(
   createErrorHandler({
     logger,
-    captureException:
-      (env.SENTRY_DSN ?? env.VITE_SENTRY_DSN) ? e => Sentry.captureException(e) : undefined,
+    captureException: (e: unknown) => {
+      Sentry.captureException(e);
+    },
   })
 );
 
 const server = {
   port: env.PORT,
+  hostname: "0.0.0.0",
   fetch: app.fetch,
 };
 
 getAppLogger("server", "bootstrap").info("Server Started", {
   port: server.port,
-  sentryEnabled: Boolean(env.SENTRY_DSN ?? env.VITE_SENTRY_DSN),
+  hostname: server.hostname,
+  sentryEnabled: Boolean(env.SENTRY_DSN),
 });
 
 export { app, server };

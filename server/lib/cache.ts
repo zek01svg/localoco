@@ -31,3 +31,15 @@ export async function getOrSetCache<T>(
 
   return fresh;
 }
+
+export async function deleteCacheKeys(...keys: string[]): Promise<void> {
+  if (!redis || keys.length === 0) {
+    return;
+  }
+
+  try {
+    await redis.del(...keys);
+  } catch (err) {
+    logger.warning("cache.del_failed", { keys, error: String(err) });
+  }
+}

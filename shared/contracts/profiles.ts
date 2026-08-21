@@ -51,3 +51,28 @@ export const emailChangeResponseSchema = z.object({
   status: z.literal("confirmation_sent"),
 });
 export type EmailChangeResponse = z.infer<typeof emailChangeResponseSchema>;
+
+// Deletion preview: counts of owned Listings, authored contributions, affected
+// Forum posts, and third-party Replies destroyed if the User's account is
+// permanently deleted.
+export const deletionPreviewSchema = z.object({
+  ownedListings: z.number().int().nonnegative(),
+  authoredContributions: z.number().int().nonnegative(),
+  affectedForumPosts: z.number().int().nonnegative(),
+  thirdPartyReplies: z.number().int().nonnegative(),
+});
+export type DeletionPreview = z.infer<typeof deletionPreviewSchema>;
+
+// Explicit destructive confirmation payload requiring password reauthentication
+// and typing "DELETE".
+export const accountDeletionSchema = z.object({
+  password: z.string().min(1, "Password is required for reauthentication"),
+  confirmation: z.literal("DELETE"),
+});
+export type AccountDeletion = z.infer<typeof accountDeletionSchema>;
+
+export const accountDeletionResponseSchema = z.object({
+  status: z.literal("account_deleted"),
+  deletedAt: z.coerce.date(),
+});
+export type AccountDeletionResponse = z.infer<typeof accountDeletionResponseSchema>;

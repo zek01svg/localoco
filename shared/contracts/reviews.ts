@@ -54,6 +54,8 @@ export const reviewItemSchema = z.object({
   content: z.string(),
   author: reviewAuthorSchema,
   business: businessReferenceSchema.optional(),
+  likeCount: z.number().int().min(0).default(0),
+  isLiked: z.boolean().default(false),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

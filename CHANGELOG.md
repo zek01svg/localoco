@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2026-08-21
+
+### Added
+
+- **Likes** (PRS-193): idempotent likes on reviews, forum posts, and replies with `likeCount`/`isLiked` batched via SQL and `LikeButton` UI with optimistic updates.
+- **Announcements** (PRS-185): business announcements for published listings — 8 routes (`GET /announcements`, `GET /announcements/:id`, `POST /businesses/:id/announcements`, `GET /businesses/:id/announcements`, `PATCH`, `DELETE`, `POST /announcements/:id/moderate`, `GET /announcements/:id/audits`) with `announcement_visibility_dates_check`, `publiclyVisibleAnnouncement` predicate, and zero email side-effect.
+- **Events** (PRS-192): business events with mandatory `startsAt`/`endsAt` (`event_time_bounds_check` + `endsAt < startsAt` 400), `publiclyVisibleEvent`, moderation/restore with audit, and Schema.org `Event` structured data.
+- **Forum moderation** (PRS-194): administrator moderation of forum posts/replies (`moderatedAt` + immutable `forum_moderation_audit`, `FOR UPDATE` transactions, `includeDeleted` admin-only, audit endpoints).
+- **Account deletion** (PRS-197): `GET /profile/deletion-preview` (owned listings / authored contributions / affected forum posts / third-party replies) and `DELETE /profile` / `POST /profile/delete` with password + `DELETE` confirmation, session revocation, R2 `deleteObject` (`Promise.allSettled`), and single-transaction FK cascade hard-delete.
+- **Production seed** (PRS-198): standalone `scripts/seed.ts` (`bun run db:seed`) — single transaction, deterministic UUIDs, `onConflictDoNothing`, 6 synthetic users, zero `account`/`session` rows.
+- **Observability & infra**: Sentry release tracking via `shared/release.ts` (`resolveRelease`), server `Sentry.withIsolationScope` + `requestId` tag, client `tanstackRouterBrowserTracingIntegration` + privacy-preserving replay; `infra/maps.tf` least-privilege API keys + referrers + `geocoding_request_rate` alert, `infra/iam.tf` roles, and `Dockerfile.local` migrations-before-startup.
+
+### Changed
+
+- Legacy application removed (`legacy/` deleted) — rewrite spine is now the sole product.
+- Development E2E coverage expanded with auth, discovery, listing, forum, profile, and business flows.
+- Infra: Google Maps credentials, alert policies, and local referrers configured.
+
+### Fixed
+
+- Announcements `PATCH` now merges persisted dates and returns `400 invalid_request` when `endsAt < startsAt` (previously hit DB check as 500).
+- Listing detail open-now badge contrast fixed (`bg-emerald-600` → `bg-emerald-800`) to pass WCAG AA.
+- QStash loopback handling, Bun 1.4 dependency repair, and typecheck fixes.
+
 ## [2.1.0] - 2026-08-19
 
 ### Added

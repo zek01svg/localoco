@@ -1,14 +1,17 @@
 import * as Sentry from "@sentry/bun";
 
 import { env } from "#server/env";
+import { resolveRelease } from "#shared/release.ts";
 
-const sentryDsn = env.SENTRY_DSN ?? env.VITE_SENTRY_DSN;
-export function initSentry() {
-  if (sentryDsn) {
-    Sentry.init({
-      dsn: sentryDsn,
-      environment: env.NODE_ENV,
-      tracesSampleRate: env.NODE_ENV === "development" ? 1 : 0.2,
-    });
+export function initSentry(): void {
+  if (typeof Bun === "undefined" || !env.SENTRY_DSN) {
+    return;
   }
+
+  Sentry.init({
+    dsn: env.SENTRY_DSN,
+    environment: env.NODE_ENV,
+    release: resolveRelease(env.SENTRY_RELEASE ?? env.VITE_SENTRY_RELEASE),
+    tracesSampleRate: env.NODE_ENV === "development" ? 1.0 : 0.1,
+  });
 }

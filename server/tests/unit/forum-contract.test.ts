@@ -5,11 +5,14 @@ import {
   createForumReplySchema,
   forumBodySchema,
   forumFeedResponseSchema,
+  forumModerationAuditItemSchema,
+  forumModerationAuditsResponseSchema,
   forumPostItemSchema,
   forumQuerySchema,
   forumRepliesResponseSchema,
   forumReplyItemSchema,
   forumTitleSchema,
+  moderateForumContentSchema,
   updateForumPostSchema,
   updateForumReplySchema,
 } from "#shared/contracts/forum";
@@ -136,6 +139,7 @@ describe("forumPostItemSchema", () => {
       business: { id: "biz_1", name: "Tanjong Pagar Bakery", category: "Cafe" },
       replyCount: 3,
       deletedAt: null,
+      moderatedAt: null,
       createdAt: "2026-08-19T00:00:00.000Z",
       updatedAt: "2026-08-19T00:00:00.000Z",
     });
@@ -144,6 +148,7 @@ describe("forumPostItemSchema", () => {
     expect(item.updatedAt).toBeInstanceOf(Date);
     expect(item.replyCount).toBe(3);
     expect(item.deletedAt).toBeNull();
+    expect(item.moderatedAt).toBeNull();
   });
 
   it("accepts a business reference without a category", () => {
@@ -157,10 +162,12 @@ describe("forumPostItemSchema", () => {
       business: { id: "biz_2", name: "Some Shop" },
       replyCount: 0,
       deletedAt: null,
+      moderatedAt: null,
       createdAt: "2026-08-19T00:00:00.000Z",
       updatedAt: "2026-08-19T00:00:00.000Z",
     });
     expect(item.business.category).toBeUndefined();
+    expect(item.moderatedAt).toBeNull();
   });
 });
 
@@ -173,12 +180,14 @@ describe("forumReplyItemSchema", () => {
       body: "Usually packed after 11am.",
       author: { id: "usr_2", displayName: "Ben Lim", avatarUrl: null },
       deletedAt: null,
+      moderatedAt: null,
       createdAt: "2026-08-19T01:00:00.000Z",
       updatedAt: "2026-08-19T01:00:00.000Z",
     });
     expect(item.createdAt).toBeInstanceOf(Date);
     expect(item.postId).toBe("post_1");
     expect(item.deletedAt).toBeNull();
+    expect(item.moderatedAt).toBeNull();
   });
 
   it("accepts a non-null deletedAt for administrator reads", () => {
@@ -189,10 +198,12 @@ describe("forumReplyItemSchema", () => {
       body: "Gone",
       author: { id: "usr_2", displayName: "Ben Lim", avatarUrl: null },
       deletedAt: "2026-08-19T02:00:00.000Z",
+      moderatedAt: null,
       createdAt: "2026-08-19T01:00:00.000Z",
       updatedAt: "2026-08-19T01:00:00.000Z",
     });
     expect(item.deletedAt).toBeInstanceOf(Date);
+    expect(item.moderatedAt).toBeNull();
   });
 });
 
@@ -210,5 +221,137 @@ describe("forumFeedResponseSchema & forumRepliesResponseSchema", () => {
     });
     expect(replies.items).toEqual([]);
     expect(replies.nextCursor).toBeNull();
+  });
+});
+
+describe("moderateForumContentSchema", () => {
+  it("accepts a non-empty reason up to 1000 characters", () => {
+    const parsed = moderateForumContentSchema.parse({
+      reason: "Abusive language and harassment",
+    });
+    expect(parsed.reason).toBe("Abusive language and harassment");
+  });
+
+  it("trims whitespace from reason", () => {
+    const parsed = moderateForumContentSchema.parse({
+      reason: "   Spam content   ",
+    });
+    expect(parsed.reason).toBe("Spam content");
+  });
+
+  it("rejects missing, empty, or whitespace-only reason", () => {
+    expect(moderateForumContentSchema.safeParse({}).success).toBe(false);
+    expect(moderateForumContentSchema.safeParse({ reason: "" }).success).toBe(false);
+    expect(moderateForumContentSchema.safeParse({ reason: "   " }).success).toBe(false);
+  });
+
+  it("rejects reasons longer than 1000 characters", () => {
+    expect(moderateForumContentSchema.safeParse({ reason: "a".repeat(1001) }).success).toBe(false);
+  });
+});
+
+describe("forumModerationAuditItemSchema & forumModerationAuditsResponseSchema", () => {
+  it("parses post moderation audit item", () => {
+    const item = forumModerationAuditItemSchema.parse({
+      id: "audit_1",
+      targetType: "post",
+      targetId: "post_1",
+      actorId: "admin_1",
+      reason: "Violates community guidelines",
+      originalTitle: "Abusive title",
+      originalBody: "Abusive body",
+      originalAuthorId: "usr_1",
+      createdAt: "2026-08-19T03:00:00.000Z",
+    });
+    expect(item.id).toBe("audit_1");
+    expect(item.targetType).toBe("post");
+    expect(item.createdAt).toBeInstanceOf(Date);
+  });
+
+  it("parses reply moderation audit item with null originalTitle", () => {
+    const item = forumModerationAuditItemSchema.parse({
+      id: "audit_2",
+      targetType: "reply",
+      targetId: "reply_1",
+      actorId: "admin_1",
+      reason: "Harassment",
+      originalTitle: null,
+      originalBody: "Offensive reply text",
+      originalAuthorId: "usr_2",
+      createdAt: "2026-08-19T03:30:00.000Z",
+    });
+    expect(item.targetType).toBe("reply");
+    expect(item.originalTitle).toBeNull();
+  });
+
+  it("parses moderation audits response", () => {
+    const res = forumModerationAuditsResponseSchema.parse({
+      items: [
+        {
+          id: "audit_1",
+          targetType: "post",
+          targetId: "post_1",
+          actorId: "admin_1",
+          reason: "Violates guidelines",
+          originalBody: "Offensive body",
+          originalAuthorId: "usr_1",
+          createdAt: "2026-08-19T03:00:00.000Z",
+        },
+      ],
+    });
+    expect(res.items).toHaveLength(1);
+  });
+});
+
+describe("forumPostItemSchema and forumReplyItemSchema with moderatedAt", () => {
+  it("accepts null moderatedAt on active or soft-deleted posts", () => {
+    const item = forumPostItemSchema.parse({
+      id: "post_1",
+      businessId: "biz_1",
+      userId: "usr_1",
+      title: "Title",
+      body: "Body",
+      author: { id: "usr_1", displayName: "Alice Tan", avatarUrl: null },
+      business: { id: "biz_1", name: "Shop" },
+      replyCount: 0,
+      deletedAt: null,
+      moderatedAt: null,
+      createdAt: "2026-08-19T00:00:00.000Z",
+      updatedAt: "2026-08-19T00:00:00.000Z",
+    });
+    expect(item.moderatedAt).toBeNull();
+  });
+
+  it("accepts non-null moderatedAt on moderated posts", () => {
+    const item = forumPostItemSchema.parse({
+      id: "post_1",
+      businessId: "biz_1",
+      userId: "usr_1",
+      title: "Title",
+      body: "Body",
+      author: { id: "usr_1", displayName: "Alice Tan", avatarUrl: null },
+      business: { id: "biz_1", name: "Shop" },
+      replyCount: 0,
+      deletedAt: null,
+      moderatedAt: "2026-08-19T02:00:00.000Z",
+      createdAt: "2026-08-19T00:00:00.000Z",
+      updatedAt: "2026-08-19T02:00:00.000Z",
+    });
+    expect(item.moderatedAt).toBeInstanceOf(Date);
+  });
+
+  it("accepts non-null moderatedAt on moderated replies", () => {
+    const item = forumReplyItemSchema.parse({
+      id: "reply_1",
+      postId: "post_1",
+      userId: "usr_1",
+      body: "Body",
+      author: { id: "usr_1", displayName: "Alice Tan", avatarUrl: null },
+      deletedAt: null,
+      moderatedAt: "2026-08-19T02:00:00.000Z",
+      createdAt: "2026-08-19T00:00:00.000Z",
+      updatedAt: "2026-08-19T02:00:00.000Z",
+    });
+    expect(item.moderatedAt).toBeInstanceOf(Date);
   });
 });

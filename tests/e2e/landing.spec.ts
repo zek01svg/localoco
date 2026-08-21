@@ -1,4 +1,4 @@
-import AxeBuilder from "@axe-core/playwright";
+import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 test.describe("LocaLoco landing page", () => {
@@ -36,5 +36,20 @@ test.describe("LocaLoco landing page", () => {
     await page.keyboard.press("Enter");
 
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Find local gems");
+  });
+
+  test("exposes primary navigation links for discovery flows", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.getByRole("link", { name: "Why LocaLoco" })).toHaveAttribute("href", "#why");
+    await expect(page.getByRole("link", { name: "How it works" })).toHaveAttribute("href", "#how");
+    await expect(page.getByRole("link", { name: "Browse businesses" })).toHaveAttribute(
+      "href",
+      "/listings"
+    );
+    await expect(page.getByRole("link", { name: "Community forum" })).toHaveAttribute(
+      "href",
+      "/forum"
+    );
   });
 });

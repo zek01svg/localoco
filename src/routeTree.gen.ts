@@ -16,8 +16,10 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as AnnouncementsIdRouteImport } from './routes/announcements.$id'
 import { Route as BusinessesIdRouteImport } from './routes/businesses.$id'
 import { Route as BusinessesNewRouteImport } from './routes/businesses.new'
+import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as ForumIndexRouteImport } from './routes/forum.index'
 import { Route as ForumPostIdRouteImport } from './routes/forum.$postId'
 import { Route as ListingsIndexRouteImport } from './routes/listings.index'
@@ -59,6 +61,11 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
   path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnnouncementsIdRoute = AnnouncementsIdRouteImport.update({
+  id: '/announcements/$id',
+  path: '/announcements/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BusinessesIdRoute = BusinessesIdRouteImport.update({
   id: '/businesses/$id',
   path: '/businesses/$id',
@@ -67,6 +74,11 @@ const BusinessesIdRoute = BusinessesIdRouteImport.update({
 const BusinessesNewRoute = BusinessesNewRouteImport.update({
   id: '/businesses/new',
   path: '/businesses/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsIdRoute = EventsIdRouteImport.update({
+  id: '/events/$id',
+  path: '/events/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForumIndexRoute = ForumIndexRouteImport.update({
@@ -103,8 +115,10 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/events/$id': typeof EventsIdRoute
   '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
@@ -119,8 +133,10 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/events/$id': typeof EventsIdRoute
   '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
@@ -136,8 +152,10 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/announcements/$id': typeof AnnouncementsIdRoute
   '/businesses/$id': typeof BusinessesIdRoute
   '/businesses/new': typeof BusinessesNewRoute
+  '/events/$id': typeof EventsIdRoute
   '/forum/$postId': typeof ForumPostIdRoute
   '/listings/$id': typeof ListingsIdRoute
   '/users/$id': typeof UsersIdRoute
@@ -154,8 +172,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/events/$id'
     | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
@@ -170,8 +190,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/events/$id'
     | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
@@ -186,8 +208,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/verify-email'
+    | '/announcements/$id'
     | '/businesses/$id'
     | '/businesses/new'
+    | '/events/$id'
     | '/forum/$postId'
     | '/listings/$id'
     | '/users/$id'
@@ -203,8 +227,10 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  AnnouncementsIdRoute: typeof AnnouncementsIdRoute
   BusinessesIdRoute: typeof BusinessesIdRoute
   BusinessesNewRoute: typeof BusinessesNewRoute
+  EventsIdRoute: typeof EventsIdRoute
   ForumPostIdRoute: typeof ForumPostIdRoute
   ListingsIdRoute: typeof ListingsIdRoute
   UsersIdRoute: typeof UsersIdRoute
@@ -263,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/announcements/$id': {
+      id: '/announcements/$id'
+      path: '/announcements/$id'
+      fullPath: '/announcements/$id'
+      preLoaderRoute: typeof AnnouncementsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/businesses/$id': {
       id: '/businesses/$id'
       path: '/businesses/$id'
@@ -275,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/businesses/new'
       fullPath: '/businesses/new'
       preLoaderRoute: typeof BusinessesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events/$id': {
+      id: '/events/$id'
+      path: '/events/$id'
+      fullPath: '/events/$id'
+      preLoaderRoute: typeof EventsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forum/': {
@@ -323,8 +363,10 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  AnnouncementsIdRoute: AnnouncementsIdRoute,
   BusinessesIdRoute: BusinessesIdRoute,
   BusinessesNewRoute: BusinessesNewRoute,
+  EventsIdRoute: EventsIdRoute,
   ForumPostIdRoute: ForumPostIdRoute,
   ListingsIdRoute: ListingsIdRoute,
   UsersIdRoute: UsersIdRoute,

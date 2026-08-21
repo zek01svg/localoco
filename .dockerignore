@@ -27,7 +27,6 @@ CONTEXT.md
 README.md
 CHANGELOG.md
 components.json
-drizzle.config.ts
 playwright.config.ts
 .gitattributes
 .gitignore

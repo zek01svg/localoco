@@ -2,7 +2,7 @@ import type { Listing } from "#shared/contracts/listings";
 import type { MapBounds } from "./hooks/use-listings";
 
 import { Link } from "@tanstack/react-router";
-import clsx from "clsx";
+import { clsx } from "clsx";
 import { LoaderCircleIcon, MapPinIcon, SearchIcon, XIcon } from "lucide-react";
 import { parseAsBoolean, useQueryState } from "nuqs";
 import React, { Suspense, useEffect, useState } from "react";
