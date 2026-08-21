@@ -6,7 +6,6 @@ import type { TestAppEnv } from "./auth-helpers";
 import type { Context, Hono, Next } from "hono";
 
 import { eq } from "drizzle-orm";
-import { Client } from "pg";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -473,15 +472,14 @@ describe("ownership and uniqueness are re-checked at the write boundary", () => 
       await db.select({ id: user.id }).from(user).where(eq(user.email, "ida.biz@example.com"))
     )[0].id;
 
-    // Swap ownership on a separate connection and hold the row lock while the
+    // Swap ownership on a reserved connection and hold the row lock while the
     // handler's own transaction runs: its authorization read passes under the
     // old ownership, its FOR UPDATE parks on the lock, and after the commit
     // the write predicate is re-evaluated against the new owner.
-    const swapClient = new Client({ connectionString: process.env.DATABASE_URL });
-    await swapClient.connect();
+    const swap = await sql.reserve();
     try {
-      await swapClient.query("BEGIN");
-      await swapClient.query("UPDATE business SET owner_id = $1 WHERE id = $2", [takerId, biz.id]);
+      await swap`begin`;
+      await swap`update business set owner_id = ${takerId} where id = ${biz.id}`;
 
       const patchPromise = testApp.request(`/api/businesses/${biz.id}/listing`, {
         method: "PATCH",
@@ -505,7 +503,7 @@ describe("ownership and uniqueness are re-checked at the write boundary", () => 
       }
       expect(blocked, "handler FOR UPDATE never blocked on the ownership swap").toBe(true);
 
-      await swapClient.query("COMMIT");
+      await swap`commit`;
       const res = await patchPromise;
       expect(res.status).toBe(404);
 
@@ -515,7 +513,7 @@ describe("ownership and uniqueness are re-checked at the write boundary", () => 
         .where(eq(listing.businessId, biz.id));
       expect(row.priceRange).toBeNull();
     } finally {
-      await swapClient.end();
+      swap.release();
     }
   }, 60_000);
 

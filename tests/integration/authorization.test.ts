@@ -7,7 +7,6 @@ import type { TestAppEnv } from "./auth-helpers";
 import type { Context, Hono, MiddlewareHandler, Next } from "hono";
 
 import { eq } from "drizzle-orm";
-import { Client } from "pg";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -308,15 +307,14 @@ describe("concurrency: ownership changes between read and write", () => {
     const bobId = await userId("bob.owner@example.com");
     const [bizC] = await seedBusiness(aliceId, "201800119I");
 
-    // Swap ownership on a separate connection and hold the row lock while
+    // Swap ownership on a reserved connection and hold the row lock while
     // the handler's own transaction runs: its read passes under the old
     // ownership, its UPDATE blocks on the lock, and after the commit the
     // write predicate is re-evaluated against the new owner.
-    const swapClient = new Client({ connectionString: process.env.DATABASE_URL });
-    await swapClient.connect();
+    const swap = await sql.reserve();
     try {
-      await swapClient.query("BEGIN");
-      await swapClient.query(`UPDATE business SET owner_id = $1 WHERE id = $2`, [bobId, bizC.id]);
+      await swap`begin`;
+      await swap`update business set owner_id = ${bobId} where id = ${bizC.id}`;
 
       const patchPromise = patchBusinessUen(bizC.id, aliceCookie);
 
@@ -338,11 +336,11 @@ describe("concurrency: ownership changes between read and write", () => {
       }
       expect(blocked, "handler UPDATE never blocked on the ownership swap").toBe(true);
 
-      await swapClient.query("COMMIT");
+      await swap`commit`;
       const res = await patchPromise;
       expect(res.status).toBe(404);
     } finally {
-      await swapClient.end();
+      swap.release();
     }
 
     const [row] = await db

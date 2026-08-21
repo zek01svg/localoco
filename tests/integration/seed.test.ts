@@ -1,6 +1,5 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { Pool } from "pg";
 import postgres from "postgres";
 import { describe, expect, it } from "vitest";
 
@@ -35,7 +34,6 @@ describe("production seed bootstrap", () => {
 
       const client = postgres(databaseUrl, { max: 5 });
       const testDb = drizzle(client, { schema });
-      const pool = new Pool({ connectionString: databaseUrl });
 
       try {
         // 2. Execute first seed run
@@ -59,10 +57,8 @@ describe("production seed bootstrap", () => {
 
         // 3. Verify row counts in PostgreSQL
         const countTable = async (tableName: string): Promise<number> => {
-          const res = await pool.query<{ count: string }>(
-            `SELECT count(*)::int as count FROM "${tableName}"`
-          );
-          return Number(res.rows[0].count);
+          const [row] = await client.unsafe(`SELECT count(*)::int as count FROM "${tableName}"`);
+          return Number(row.count);
         };
 
         expect(await countTable("user")).toBe(SEED_USERS.length);
@@ -86,57 +82,52 @@ describe("production seed bootstrap", () => {
 
         // 5. Assert Domain & Authorization Invariants:
         // a) No self-reviews: a Business Owner must NEVER review their own Business
-        const selfReviews = await pool.query(
-          `SELECT r.id FROM "review" r
+        const selfReviews = await client`SELECT r.id FROM "review" r
            JOIN "business" b ON r.business_id = b.id
-           WHERE r.user_id = b.owner_id`
-        );
-        expect(selfReviews.rows).toHaveLength(0);
+           WHERE r.user_id = b.owner_id`;
+        expect(selfReviews).toHaveLength(0);
 
         // b) All seeded user emails use reserved non-routable domains (RFC 2606 / RFC 6761)
-        const userEmails = await pool.query<{ email: string }>(`SELECT email FROM "user"`);
-        const invalidUserEmails = userEmails.rows.filter(
+        const userEmails = await client<[{ email: string }]>`SELECT email FROM "user"`;
+        const invalidUserEmails = userEmails.filter(
           row => !/@([a-z0-9.-]+\.)?(example\.com|example\.org|example\.net)$/u.test(row.email)
         );
         expect(invalidUserEmails).toHaveLength(0);
 
         // c) All seeded business contact emails and websites use reserved domains
-        const listingEmails = await pool.query<{ email: string }>(
-          `SELECT email FROM "listing" WHERE email IS NOT NULL`
-        );
-        const invalidListingEmails = listingEmails.rows.filter(
+        const listingEmails = await client<
+          [{ email: string }]
+        >`SELECT email FROM "listing" WHERE email IS NOT NULL`;
+        const invalidListingEmails = listingEmails.filter(
           row => !/@([a-z0-9.-]+\.)?(example\.com|example\.org|example\.net)$/u.test(row.email)
         );
         expect(invalidListingEmails).toHaveLength(0);
 
-        const listingWebsites = await pool.query<{ website: string }>(
-          `SELECT website FROM "listing" WHERE website IS NOT NULL`
-        );
-        const invalidWebsites = listingWebsites.rows.filter(
+        const listingWebsites = await client<
+          [{ website: string }]
+        >`SELECT website FROM "listing" WHERE website IS NOT NULL`;
+        const invalidWebsites = listingWebsites.filter(
           row =>
             !/^https:\/\/[a-z0-9.-]+\.(example\.com|example\.org|example\.net)$/u.test(row.website)
         );
         expect(invalidWebsites).toHaveLength(0);
 
         // d) All seeded listings are in "published" lifecycle state
-        const nonPublishedListings = await pool.query(
-          `SELECT id FROM "listing" WHERE status != 'published'`
-        );
-        expect(nonPublishedListings.rows).toHaveLength(0);
+        const nonPublishedListings =
+          await client`SELECT id FROM "listing" WHERE status != 'published'`;
+        expect(nonPublishedListings).toHaveLength(0);
 
         // e) All seeded events are active and have ends_at >= starts_at in the future
-        const now = new Date();
-        const invalidEvents = await pool.query<{ id: string }>(
-          `SELECT id FROM "event" WHERE status != 'active' OR ends_at < starts_at OR ends_at <= $1`,
-          [now]
-        );
-        expect(invalidEvents.rows).toHaveLength(0);
+        const now = new Date().toISOString();
+        const invalidEvents = await client`SELECT id FROM "event"
+          WHERE status != 'active' OR ends_at < starts_at OR ends_at <= ${now}`;
+        expect(invalidEvents).toHaveLength(0);
 
         // f) All seeded announcements are active with valid date bounds
-        const invalidAnnouncements = await pool.query<{ id: string }>(
-          `SELECT id FROM "announcement" WHERE status != 'active' OR (starts_at IS NOT NULL AND ends_at IS NOT NULL AND ends_at < starts_at)`
-        );
-        expect(invalidAnnouncements.rows).toHaveLength(0);
+        const invalidAnnouncements = await client`SELECT id FROM "announcement"
+          WHERE status != 'active'
+            OR (starts_at IS NOT NULL AND ends_at IS NOT NULL AND ends_at < starts_at)`;
+        expect(invalidAnnouncements).toHaveLength(0);
 
         // 6. Rerun seed script against the already-seeded database and assert exact idempotency (no-op)
         const rerunStats = await runSeed(testDb);
@@ -160,7 +151,6 @@ describe("production seed bootstrap", () => {
         expect(await countTable("session")).toBe(0);
       } finally {
         await client.end();
-        await pool.end();
       }
     } finally {
       await container.stop();
