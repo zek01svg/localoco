@@ -239,10 +239,21 @@ Unavailable` and a `Retry-After` header while the rewrite is in progress;
 
 - Added baseline setup instructions to the README and iterated on them.
 
-## [0.1.0] - Unreleased (no repository history)
+## [0.1.0] - 2025-10-14
 
-The original PHP application predates this repository. Its commit history
-was never migrated here, so no dated changelog entries exist for it — this
-entry is a placeholder marking that an earlier PHP version of LocaLoco
-existed before the 2025-10-24 Express/TypeScript rewrite recorded as
-`1.0.0` above.
+### Added
+
+- **PHP Prototype & MySQL Data Layer**: Initial vanilla PHP application architecture featuring a PDO connection manager (`ConnectionManager.php`), MySQL schema (`script.sql`), and DAO pattern abstractions (`BusinessDAO.php`, `UserDAO.php`).
+- **Business Directory & Discovery**: Listing grid with responsive Bootstrap cards displaying business metadata: category (F&B, Retail, Services, Health/Wellness, etc.), price tier (`$`, `$$`, `$$$`), operating status (open/closed today, 24/7 indicator), full address, delivery/pickup badges, and supported payment options (Cash, Card, PayNow, Digital Wallets).
+- **Search & Filtering Endpoint**: AJAX-based client-side filtering backed by `backend/api/filter.php` supporting text search across business names and descriptions, category filtering, price tier, newly added flag, 24/7 status, and delivery/pickup availability.
+- **Business Details View**: Expandable details container rendering hero images, about section, contact info (phone, email, website, social links), and weekly opening hours schedules.
+- **Authentication & RBAC Baseline**: Session-based login handling (`frontend/login.php`, `backend/utils/processLogin.php`) with role differentiation between users and businesses.
+- **Sample Seed Dataset**: Comprehensive seed data populating 12 local Singapore businesses (e.g., The Daily Loaf Bakery, Gents Grooming Parlor, Java Junction Cafe, Mama's Kitchen), payment method mappings, operating hours, and bundled image assets.
+- **Azure App Service CI/CD**: GitHub Actions workflow (`.github/workflows/main_localoco.yml`) and configuration for Azure App Service deployment.
+
+### Fixed
+
+- Path resolution and whitespace issues causing 404s when loading dummy business images.
+- Output buffering with `ob_start()` to eliminate "headers already sent" errors during HTTP redirects.
+- Missing script execution termination (`exit`) following HTTP redirects.
+- Linux certificate handling in `ConnectionManager` for SSL-secured Azure MySQL connections.
